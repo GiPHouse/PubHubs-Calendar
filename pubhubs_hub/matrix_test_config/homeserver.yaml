@@ -1,0 +1,108 @@
+# Default settings for the PubHubs Synapse Homeserver
+#
+#
+# This file serves both as an example to hub administrators that are
+# configuring their hub and as the default settings for a testhub
+# running locally in a development setup.
+#
+# This dual purpose ensures the documentation does not get outdated.
+#
+# Pubhubs hubs are based on the Synapse matrix server. 
+# To ensure that this Synapse server is configured correctly for use as a PubHubs hub, 
+# a special 'update_config' script take your homeserver.yaml, and generate an updated homeserver.live.yaml,
+# that is actually used to run the Synapse server.
+#
+# The update_config script will not only add missing configuration to homeserver.live.yaml,
+# but will also raise an error and crash the synapse hub when it detects any misconfiguration.
+# If the hub does not start, please take a look at its logs.  The update_config script will
+# explain any problem it found there - and how to solve it.
+#
+#
+# If you are running your own hub, some of the values below must be changed.
+# These are indicated by with a 'DO CHANGE' comment, and (mostly) checked by
+# the update_config.
+#
+# NOTE TO PUBHUBS DEVELOPERS
+#
+# If you change anything here, please realise these changes are not distributed automatically to the hubs,
+# so consider updating the 'update_config' module in boot/update_config.py.
+#
+
+modules:
+  - module: conf.modules.pubhubs.HubClientApi # DON'T CHANGE
+    config:
+          {
+            # URL of the hub client
+            client_url: "http://localhost:8001", # DO CHANGE - to https://<your-hub-client-domain-name>
+            ## For DEVELOPMENT only:
+            # yivi_url: "http://<outside container>:8089",
+            # yivi_client_url: "http://<outside container>:8089",
+            # public_yivi_url: "http://<outside container>:8008/",
+          }
+  - module: conf.modules.pubhubs.Core # DON'T CHANGE
+    config:
+      # points to the new multi-server setup pubhubs central
+      phc_url: http://host.docker.internal:5050 # DO CHANGE
+
+oidc_providers: [{ client_id: "not used but must be set"  }]
+
+# Server name, used in full user/room names.
+# Warning: cannot be changed later on without issues.
+server_name: "testhub.matrix.host" # DO CHANGE - to your Hub server domain name
+
+# Server URL
+public_baseurl: http://localhost:8008 # DO CHANGE - to https://<hub-server-domain>
+
+macaroon_secret_key: "macaroon_key"           # DO CHANGE - to e.g. a 32 letter generated password
+signing_key_path: "/data/testhub.signing.key" # DO CHANGE - remove this to auto-generate a signing key
+
+trusted_key_servers: []
+pid_file: /data/homeserver.pid
+report_stats: false
+
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names:
+          - client
+        compress: false
+
+database:
+  name: sqlite3
+  args:
+    database: /data/homeserver.db
+
+log_config: "/data/test_hub.log.config" # Change to /data/log.config
+
+media_store_path: "/data/media_store"
+
+# Allow finding all users, by other users in the hub even if they don't share rooms.
+user_directory:
+    enabled: true
+    search_all_users: true
+    prefer_local_users: true
+    show_locked_users: false
+
+# Skips having to check the redirection with user interaction.
+sso:
+  client_whitelist:
+    - https://app.pubhubs.net
+    - http://localhost # DO CHANGE - to https://<your-hub-client-domain-name>
+
+update_profile_information: true
+
+
+# Less login attempt restrictions
+rc_login:
+  address:
+    per_second: 1000
+    burst_count: 1000
+  account:
+    per_second: 1000
+    burst_count: 1000
+  failed_attempts:
+    per_second: 1000
+    burst_count: 1000

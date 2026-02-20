@@ -1,0 +1,6 @@
+# ignore everything...
+*
+# except:  * files for the hub ...
+!modules/**/*.py
+!assets
+!boot/**/*.py

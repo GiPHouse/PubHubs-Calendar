@@ -1,0 +1,348 @@
+variables:
+  DOCKER_DRIVER: overlay # faster docker builds, see https://gitlab.com/gitlab-org/gitlab-ce/issues/21374
+
+before_script:
+  - if [ -n "${CI_COMMIT_TAG}" ]; then ENVIRONMENT=stable; fi
+  - if [ -z "${ENVIRONMENT}" ]; then ENVIRONMENT="${CI_COMMIT_REF_NAME}"; fi
+  - echo "Environment=${ENVIRONMENT}"
+
+# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
+stages: # List of stages for jobs, and their order of execution
+  - tests
+  - publish-images
+  - deploy-own
+
+rust-clippy:
+  stage: tests
+  tags:
+    - docker
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  script:
+    - cd pubhubs
+    - cargo clippy -- --deny "warnings"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+
+rust-unit-test:
+  stage: tests
+  tags:
+    - docker
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  script:
+    - cd pubhubs
+    - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
+
+rust-cargo-deny:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags:
+    - docker
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  script:
+    - cd pubhubs
+    - cargo deny check
+
+build-pubhubs-image:
+  stage: publish-images
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:${CI_COMMIT_REF_NAME}
+    - if: $CI_COMMIT_TAG
+      variables:
+        CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:stable
+  needs:
+    - job: rust-unit-test
+      optional: true
+    - job: rust-cargo-deny
+      optional: true
+    - job: rust-clippy
+      optional: true
+  tags:
+    - docker
+  image: docker:latest
+  script:
+    - unset DOCKER_HOST
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
+    # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
+    # a bit more history until we hit our tag's commit.
+    - until git describe --tags; do git fetch --deepen 10; done
+    - cd pubhubs
+    - docker build --build-arg PH_VERSION="$(git describe --tags)" -f Dockerfile -t ${CONTAINER_IMAGE} .
+    - docker push ${CONTAINER_IMAGE}
+
+deploy-main-phmss:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - build-pubhubs-image
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-main
+
+deploy-stable-phmss:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - build-pubhubs-image
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-stable
+
+hub-unit-test: # This job runs in the test stage.
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags:
+    - docker
+  image: python:latest
+  before_script:
+    - python --version # For debugging
+    - pip install unittest-xml-reporting
+  script:
+    - cd pubhubs_hub
+    - pip install --upgrade -r requirements.txt
+    - python -m xmlrunner discover -p '*_test.py' --output-file report.xml
+  artifacts:
+    reports:
+      junit: pubhubs_hub/report.xml
+    expire_in: 1 week
+
+build-image-hub:
+  stage: publish-images
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
+    - if: $CI_COMMIT_TAG
+      variables:
+        CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:stable
+  needs:
+    - job: hub-unit-test
+      optional: true
+  tags:
+    - docker
+  image: docker:latest # docker:stable does not work, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/228
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
+    # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch
+    # a bit more history until we hit our tag's commit.
+    - until git describe --tags; do git fetch --deepen 10; done
+    - cd pubhubs_hub
+    - docker build -t ${CONTAINER_IMAGE} --build-arg HUB_VERSION="$(git describe --tags)" .
+    - docker push ${CONTAINER_IMAGE}
+
+deploy-main-hub:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - build-image-hub
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - cd pubhubs_hub
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-main
+
+deploy-stable-hubs:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - build-image-hub
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - cd pubhubs_hub
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-stable
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-ruhub-matrix
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-tryouthub-matrix
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-open-source-dev-matrix
+
+globalclient-format-check:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags: [docker]
+  image: node:24.13.0
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
+    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
+    - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
+
+globalclient-build:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags: [docker]
+  image: node:24.13.0
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
+    - npx vite build
+
+hubclient-format-check:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags: [docker]
+  image: node:24.13.0
+  script:
+    - cd hub-client
+    - npm ci
+    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
+
+globalclient-unit-test:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags: [docker]
+  image: node:24.13.0
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci --cache .npm --prefer-offline
+    - npm run test
+
+hubclient-unit-test:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags: [docker]
+  image: node:24.13.0
+  before_script:
+    - cd hub-client
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npm run test
+
+build-hubclient:
+  stage: publish-images
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:${CI_COMMIT_REF_NAME}
+    - if: $CI_COMMIT_TAG
+      variables:
+        CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:stable
+  needs:
+    - job: hubclient-format-check
+      optional: true
+    - job: hubclient-unit-test
+      optional: true
+  tags:
+    - docker
+  image: docker:latest
+  script:
+    - cd hub-client
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - docker push ${CONTAINER_IMAGE}
+
+deploy-main-hubclient:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs: &deployhubclientneeds
+    - build-hubclient
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - cd hub-client
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-main
+
+deploy-stable-clients:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs: *deployhubclientneeds
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - cd hub-client
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-stable
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-ruhub-client
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-tryouthub-client
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-open-source-dev-client
+
+build-and-deploy-global-client-main:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - globalclient-build
+    - globalclient-format-check
+    - globalclient-unit-test
+  tags: [docker]
+  image: node:24.13.0
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
+    - npx vite build
+    - cd dist
+    - chmod 600 $UPDATE_GLOBAL_CLIENT_MAIN_KEY
+    - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_MAIN_KEY
+
+build-and-deploy-global-client-stable:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - job: globalclient-build
+      optional: true
+    - job: globalclient-format-check
+      optional: true
+    - job: globalclient-unit-test
+      optional: true
+  tags: [docker]
+  image: node:24.13.0
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
+    - npx vite build
+    - cd dist
+    - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY
+    - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_STABLE_KEY

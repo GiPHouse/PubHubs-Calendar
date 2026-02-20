@@ -1,0 +1,8 @@
+# Ignore built files.
+/target
+
+# swap files (created by vi, for example)
+*.swp
+
+# new configuration file:
+pubhubs.toml

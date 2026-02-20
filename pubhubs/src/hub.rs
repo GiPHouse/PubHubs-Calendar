@@ -1,0 +1,81 @@
+//! Information about hubs
+
+use crate::handle::{Handle, Handles};
+use crate::id::Id;
+use crate::servers::config::host_aliases::UrlPwa;
+
+/// Basic public details about hub, as provided by PubHubs Central.
+#[derive(serde::Serialize, serde::Deserialize, Debug, Eq, PartialEq, Clone)]
+pub struct BasicInfo<UrlT = url::Url> {
+    /// The handles for this hub, using in URLs and other places to be understood by both human and
+    /// machine. The first one is the one that's used by default.
+    /// **WARNING:**  Handles may be added, but should not be removed.
+    pub handles: Handles,
+
+    /// Human-readable short name for this hub
+    pub name: String,
+
+    /// Short description for this hub.  This is stored centrally to facilitate searching.
+    /// May be changed freely.
+    pub description: String,
+
+    /// Hub client API url, likely of the form `https://<some domain>/_synapse/client/`.
+    /// Must end with a `/`.  Can be changed freely.
+    pub url: UrlT,
+
+    /// Immutable and unique identifier
+    pub id: Id,
+}
+
+impl From<BasicInfo<UrlPwa>> for BasicInfo {
+    fn from(hi: BasicInfo<UrlPwa>) -> Self {
+        Self {
+            url: hi.url.as_ref().clone(),
+            name: hi.name,
+            description: hi.description,
+            id: hi.id,
+            handles: hi.handles,
+        }
+    }
+}
+
+impl crate::map::Handled for BasicInfo {
+    fn handles(&self) -> &[Handle] {
+        &self.handles
+    }
+
+    fn id(&self) -> &Id {
+        &self.id
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_info_serde() {
+        assert_eq!(
+            serde_json::from_str::<BasicInfo>(
+                r#"{"handles": [], "name": "Hub 1", "url": "https://example.com", "description": "some hub",
+                "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
+            )
+            .unwrap_err()
+            .to_string(),
+            "must have at least one handle at line 1 column 14",
+        );
+        assert_eq!(
+            serde_json::from_str::<BasicInfo>(
+                r#"{"handles": ["hub_1"], "name": "Hub 1", "url": "https://example.com", "description": "some hub", "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
+            )
+            .unwrap(),
+            BasicInfo{
+                handles: vec!["hub_1".parse().unwrap()].into(),
+                name: "Hub 1".to_string(),
+                url: "https://example.com".parse().unwrap(),
+                description: "some hub".to_string(),
+                id: "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA".parse().unwrap(),
+            }
+        );
+    }
+}

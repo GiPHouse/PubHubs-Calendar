@@ -1,0 +1,133 @@
+use crate::common::elgamal::Encoding as _;
+use anyhow::Result;
+
+#[derive(clap::Args, Debug)]
+pub struct ToolsArgs {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+impl ToolsArgs {
+    pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
+        match self.command {
+            Commands::Generate(args) => args.run(),
+            Commands::YiviEpoch(args) => args.run(),
+        }
+    }
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum Commands {
+    /// Generates identifiers and/or key material
+    Generate(generate::Args),
+
+    /// Prints information about the current Yivi epoch
+    YiviEpoch(YiviEpochArgs),
+}
+
+#[derive(clap::Args, Debug)]
+struct YiviEpochArgs {
+    /// Print information about the NUMBERth yivi epoch
+    #[arg(long, value_name = "NUMBER", conflicts_with = "at")]
+    nr: Option<u64>,
+
+    /// Print information about the yivi epoch at the given TIMESTAMP such as '2025-12-17 15:15:15'
+    #[arg(
+        long,
+        value_name = "TIMESTAMP",
+        value_parser = humantime::parse_rfc3339_weak,
+        conflicts_with = "nr"
+    )]
+    at: Option<std::time::SystemTime>,
+}
+
+impl YiviEpochArgs {
+    fn run(self) -> Result<()> {
+        let epoch = if let Some(nr) = self.nr {
+            crate::servers::yivi::Epoch::with_seqnr(nr)
+        } else if let Some(at) = self.at {
+            let nd: crate::api::NumericDate = at.into();
+            crate::servers::yivi::Epoch::from(nd)
+        } else {
+            crate::servers::yivi::Epoch::current()
+        };
+
+        print!("{}", epoch);
+
+        Ok(())
+    }
+}
+
+/// Implementation details of [`Commands::Generate`].
+mod generate {
+    use super::*;
+
+    #[derive(clap::Args, Debug)]
+    pub(super) struct Args {
+        #[command(subcommand)]
+        command: Commands,
+    }
+
+    impl Args {
+        pub(super) fn run(self) -> Result<()> {
+            match self.command {
+                Commands::Id(args) => args.run(),
+                Commands::Scalar(args) => args.run(),
+                Commands::SigningKey(args) => args.run(),
+            }
+        }
+    }
+
+    #[derive(clap::Subcommand, Debug)]
+    enum Commands {
+        /// Generate a random identifier for e.g. a hub, attribute type, ...
+        Id(IdArgs),
+
+        /// Generate a random ristretto25519 scalar to be used e.g. as elgamal private key
+        Scalar(ScalarArgs),
+
+        /// Generate a random ed25519 signing key
+        SigningKey(SigningKeyArgs),
+    }
+
+    #[derive(clap::Args, Debug)]
+    struct IdArgs {}
+
+    impl IdArgs {
+        fn run(self) -> Result<()> {
+            println!("{}", crate::id::Id::random());
+
+            Ok(())
+        }
+    }
+
+    #[derive(clap::Args, Debug)]
+    struct ScalarArgs {}
+
+    impl ScalarArgs {
+        fn run(self) -> Result<()> {
+            let pk = crate::elgamal::PrivateKey::random();
+
+            println!("x (private key): {}", pk.to_hex());
+            println!("xB (public key): {}", pk.public_key().to_hex());
+
+            Ok(())
+        }
+    }
+
+    #[derive(clap::Args, Debug)]
+
+    struct SigningKeyArgs {}
+
+    impl SigningKeyArgs {
+        fn run(self) -> Result<()> {
+            let sk = crate::api::SigningKey::generate();
+            let vk: crate::api::VerifyingKey = sk.verifying_key().into();
+
+            println!("  signing key: {sk}");
+            println!("verifying key: {vk}");
+
+            Ok(())
+        }
+    }
+}

@@ -1,0 +1,68 @@
+<template>
+	<div class="flex">
+		<Button
+			v-for="(option, index) in options"
+			:key="index"
+			:color="optionIsSelected(option) ? 'primary' : 'gray'"
+			:size="size"
+			:class="roundedClass(index)"
+			@click="
+				selectOption(option);
+				changed();
+			"
+			>{{ option.label }}</Button
+		>
+	</div>
+</template>
+
+<script setup lang="ts">
+	// Packages
+	import { PropType, watch } from 'vue';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+
+	// Composables
+	import { Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+
+	const props = defineProps({
+		options: {
+			type: Array as PropType<Options>,
+			required: true,
+		},
+		value: {
+			type: [Number, String, Boolean],
+			default: '',
+		},
+		size: {
+			type: String,
+			default: 'base',
+		},
+	});
+
+	watch(
+		() => props.value,
+		() => {
+			setValue(props.value);
+		},
+	);
+
+	const emit = defineEmits(usedEvents);
+	const { setValue, setOptions, selectOption, optionIsSelected, changed } = useFormInputEvents(emit);
+
+	setValue(props.value);
+	setOptions(props.options);
+
+	function roundedClass(index: number) {
+		if (index === 0) {
+			return 'rounded-r-none';
+		}
+		if (index > 0 && index < props.options.length - 1) {
+			return 'rounded-l-none rounded-r-none';
+		}
+		if (index === props.options.length - 1) {
+			return 'rounded-l-none';
+		}
+		return '';
+	}
+</script>
