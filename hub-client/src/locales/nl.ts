@@ -203,7 +203,7 @@ const nl = {
 		open_instructions: 'Bekijk uitleg',
 	},
 	menu: {
-		calender: 'Kalender',
+		calendar: 'Kalendar',
 		contact: 'Admin Contact',
 		copy_hub_url: 'Kopieer link naar hub',
 		copy_room_url: 'Kopieer link naar kamer',

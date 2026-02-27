@@ -204,7 +204,7 @@ const en = {
 		open_instructions: 'Look at instructions',
 	},
 	menu: {
-		calender: 'Calender',
+		calendar: 'Calendar',
 		contact: 'Contact Admin',
 		copy_hub_url: 'Copy link to hub',
 		copy_room_url: 'Copy link to room',
