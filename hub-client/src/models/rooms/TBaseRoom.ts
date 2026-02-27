@@ -4,6 +4,7 @@ import { IStateEvent } from 'matrix-js-sdk';
 // Types
 enum RoomType {
 	PH_MESSAGES_DEFAULT = 'ph.messages.default',
+	PH_MESSAGES_CALENDAR = 'ph.messages.calendar',
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
 	PH_MESSAGES_DM = 'ph.messages.dm',
 	PH_MESSAGES_GROUP = 'ph.messages.group',
@@ -22,6 +23,7 @@ enum RoomCategory {
 const RoomCategoryMap = {
 	[RoomType.PH_MESSAGES_DEFAULT]: RoomCategory.PUBLIC,
 	[RoomType.PH_FORUM_ROOM]: RoomCategory.PUBLIC,
+	[RoomType.PH_MESSAGES_CALENDAR]: RoomCategory.PUBLIC,
 
 	[RoomType.PH_MESSAGES_RESTRICTED]: RoomCategory.SECURED,
 
