@@ -28,6 +28,9 @@ enum PubHubsMsgType {
 	VotingWidgetModify = 'pubhubs.voting_widget.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
+	// may need to add more calendar types as needed
+	// e.g. edit, delete, add/invite participants ...
+	CalendarEvent = 'pubhubs.calendar_event.event', 
 }
 
 enum PubHubsInvisibleMsgType {

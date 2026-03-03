@@ -26,6 +26,7 @@ import { SystemDefaults } from '@hub-client/models/constants';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
 import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
 import Room from '@hub-client/models/rooms/Room';
 import { RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TSearchParameters } from '@hub-client/models/search/TSearch';
@@ -900,6 +901,20 @@ const usePubhubsStore = defineStore('pubhubs', {
 			};
 			//@ts-ignore
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+		},
+
+		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
+			// TODO: Implement sending calendar event, look at addPoll (line ~775)
+			const content: TCalendarEventMessageContent = {
+				msgtype: PubHubsMgType.CalendarEvent,
+				body: calEvent.title,
+				title: calEvent.title,
+				description: calEvent.description,
+				startTime: calEvent.startTime,
+				endTime: calEvent.endTime,
+			};
+
+			await this.client.sendMessage(roomId, content);
 		},
 
 		async sendPrivateReceipt(event: MatrixEvent, roomId: string) {
