@@ -19,10 +19,12 @@
 <script setup>
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
-	import listPlugin from '@fullcalendar/list';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
-	import { computed, ref } from 'vue';
+	import { computed, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
+
+	const { t, locale } = useI18n();
 
 	// Mobile detection (adjust based on your setup)
 	const isMobile = computed(() => {
@@ -50,25 +52,126 @@
 			backgroundColor: '#ef4444',
 			borderColor: '#ef4444',
 		},
-		{
-			id: '3',
-			title: 'Client Call',
-			start: new Date(new Date().setDate(new Date().getDate() + 1)),
-			end: new Date(new Date().setDate(new Date().getDate() + 1)),
-			backgroundColor: '#10b981',
-			borderColor: '#10b981',
-		},
 	]);
+
+	const getCalendarLocale = () => {
+		return {
+			code: locale.value,
+			buttonText: {
+				today: t('time.today'),
+				month: t('time.month'),
+				week: t('time.week'),
+				day: t('time.day'),
+			},
+			weekText: 'W',
+			allDayText: 'all-day', // You might want to add this to your locale files
+			moreLinkText: 'more',
+			noEventsText: 'No events', // You might want to add this to your locale files
+
+			// Day names - FullCalendar uses 0 = Sunday, 1 = Monday, etc.
+			// Your days.7 = Sunday, days.1 = Monday, etc.
+			dayNames: [
+				t('daysfull.7'), // Sunday (index 0)
+				t('daysfull.1'), // Monday (index 1)
+				t('daysfull.2'), // Tuesday (index 2)
+				t('daysfull.3'), // Wednesday (index 3)
+				t('daysfull.4'), // Thursday (index 4)
+				t('daysfull.5'), // Friday (index 5)
+				t('daysfull.6'), // Saturday (index 6)
+			],
+
+			// Short day names
+			dayNamesShort: [
+				t('days.7'), // Sun
+				t('days.1'), // Mon
+				t('days.2'), // Tue
+				t('days.3'), // Wed
+				t('days.4'), // Thu
+				t('days.5'), // Fri
+				t('days.6'), // Sat
+			],
+
+			// Month names - FullCalendar uses 0 = January, 1 = February, etc.
+			monthNames: [
+				t('monthsfull.1'), // January (index 0)
+				t('monthsfull.2'), // February (index 1)
+				t('monthsfull.3'), // March (index 2)
+				t('monthsfull.4'), // April (index 3)
+				t('monthsfull.5'), // May (index 4)
+				t('monthsfull.6'), // June (index 5)
+				t('monthsfull.7'), // July (index 6)
+				t('monthsfull.8'), // August (index 7)
+				t('monthsfull.9'), // September (index 8)
+				t('monthsfull.10'), // October (index 9)
+				t('monthsfull.11'), // November (index 10)
+				t('monthsfull.12'), // December (index 11)
+			],
+
+			monthNamesShort: [
+				t('months.1'), // Jan
+				t('months.2'), // Feb
+				t('months.3'), // Mar
+				t('months.4'), // Mar
+				t('months.5'), // Mar
+				t('months.6'), // Mar
+				t('months.7'), // Mar
+				t('months.8'), // Mar
+				t('months.9'), // Mar
+				t('months.10'), // Mar
+				t('months.11'), // Mar
+				t('months.12'), // Mar
+			],
+		};
+	};
 
 	// Calendar options
 	const calendarOptions = ref({
-		plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
+		plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
+		firstDay: 1, // 0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
 		headerToolbar: {
 			left: 'prev,next today',
 			center: 'title',
-			right: isMobile.value ? 'dayGridMonth,listWeek' : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+			right: isMobile.value ? 'dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay',
 		},
+
+		dayCellDidMount: function (info) {
+			// Check if this is the current day
+			if (info.date.toDateString() === new Date().toDateString()) {
+				// Get the day number element
+				const dayNumberEl = info.el.querySelector('.fc-daygrid-day-number');
+
+				if (dayNumberEl) {
+					// Wrap the day number in a circle
+					const dayNumber = dayNumberEl.innerText;
+					dayNumberEl.innerHTML = `<span class="today-circle">${dayNumber}</span>`;
+				}
+			}
+		},
+
+		views: {
+			// Month view - just day names (Mon, Tue, etc.)
+			dayGridMonth: {
+				dayHeaderFormat: { weekday: 'short' }, // "Mon", "Tue", etc.
+			},
+
+			// Week view - day name + date (Mon 3)
+			timeGridWeek: {
+				dayHeaderFormat: { weekday: 'short', day: 'numeric' }, // "Mon 3"
+			},
+
+			// Day view - full day name (Monday)
+			timeGridDay: {
+				dayHeaderFormat: { weekday: 'long' }, // "Monday"
+			},
+		},
+
+		// Customize the title format
+		titleFormat: {
+			year: 'numeric',
+			month: 'long',
+		},
+
 		weekends: true,
 		editable: true,
 		selectable: true,
@@ -83,15 +186,6 @@
 		eventDrop: handleEventDrop,
 		eventResize: handleEventResize,
 
-		// Custom button text
-		buttonText: {
-			today: 'Today',
-			month: 'Month',
-			week: 'Week',
-			day: 'Day',
-			list: 'List',
-		},
-
 		// Event colors
 		eventColor: '#3788d8',
 
@@ -99,13 +193,22 @@
 		aspectRatio: isMobile.value ? 0.8 : 1.35,
 
 		// Locale (adjust based on your needs)
-		locale: 'en',
+		locales: [getCalendarLocale()], // Add this
+		locale: locale.value,
 
 		// Loading state
 		loading: handleLoading,
 
 		// Event rendering
 		eventContent: renderEventContent,
+	});
+
+	watch(locale, () => {
+		if (fullCalendar.value) {
+			// Update the calendar with new locale
+			fullCalendar.value.getApi().setOption('locales', [getCalendarLocale()]);
+			fullCalendar.value.getApi().setOption('locale', locale.value);
+		}
 	});
 
 	// Event handlers
@@ -215,31 +318,30 @@
 		}
 	}
 
-	/* Custom FullCalendar styles */
+	/* FullCalendar styles */
 	:deep(.fc) {
 		--fc-border-color: #e5e7eb;
-		--fc-button-bg-color: #3b82f6;
-		--fc-button-border-color: #3b82f6;
-		--fc-button-hover-bg-color: #2563eb;
-		--fc-button-hover-border-color: #2563eb;
-		--fc-button-active-bg-color: #1d4ed8;
-		--fc-button-active-border-color: #1d4ed8;
-		--fc-event-bg-color: #3b82f6;
-		--fc-event-border-color: #3b82f6;
-		--fc-today-bg-color: rgba(59, 130, 246, 0.05);
+		--fc-button-bg-color: #01aeef;
+		--fc-button-border-color: #01aeef;
+		--fc-button-hover-bg-color: #5cbff1;
+		--fc-button-hover-border-color: #5cbff1;
+		--fc-button-active-bg-color: #0086e2;
+		--fc-button-active-border-color: #0086e2;
+		--fc-event-bg-color: #01aeef;
+		--fc-event-border-color: #01aeef;
+		--fc-today-bg-color: transparent;
 	}
 
 	:deep(.fc-toolbar-title) {
-		font-size: 1.5rem;
+		font-size: 16px;
 		font-weight: 600;
-		color: #1f2937;
+		color: var(--on-surface);
 	}
 
 	:deep(.fc-button) {
 		font-weight: 500;
-		padding: 0.5rem 1rem;
-		border-radius: 0.5rem;
-		text-transform: capitalize;
+		font-size: 14px;
+		border-radius: 0.7rem;
 	}
 
 	:deep(.fc-button-primary:not(:disabled):active:focus),
@@ -248,14 +350,10 @@
 		box-shadow: none;
 	}
 
-	:deep(.fc-day-today) {
-		background-color: rgba(59, 130, 246, 0.05) !important;
-	}
-
 	:deep(.fc-event) {
 		border-radius: 0.375rem;
 		padding: 0.25rem 0.5rem;
-		font-size: 0.875rem;
+		font-size: 1rem;
 		cursor: pointer;
 		transition: all 0.2s ease;
 	}
@@ -265,29 +363,73 @@
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
+	:deep(.fc-timegrid-axis) {
+		width: 70px; /* Adjust time column width */
+	}
+
+	:deep(.fc-timegrid-slot) {
+		height: 30px; /* Adjust height of each time slot */
+	}
+
+	:deep(.fc-timegrid-slot-label) {
+		font-size: 12px; /* Adjust time text size */
+		color: var(--on-surface-dim); /* Time text color */
+	}
+
+	:deep(.fc-daygrid-more-link) {
+		border-style: none; /* Remove dashed border */
+		text-decoration: none; /* Remove underline */
+	}
+
+	:deep(.fc-timegrid-slot-label-frame) {
+		color: var(--on-surface-dim);
+	}
+
+	/* Day headers (day/week/month views) */
+	:deep(.fc-col-header-cell) {
+		padding: 0.75rem 0;
+		background-color: var(--surface-low);
+		font-weight: 600;
+		font-size: 14px;
+		color: var(--on-surface);
+	}
+
+	:deep(.fc-col-header-cell-cushion) {
+		color: var(--on-surface);
+		text-decoration: none;
+		font-size: 14px;
+	}
+
+	/* Day numbers */
 	:deep(.fc-daygrid-day-number) {
 		font-weight: 500;
-		color: #374151;
+		font-size: 14px;
+		color: var(--on-surface);
 		padding: 0.5rem;
+		text-decoration: none;
 	}
 
 	:deep(.fc-daygrid-day-frame) {
 		min-height: 100px;
 	}
 
-	:deep(.fc-col-header-cell) {
-		padding: 0.75rem 0;
-		background-color: #f9fafb;
+	/* Day header in day/week view */
+	:deep(.fc-day-header) {
+		color: var(--on-surface);
+		font-size: 14px;
+	}
+
+	/* Today circle styling */
+	:deep(.fc-day-today .fc-daygrid-day-number .today-circle) {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		background-color: var(--accent-blue);
+		color: white;
+		border-radius: 50%;
 		font-weight: 600;
-		color: #4b5563;
-	}
-
-	:deep(.fc-list-event) {
-		cursor: pointer;
-	}
-
-	:deep(.fc-list-event:hover) {
-		background-color: rgba(59, 130, 246, 0.05);
 	}
 
 	/* Mobile adjustments */
@@ -298,7 +440,7 @@
 		}
 
 		:deep(.fc-toolbar-title) {
-			font-size: 1.25rem;
+			font-size: 1rem;
 		}
 
 		:deep(.fc-button) {
@@ -308,6 +450,15 @@
 
 		:deep(.fc-daygrid-day-frame) {
 			min-height: 60px;
+		}
+
+		/* Adjust time column for mobile */
+		:deep(.fc-timegrid-axis) {
+			width: 50px;
+		}
+
+		:deep(.fc-timegrid-slot-label) {
+			font-size: 10px;
 		}
 	}
 </style>

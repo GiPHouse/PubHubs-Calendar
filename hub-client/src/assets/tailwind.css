@@ -87,6 +87,15 @@
 	--on-accent-yellow: #000000;
 	--accent-teal: #27e0bf;
 	--on-accent-teal: #000000;
+
+
+	/*Calendar colors*/
+	--dark-blue: "#011242";
+	--light-blue: "#138DE8";
+	--blue: "#0B4F8C";
+	--button-blue-selected: "#0086E2";
+	--button-blue: "#01AEEF";
+	--day-numbers: "#E4E5E8";
 }
 
 .dark {
@@ -120,6 +129,12 @@
 	--surface-high: #202020;
 	--on-surface-variant: #cccccc;
 	--on-surface-disabled: #555555;
+
+
+	/*Calendar colors*/
+	--day-numbers: "#C7C8CB";
+	--button-blue: "#01AEEF";
+
 }
 
 @theme {
