@@ -15,6 +15,7 @@ const defaultMenu: MenuItems = [
 	{ key: 'menu.home', icon: 'house', to: { name: 'home' }, path: '/' },
 	{ key: 'menu.directmsg', icon: 'chat-circle-text', to: { name: 'direct-msg' }, path: '/direct-msg' },
 	{ key: 'menu.discover', icon: 'compass', to: { name: 'discover-rooms' }, path: '/discover-rooms' },
+	{ key: 'menu.calendar', icon: 'calendar', to: { name: 'calendar' }, path: '/calendar' },
 ];
 
 const useMenu = defineStore('menu', {

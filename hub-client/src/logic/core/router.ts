@@ -89,6 +89,13 @@ const routes = [
 		name: 'nop',
 		component: () => import('@hub-client/pages/NotImplemented.vue'),
 	},
+
+	{
+		path: '/calendar',
+		name: 'calendar',
+		component: () => import('@hub-client/pages/Calendar.vue'),
+		meta: { hideBar: true },
+	},
 ];
 
 // Create the router instance

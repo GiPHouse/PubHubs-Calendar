@@ -29,6 +29,9 @@
 						<!-- Search -->
 						<GlobalBarButton type="magnifying-glass" :selected="sidebar.activeTab.value === SidebarTab.Search" @click="sidebar.toggleTab(SidebarTab.Search)" />
 
+						<!-- Events -->
+						<GlobalBarButton type="calendar" :selected="sidebar.activeTab.value === SidebarTab.Events" @click="sidebar.toggleTab(SidebarTab.Events)" />
+
 						<!-- Room library -->
 						<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="sidebar.activeTab.value === SidebarTab.Library" @click="sidebar.toggleTab(SidebarTab.Library)" />
 

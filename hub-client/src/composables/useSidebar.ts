@@ -13,6 +13,7 @@ export enum SidebarTab {
 	None = 'none',
 	Search = 'search',
 	Thread = 'thread',
+	Event = 'event',
 }
 
 const activeTab = ref<SidebarTab>(SidebarTab.None);
