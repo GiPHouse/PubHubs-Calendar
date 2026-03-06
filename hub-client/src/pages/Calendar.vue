@@ -13,16 +13,22 @@
 		<div class="calendar-wrapper p-4 md:p-6">
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
+		<EventCreation v-if="showEventCreation" :start="selectedRange.startStr" :end="selectedRange.endStr" @close="showEventCreation = false" @submit="addEvent" />
 	</HeaderFooter>
 </template>
 
 <script setup>
+	import EventCreation from './EventCreation.vue';
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	// Event creation
+	const showEventCreation = ref(false);
+	const selectedRange = ref({ startStr: '', endStr: '' });
 
 	const { t, locale } = useI18n();
 
@@ -152,17 +158,17 @@
 		views: {
 			// Month view - just day names (Mon, Tue, etc.)
 			dayGridMonth: {
-				dayHeaderFormat: { weekday: 'short' }, // "Mon", "Tue", etc.
+				dayHeaderFormat: { weekday: 'short' },
 			},
 
 			// Week view - day name + date (Mon 3)
 			timeGridWeek: {
-				dayHeaderFormat: { weekday: 'short', day: 'numeric' }, // "Mon 3"
+				dayHeaderFormat: { weekday: 'short', day: 'numeric' },
 			},
 
 			// Day view - full day name (Monday)
 			timeGridDay: {
-				dayHeaderFormat: { weekday: 'long' }, // "Monday"
+				dayHeaderFormat: { weekday: 'long' },
 			},
 		},
 
@@ -211,11 +217,36 @@
 		}
 	});
 
+	function addEvent(newEvent) {
+		calendarEvents.value.push({
+			title: newEvent.title,
+			start: newEvent.start,
+			end: newEvent.end,
+			extendedProps: {
+				location: newEvent.location,
+				room: newEvent.room,
+				description: newEvent.description,
+			},
+		});
+		showEventCreation.value = false;
+	}
+
 	// Event handlers
 	function handleDateClick(info) {
-		console.log('Date clicked:', info.dateStr);
-		// Emit event or handle date click
-		emit('dateSelected', info.date);
+		const clickedDate = new Date(info.dateStr);
+
+		const start = new Date(clickedDate);
+		start.setHours(1, 0, 0, 0);
+
+		const end = new Date(start);
+		end.setMinutes(start.getMinutes() + 30);
+
+		selectedRange.value = {
+			startStr: start.toISOString(),
+			endStr: end.toISOString(),
+		};
+
+		showEventCreation.value = true;
 	}
 
 	function handleEventClick(info) {
@@ -225,19 +256,8 @@
 	}
 
 	function handleSelect(info) {
-		console.log('Selected range:', info.startStr, info.endStr);
-		// Handle date range selection
-		const title = prompt('Enter event title:');
-		if (title) {
-			const newEvent = {
-				title: title,
-				start: info.startStr,
-				end: info.endStr,
-				allDay: info.allDay,
-			};
-			calendarEvents.value.push(newEvent);
-			emit('eventAdded', newEvent);
-		}
+		selectedRange.value = { startStr: info.startStr, endStr: info.endStr };
+		showEventCreation.value = true;
 	}
 
 	function handleEventDrop(info) {
@@ -336,12 +356,19 @@
 		font-size: 16px;
 		font-weight: 600;
 		color: var(--on-surface);
+		text-transform: capitalize;
 	}
 
 	:deep(.fc-button) {
 		font-weight: 500;
 		font-size: 14px;
 		border-radius: 0.7rem;
+	}
+
+	:deep(.fc-toolbar-chunk:last-child .fc-button) {
+		min-width: 70px; /* Adjust this value as needed */
+		text-align: center;
+		white-space: nowrap;
 	}
 
 	:deep(.fc-button-primary:not(:disabled):active:focus),
@@ -376,11 +403,6 @@
 		color: var(--on-surface-dim); /* Time text color */
 	}
 
-	:deep(.fc-daygrid-more-link) {
-		border-style: none; /* Remove dashed border */
-		text-decoration: none; /* Remove underline */
-	}
-
 	:deep(.fc-timegrid-slot-label-frame) {
 		color: var(--on-surface-dim);
 	}
@@ -413,6 +435,10 @@
 		min-height: 100px;
 	}
 
+	:deep(.fc-timegrid-axis-frame) {
+		font-size: 12px;
+	}
+
 	/* Day header in day/week view */
 	:deep(.fc-day-header) {
 		color: var(--on-surface);
@@ -432,8 +458,22 @@
 		font-weight: 600;
 	}
 
+	:deep(.fc-col-header-cell-cushion) {
+		text-transform: capitalize; /* Capitalizes first letter of each word */
+	}
+
+	:deep(.fc-timegrid-axis) {
+		font-size: 12px;
+	}
+
 	/* Mobile adjustments */
 	@media (max-width: 768px) {
+		:deep(.fc-toolbar-chunk:last-child .fc-button) {
+			min-width: 60px;
+			font-size: 0.875rem;
+			padding: 0.25rem 0.5rem;
+		}
+
 		:deep(.fc-toolbar) {
 			flex-direction: column;
 			gap: 1rem;
