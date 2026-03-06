@@ -28,9 +28,14 @@ enum PubHubsMsgType {
 	VotingWidgetModify = 'pubhubs.voting_widget.modify',
 	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
 	LibraryFileMessage = 'pubhubs.roomlibrary.file',
-	// may need to add more calendar types as needed
-	// e.g. edit, delete, add/invite participants ...
-	CalendarEvent = 'pubhubs.calendar_event.event', 
+
+	// Calender Events
+	CalendarEvent = 'pubhubs.calendar_event.event',
+	CalenderEventEdit = 'pubhubs.calendar_event.edit', // for editing events
+	CalenderEventDelete = 'pubhubs.calendar_event.delete', /// deleting events
+	CalenderEventRsvp = 'pubhubs.calendar_event.rsvp', // sending RSVP to an event
+	CalenderEventCancel = 'pubhubs.calendar_event.cancel', // setting an event to cancelled
+	CalenderEventModify = 'pubhubs.calendar_event.modify', // editing event informatino
 }
 
 enum PubHubsInvisibleMsgType {
