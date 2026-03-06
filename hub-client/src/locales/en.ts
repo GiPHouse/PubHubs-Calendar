@@ -8,6 +8,13 @@ const en = {
 	card: {
 		description: 'Card issued with the following attributes:',
 	},
+	calendar: {
+		title: 'Title',
+		description: 'Description',
+		location: 'Location',
+		selectRooms: 'Select room(s)',
+		save: 'Save',
+	},
 	state: {
 		button_request: 'Request access',
 		initial: 'Checking whether hub client has access to cookies and local storage...',

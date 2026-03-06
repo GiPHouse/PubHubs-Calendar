@@ -56,6 +56,7 @@
 				<!-- Room sidebar -->
 				<RoomSidebar :active-tab="sidebar.activeTab.value" :is-mobile="sidebar.isMobile.value">
 					<RoomLibrary v-if="sidebar.activeTab.value === SidebarTab.Library" :room="room!" />
+					<RoomEvents v-if="sidebar.activeTab.value == SidebarTab.Events" :room="room!" />
 					<RoomThread
 						v-if="sidebar.activeTab.value === SidebarTab.Thread && room?.getCurrentThreadId()"
 						:room="room!"

@@ -13,12 +13,12 @@
 		<div class="calendar-wrapper p-4 md:p-6">
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
-		<EventCreation v-if="showEventCreation" :start="selectedRange.startStr" :end="selectedRange.endStr" @close="showEventCreation = false" @submit="addEvent" />
+		<EventCreationDialog v-if="showEventCreationDialog" :start="selectedRange.startStr" :end="selectedRange.endStr" @close="showEventCreationDialog = false" @submit="addEvent" />
 	</HeaderFooter>
 </template>
 
 <script setup>
-	import EventCreation from './EventCreation.vue';
+	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
@@ -27,7 +27,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Event creation
-	const showEventCreation = ref(false);
+	const showEventCreationDialog = ref(false);
 	const selectedRange = ref({ startStr: '', endStr: '' });
 
 	const { t, locale } = useI18n();
@@ -228,7 +228,7 @@
 				description: newEvent.description,
 			},
 		});
-		showEventCreation.value = false;
+		showEventCreationDialog.value = false;
 	}
 
 	// Event handlers
@@ -246,7 +246,7 @@
 			endStr: end.toISOString(),
 		};
 
-		showEventCreation.value = true;
+		showEventCreationDialog.value = true;
 	}
 
 	function handleEventClick(info) {
@@ -257,7 +257,7 @@
 
 	function handleSelect(info) {
 		selectedRange.value = { startStr: info.startStr, endStr: info.endStr };
-		showEventCreation.value = true;
+		showEventCreationDialog.value = true;
 	}
 
 	function handleEventDrop(info) {

@@ -8,6 +8,13 @@ const nl = {
 	card: {
 		description: 'Kaart uitgegeven met de volgende kenmerken:',
 	},
+	calendar: {
+		title: 'Titel',
+		description: 'Beschrijving',
+		location: 'Locatie',
+		selectRooms: 'Selecteer kamer(s)',
+		save: 'Opslaan',
+	},
 	state: {
 		button_request: 'Verleen toegang',
 		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',

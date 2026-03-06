@@ -19,7 +19,7 @@
 						<!-- YOUR FORM -->
 						<form @submit.prevent="submit" class="space-y-4">
 							<!-- Title -->
-							<input v-model="form.title" type="text" required class="mt-1 w-full rounded border p-3 text-[22px] leading-tight font-bold" placeholder="Title" />
+							<input v-model="form.title" type="text" required class="mt-1 w-full rounded border p-3 text-[22px] leading-tight font-bold" :placeholder="t('calendar.title')" />
 
 							<!-- Date -->
 							<div>
@@ -38,7 +38,7 @@
 							<!-- Location -->
 							<div class="flex items-center gap-2">
 								<Icon type="map-pin" />
-								<input v-model="form.location" type="text" placeholder="Location" class="w-full rounded border p-2" />
+								<input v-model="form.location" type="text" :placeholder="t('calendar.location')" class="w-full rounded border p-2" />
 							</div>
 
 							<!-- Room Multi-Select Dropdown -->
@@ -47,7 +47,9 @@
 								<div class="relative w-full">
 									<!-- Dropdown button -->
 									<div @click="showRoomDropdown = !showRoomDropdown" class="flex cursor-pointer items-center justify-between rounded border p-2">
-										<span v-if="form.room.length === 0" class="text-gray-400"> Select room(s) </span>
+										<span v-if="form.room.length === 0" class="text-gray-400">
+											{{ t('calendar.selectRooms') }}
+										</span>
 										<span v-else>
 											{{ form.room.join(', ') }}
 										</span>
@@ -70,7 +72,7 @@
 							<!-- Description -->
 							<div class="flex items-start gap-2">
 								<Icon type="chat-circle-text" class="mt-2 text-gray-600" />
-								<textarea v-model="form.description" placeholder="Description" class="w-full rounded border p-2" rows="3" />
+								<textarea v-model="form.description" :placeholder="t('calendar.description')" class="w-full rounded border p-2" rows="3" />
 							</div>
 						</form>
 					</div>
@@ -78,7 +80,7 @@
 					<!-- Footer -->
 					<div class="mt-2 flex w-full flex-row-reverse justify-start gap-2">
 						<button type="button" @click="submit" class="border-primary bg-surface-high/60 hover:bg-surface-high/30 text-primary hover:bg-primary hover:text-on-primary cursor-pointer rounded-md border px-4 py-2 transition">
-							Save
+							{{ t('calendar.save') }}
 						</button>
 					</div>
 				</div>
@@ -89,8 +91,11 @@
 
 <script setup lang="ts">
 	import { computed, reactive, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	const { t, locale } = useI18n();
 
 	const showRoomDropdown = ref(false);
 
@@ -127,11 +132,16 @@
 
 	const formattedDate = computed(() => {
 		const start = new Date(`${form.date}T${form.startTime}`);
-		const datePart = start.toLocaleDateString('en-GB', {
+
+		let datePart = start.toLocaleDateString(locale.value, {
 			weekday: 'long',
 			day: 'numeric',
 			month: 'long',
 		});
+
+		// Capitalize each word
+		datePart = datePart.replace(/\b\w/g, (l) => l.toUpperCase());
+
 		return `${datePart}, ${form.startTime}–${form.endTime}`;
 	});
 
