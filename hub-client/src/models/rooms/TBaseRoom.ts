@@ -10,12 +10,14 @@ enum RoomType {
 	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
 	PH_MESSAGE_STEWARD_CONTACT = 'ph.messages.steward.contact',
 	PH_FORUM_ROOM = 'ph.forum-room',
+	PH_MESSAGES_CALENDAR = 'ph.messages.calendar',
 }
 
 enum RoomCategory {
 	PUBLIC = 'public',
 	SECURED = 'secured',
 	DIRECT = 'direct',
+	CALENDAR = 'calendar',
 }
 
 // map roomtypes to roomcategories
@@ -29,6 +31,8 @@ const RoomCategoryMap = {
 	[RoomType.PH_MESSAGES_GROUP]: RoomCategory.DIRECT,
 	[RoomType.PH_MESSAGE_ADMIN_CONTACT]: RoomCategory.DIRECT,
 	[RoomType.PH_MESSAGE_STEWARD_CONTACT]: RoomCategory.DIRECT,
+
+	[RoomType.PH_MESSAGES_CALENDAR]: RoomCategory.CALENDAR,
 } satisfies Record<RoomType, RoomCategory>;
 
 // get all the roomtypes of a category
@@ -41,6 +45,7 @@ function getRoomsByCategory(category: RoomCategory): RoomType[] {
 const PublicRooms: RoomType[] = getRoomsByCategory(RoomCategory.PUBLIC);
 const SecuredRooms: RoomType[] = getRoomsByCategory(RoomCategory.SECURED);
 const DirectRooms: RoomType[] = getRoomsByCategory(RoomCategory.DIRECT);
+const CalendarRooms: RoomType[] = getRoomsByCategory(RoomCategory.CALENDAR);
 
 /**
  * Type for display of Rooms in the Roomlist-menu
@@ -65,4 +70,4 @@ type TBaseRoom = {
 	room_type?: string;
 };
 
-export { TBaseRoom, RoomListRoom, RoomType, PublicRooms, SecuredRooms, DirectRooms };
+export { TBaseRoom, RoomListRoom, RoomType, PublicRooms, SecuredRooms, DirectRooms, CalendarRooms };

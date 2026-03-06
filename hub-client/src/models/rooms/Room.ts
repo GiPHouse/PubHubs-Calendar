@@ -28,6 +28,7 @@ import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 // Types
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
+	PH_CALENDAR = 'ph.messages.calendar',
 	PH_MESSAGES_DM = 'ph.messages.dm',
 	PH_MESSAGES_GROUP = 'ph.messages.group',
 	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
@@ -139,6 +140,10 @@ export default class Room {
 
 	public isSecuredRoom(): boolean {
 		return this.getType() === RoomType.SECURED;
+	}
+
+	public isCalendarRoom(): boolean {
+		return this.getType() === RoomType.PH_CALENDAR;
 	}
 
 	public isDirectMessageRoom(): boolean {

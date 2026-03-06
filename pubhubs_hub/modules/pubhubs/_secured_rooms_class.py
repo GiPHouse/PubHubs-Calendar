@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 class PubHubsSecuredRoomType(str, enum.Enum):
     MESSAGES = "ph.messages.restricted"
     THREADING = "ph.threading.restricted"
+    CALENDAR = "ph.messages.calendar"
 
 
 def is_list_of_strings(attributes):
