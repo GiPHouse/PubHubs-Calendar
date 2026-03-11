@@ -215,16 +215,16 @@
 
 	/* Custom FullCalendar styles */
 	:deep(.fc) {
-		--fc-border-color: #e5e7eb;
-		--fc-button-bg-color: #3b82f6;
-		--fc-button-border-color: #3b82f6;
-		--fc-button-hover-bg-color: #2563eb;
-		--fc-button-hover-border-color: #2563eb;
-		--fc-button-active-bg-color: #1d4ed8;
-		--fc-button-active-border-color: #1d4ed8;
-		--fc-event-bg-color: #3b82f6;
-		--fc-event-border-color: #3b82f6;
-		--fc-today-bg-color: rgba(59, 130, 246, 0.05);
+		--fc-border-color: var(--calendar-grid);
+		--fc-button-bg-color: var(--accent-primary);
+		--fc-button-border-color: var(--accent-primary);
+		--fc-button-hover-bg-color: var(--on-accent-button-blue);
+		--fc-button-hover-border-color: var(--on-accent-button-blue);
+		--fc-button-active-bg-color: var(--on-blue);
+		--fc-button-active-border-color: var(--on-blue);
+		--fc-event-bg-color: var(--accent-primary);
+		--fc-event-border-color: var(--accent-primary);
+		--fc-today-bg-color: transparent;
 	}
 
 	:deep(.fc-toolbar-title) {

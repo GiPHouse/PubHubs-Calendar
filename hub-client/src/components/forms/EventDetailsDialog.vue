@@ -1,145 +1,118 @@
 <template>
-	<Dialog :title="$t('calendar.event_details')" :buttons="buttonsClose" @close="dialogAction($event)">
-		<div class="space-y-4">
-			<!-- Event Title -->
+	<Dialog :title="event.title" :buttons="dialogButtons" @close="$emit('close')">
+		<form @submit.prevent class="space-y-4">
+			<!-- Date row -->
 			<div class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.title') }}</label>
-				<div class="text-on-surface text-body p-1 md:w-4/6">
-					{{ event.title }}
-				</div>
-			</div>
-
-			<!-- Date/Time -->
-			<div class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.date') }}</label>
-				<div class="text-on-surface text-body p-1 md:w-4/6">
-					<div>{{ formattedDate }}</div>
-					<div v-if="!event.allDay" class="text-on-surface-dim text-sm">
+				<div class="md:w-4/6">
+					<div class="text-body text-on-surface rounded-xs border-0 p-1">
+						{{ formattedDate }}
+					</div>
+					<div v-if="!event.allDay" class="text-body text-on-surface/60 p-1">
 						{{ formattedTime }}
 					</div>
 				</div>
 			</div>
 
-			<!-- All Day Indicator -->
-			<div v-if="event.allDay" class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.all_day') }}</label>
-				<div class="text-on-surface text-body p-1 md:w-4/6">
-					<Icon type="check-circle" class="text-accent-green h-5 w-5" />
+			<!-- Rooms/Location -->
+			<div v-if="event.extendedProps?.room?.length" class="flex flex-col md:flex-row">
+				<label class="text-on-surface/70 w-full font-semibold md:w-2/6">
+					{{ $t('calendar.room') }}
+				</label>
+				<div class="text-body text-on-surface rounded-xs border-0 p-1 md:w-4/6">
+					{{ Array.isArray(event.extendedProps.room) ? event.extendedProps.room.join(', ') : event.extendedProps.room }}
 				</div>
 			</div>
 
-			<!-- Location (if available) -->
-			<div v-if="event.extendedProps?.location" class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.location') }}</label>
-				<div class="text-on-surface text-body p-1 md:w-4/6">
-					<div class="flex items-center gap-2">
-						<Icon type="map-pin" size="sm" class="text-on-surface-dim" />
-						{{ event.extendedProps.location }}
-					</div>
-				</div>
-			</div>
-
-			<!-- Description (if available) -->
+			<!-- Description/Comments -->
 			<div v-if="event.extendedProps?.description" class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.description') }}</label>
-				<div class="text-on-surface text-body p-1 whitespace-pre-wrap md:w-4/6">
+				<label class="text-on-surface/70 w-full font-semibold md:w-2/6">
+					{{ $t('calendar.description') }}
+				</label>
+				<div class="text-body text-on-surface rounded-xs border-0 p-1 whitespace-pre-wrap md:w-4/6">
 					{{ event.extendedProps.description }}
 				</div>
 			</div>
+		</form>
 
-			<!-- Participants/Attendees (if available) -->
-			<div v-if="event.extendedProps?.attendees?.length" class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.attendees') }}</label>
-				<div class="text-on-surface text-body p-1 md:w-4/6">
-					<div v-for="attendee in event.extendedProps.attendees" :key="attendee" class="flex items-center gap-2">
-						<Avatar :avatarUrl="attendee.avatar" :userId="attendee.id" size="sm" />
-						<span>{{ attendee.name }}</span>
-					</div>
+		<!-- Footer content - this will be passed to Dialog's footer slot -->
+		<template #footer>
+			<div class="flex w-full items-center justify-between">
+				<div v-if="canEdit" class="flex gap-2">
+					<button @click="editEvent" class="font-roboto text-on-surface hover:bg-surface-high/50 rounded-full px-4 py-2 text-sm font-medium transition">
+						<Icon type="pencil-simple" size="sm" class="mr-2 inline" />
+						{{ $t('calendar.edit') }}
+					</button>
+					<button @click="deleteEvent" class="font-roboto text-accent-red hover:bg-accent-red/10 rounded-full px-4 py-2 text-sm font-medium transition">
+						<Icon type="trash" size="sm" class="mr-2 inline" />
+						{{ $t('calendar.delete') }}
+					</button>
 				</div>
+				<div v-else />
+				<button @click="$emit('close')" class="bg-accent-blue font-roboto hover:bg-accent-blue/90 rounded-full px-5 py-2 text-sm font-medium text-white shadow-sm transition">
+					{{ $t('dialog.close') }}
+				</button>
 			</div>
+		</template>
 
-			<!-- Created by / Organizer -->
-			<div v-if="event.extendedProps?.organizer" class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.organizer') }}</label>
-				<div class="text-on-surface text-body flex items-center gap-2 p-1 md:w-4/6">
-					<Avatar :avatarUrl="event.extendedProps.organizer.avatar" :userId="event.extendedProps.organizer.id" size="sm" />
-					<span>{{ event.extendedProps.organizer.name }}</span>
-				</div>
-			</div>
-
-			<!-- Event ID (optional, for debugging) -->
-			<div v-if="showEventId" class="flex flex-col md:flex-row">
-				<label class="text-gray w-2/6 font-semibold">{{ $t('calendar.event_id') }}</label>
-				<div class="text-on-surface-dim text-body truncate p-1 text-sm md:w-4/6">
-					{{ event.id }}
-				</div>
-			</div>
-		</div>
-
-		<!-- Edit and Delete buttons (if user has permission) -->
-		<div v-if="canEdit" class="mt-6 flex justify-end gap-2 border-t pt-4">
-			<Button @click="editEvent" class="bg-accent-blue hover:bg-button-blue text-white">
-				<Icon type="pencil-simple" size="sm" class="mr-2" />
-				{{ $t('calendar.edit') }}
-			</Button>
-			<Button @click="deleteEvent" class="bg-accent-red hover:bg-button-red text-white">
-				<Icon type="trash" size="sm" class="mr-2" />
-				{{ $t('calendar.delete') }}
-			</Button>
-		</div>
+		<ValidationErrors v-if="validationErrors.length" :errors="validationErrors" />
 	</Dialog>
 </template>
 
 <script setup lang="ts">
-	import { computed } from 'vue';
+	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	import { DialogButtonAction, DialogSubmit, buttonsClose } from '@hub-client/stores/dialog';
-
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 
 	interface Props {
-		event: any; // FullCalendar event object
+		event: any;
 		canEdit?: boolean;
-		showEventId?: boolean;
 	}
 
 	const props = withDefaults(defineProps<Props>(), {
 		canEdit: false,
-		showEventId: false,
 	});
 
 	const emit = defineEmits(['close', 'edit', 'delete']);
 
-	// Format date based on event type
+	// Dialog buttons configuration matching SettingsDialog pattern
+	const dialogButtons = computed(() => {
+		return [
+			{
+				label: t('message.close'),
+				action: () => emit('close'),
+				enabled: true,
+			},
+		];
+	});
+
+	// Validation errors (if needed)
+	const validationErrors = ref<string[]>([]);
+
 	const formattedDate = computed(() => {
 		const start = new Date(props.event.start);
 		const end = props.event.end ? new Date(props.event.end) : null;
 
 		const options: Intl.DateTimeFormatOptions = {
 			weekday: 'long',
-			year: 'numeric',
 			month: 'long',
 			day: 'numeric',
+			year: start.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
 		};
 
 		if (props.event.allDay) {
 			if (end && end > start) {
-				// Multi-day all day event
-				return `${start.toLocaleDateString(props.event.locale || 'en', options)} - ${end.toLocaleDateString(props.event.locale || 'en', options)}`;
+				return `${start.toLocaleDateString(locale.value || 'en', options)} – ${end.toLocaleDateString(locale.value || 'en', options)}`;
 			}
-			return start.toLocaleDateString(props.event.locale || 'en', options);
-		} else {
-			return start.toLocaleDateString(props.event.locale || 'en', options);
+			return start.toLocaleDateString(locale.value || 'en', options);
 		}
+		return start.toLocaleDateString(locale.value || 'en', options);
 	});
 
-	// Format time for non-all-day events
 	const formattedTime = computed(() => {
 		if (props.event.allDay) return '';
 
@@ -147,21 +120,16 @@
 		const end = props.event.end ? new Date(props.event.end) : null;
 
 		const timeOptions: Intl.DateTimeFormatOptions = {
-			hour: '2-digit',
+			hour: 'numeric',
 			minute: '2-digit',
+			hour12: true,
 		};
 
 		if (end) {
-			return `${start.toLocaleTimeString(props.event.locale || 'en', timeOptions)} - ${end.toLocaleTimeString(props.event.locale || 'en', timeOptions)}`;
+			return `${start.toLocaleTimeString(locale.value || 'en', timeOptions)} – ${end.toLocaleTimeString(locale.value || 'en', timeOptions)}`;
 		}
-		return start.toLocaleTimeString(props.event.locale || 'en', timeOptions);
+		return start.toLocaleTimeString(locale.value || 'en', timeOptions);
 	});
-
-	function dialogAction(action: DialogButtonAction) {
-		if (action === DialogSubmit) {
-			emit('close');
-		}
-	}
 
 	function editEvent() {
 		emit('edit', props.event);
@@ -173,7 +141,3 @@
 		}
 	}
 </script>
-
-<style scoped>
-	/* Add any custom styles if needed */
-</style>

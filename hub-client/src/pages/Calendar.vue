@@ -14,11 +14,13 @@
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
 		<EventCreationDialog v-if="showEventCreationDialog" :start="selectedRange.startStr" :end="selectedRange.endStr" @close="showEventCreationDialog = false" @submit="addEvent" />
+		<EventDetailsDialog v-if="showEventDetailsDialog && selectedEvent" :event="selectedEvent" @close="showEventDetailsDialog = false" />
 	</HeaderFooter>
 </template>
 
 <script setup>
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
+	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
@@ -26,9 +28,15 @@
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Emits - must be declared before use in handleEventDrop/handleEventResize
+	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
+
 	// Event creation
 	const showEventCreationDialog = ref(false);
 	const selectedRange = ref({ startStr: '', endStr: '' });
+
+	const showEventDetailsDialog = ref(false);
+	const selectedEvent = ref(null);
 
 	const { t, locale } = useI18n();
 
@@ -134,6 +142,8 @@
 	const calendarOptions = ref({
 		plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
+		selectable: true,
+
 		firstDay: 1, // 0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
 		headerToolbar: {
 			left: 'prev,next today',
@@ -183,7 +193,7 @@
 		selectable: true,
 		selectMirror: true,
 		dayMaxEvents: true,
-		events: calendarEvents.value,
+		events: calendarEvents,
 
 		// Event handlers
 		dateClick: handleDateClick,
@@ -251,8 +261,17 @@
 
 	function handleEventClick(info) {
 		console.log('Event clicked:', info.event);
-		// Emit event or handle event click
-		emit('eventSelected', info.event);
+
+		selectedEvent.value = {
+			id: info.event.id,
+			title: info.event.title,
+			start: info.event.start,
+			end: info.event.end,
+			allDay: info.event.allDay,
+			extendedProps: info.event.extendedProps,
+		};
+
+		showEventDetailsDialog.value = true;
 	}
 
 	function handleSelect(info) {
@@ -320,9 +339,6 @@
 		previousMonth,
 		changeView,
 	});
-
-	// Emits
-	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
 </script>
 
 <style scoped>
@@ -340,15 +356,15 @@
 
 	/* FullCalendar styles */
 	:deep(.fc) {
-		--fc-border-color: #e5e7eb;
-		--fc-button-bg-color: #01aeef;
-		--fc-button-border-color: #01aeef;
-		--fc-button-hover-bg-color: #5cbff1;
-		--fc-button-hover-border-color: #5cbff1;
-		--fc-button-active-bg-color: #0086e2;
-		--fc-button-active-border-color: #0086e2;
-		--fc-event-bg-color: #01aeef;
-		--fc-event-border-color: #01aeef;
+		--fc-border-color: var(--calendar-grid);
+		--fc-button-bg-color: var(--accent-primary);
+		--fc-button-border-color: var(--accent-primary);
+		--fc-button-hover-bg-color: var(--on-accent-button-blue);
+		--fc-button-hover-border-color: var(--on-accent-button-blue);
+		--fc-button-active-bg-color: var(--on-blue);
+		--fc-button-active-border-color: var(--on-blue);
+		--fc-event-bg-color: var(--accent-primary);
+		--fc-event-border-color: var(--accent-primary);
 		--fc-today-bg-color: transparent;
 	}
 
