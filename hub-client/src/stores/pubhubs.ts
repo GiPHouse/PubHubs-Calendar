@@ -903,20 +903,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
-		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
-			// TODO: Implement sending calendar event, look at addPoll (line ~775)
-			const content: TCalendarEventMessageContent = {
-				msgtype: PubHubsMgType.CalendarEvent,
-				body: calEvent.title,
-				title: calEvent.title,
-				description: calEvent.description,
-				startTime: calEvent.startTime,
-				endTime: calEvent.endTime,
-			};
-
-			await this.client.sendMessage(roomId, content);
-		},
-
 		async sendPrivateReceipt(event: MatrixEvent, roomId: string) {
 			const eventId = event?.getId();
 			if (!eventId || !roomId || !roomId.startsWith('!')) {
