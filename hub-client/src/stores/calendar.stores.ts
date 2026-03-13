@@ -21,16 +21,16 @@ import { useUser } from '@hub-client/stores/user'
 
 
 const useCalendarStore = defineStore('calendar', {
-    actions: {
-        async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
+	actions: {
+		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
 			// Adds a calendar event using sendEvent.
 			// Should probably only be called by the calendar composable.
 			// TODO: Understand how to use the matrix composable as the client instructed instead of the user client.
-            const user = useUser()
+			const user = useUser()
 
-            if (!user.client) {
-                throw new Error('User client not initialised')
-            }
+			if (!user.client) {
+				throw new Error('User client not initialised')
+			}
 
 			const content: TCalendarEventMessageContent = {
 				msgtype: PubHubsMgType.CalendarEvent,
@@ -40,12 +40,46 @@ const useCalendarStore = defineStore('calendar', {
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 			};
-            // @ts-ignore similar implementations in pubhubs ignore this error
+			// @ts-ignore similar implementations in pubhubs ignore this error
 			await user.client.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
+
+		/**
+		 * Get all calendar events for a given room.
+		 * 
+		 * @param roomId 
+		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
+		 */
+		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
+			const user = useUser()
+			if (!user.client) {
+				throw new Error('User client not initialised')
+			}
+
+			const room = user.client.getRoom(roomId);
+			if (!room) {
+				throw new Error('Room not found')
+			}
+
+			const events = room.getLiveTimeline().getEvents();
+			const calendarEvents = events
+				.filter(event => event.getType() === PubHubsMgType.CalendarEvent)
+				.map(event => {
+					const content = event.getContent() as TCalendarEventMessageContent;
+					return new CalendarEvent(
+						content.title,
+						content.description,
+						new Date(content.startTime),
+						new Date(content.endTime)
+					);
+				});
+
+			return calendarEvents;
+		}
+
 		// TODO: Add more calendar event types, such as edit, delete, etc.
 		// See src/logic/core/events.ts or commit 1a1766
-    }
+	}
 })
 
 export { useCalendarStore };

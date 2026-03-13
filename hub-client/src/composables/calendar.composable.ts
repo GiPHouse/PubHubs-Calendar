@@ -58,7 +58,7 @@ export function useCalendarEvents() {
          * description 'desc' start date now and end date in an hour. */
         const normalisedEvent = validateEvent(calEvent);
         await calendar.addCalendarEvent(roomId, normalisedEvent);
-        createCalendarEvent("a1b2c3", new CalendarEvent("title", "desc", new Date(), new Date(Date.now()+60*60*1000)));
+        createCalendarEvent("a1b2c3", new CalendarEvent("title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)));
     }
 
     /* TODO:
