@@ -51,8 +51,8 @@ export function useCalendarEvents() {
     async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
         /* This function posts a calendar event. 
          * Example usage:
-         *   createCalendarEvent("test", new CalendarEvent(
-         *       "title", "desc", new Date(), new Date(Date.now()+60*60*1000)
+         *   createCalendarEvent("a1b2c3", new CalendarEvent(
+         *       "a1b2c3", "desc", new Date(), new Date(Date.now()+60*60*1000)
          *   )); 
          * This would create a calendar event in roomid 'a1b2c3' named 'title',
          * description 'desc' start date now and end date in an hour. */
