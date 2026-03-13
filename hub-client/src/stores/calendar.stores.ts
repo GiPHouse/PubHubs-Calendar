@@ -19,15 +19,23 @@ import { useUser } from '@hub-client/stores/user'
 
 // Types
 
-
+/**
+ * @todo Add other calendar event types, e.g. edit, delete, etc.
+ * @see `src/logic/core/events.ts`
+ * @see Commit `1a1766`
+ */
 const useCalendarStore = defineStore('calendar', {
 	actions: {
+		/**
+		 * Adds a calendar event using `sendEvent`.
+		 * 
+		 * NOTE: This should only be called by the calendar composable.
+		 * @see `src/composables/calendar.composable.ts`
+		 * @param roomId RoomID to send the event in.
+		 * @param calEvent 
+		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
-			// Adds a calendar event using sendEvent.
-			// Should probably only be called by the calendar composable.
-			// TODO: Understand how to use the matrix composable as the client instructed instead of the user client.
 			const user = useUser()
-
 			if (!user.client) {
 				throw new Error('User client not initialised')
 			}
@@ -76,9 +84,6 @@ const useCalendarStore = defineStore('calendar', {
 
 			return calendarEvents;
 		}
-
-		// TODO: Add more calendar event types, such as edit, delete, etc.
-		// See src/logic/core/events.ts or commit 1a1766
 	}
 })
 

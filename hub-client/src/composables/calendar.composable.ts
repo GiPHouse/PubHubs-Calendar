@@ -13,17 +13,23 @@ import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent
 /* This file is the composable for calendar events.
  * This means that this file should handle use-case and UI-related logic.
  * The functions under useCalendarEvents() should be called when interacting with the API,
- *   e.g. when creating a calendar event. */
+ *   e.g. when creating a calendar event.
+ */
 
-
+/**
+ * Validates a calendar event. It does this by
+ * - removing unecessary whitespace around the title and description,
+ * - checking if the title and dates are present,
+ * - checking if the end date is after the start date,
+ * - returning the calendar event.
+ * @param calEvent
+ * 
+ * @returns The original calendar event if it is valid, otherwise throws an error.
+ * @throws `Error` if the calendar event is invalid, which indicates the reason for invalidation.
+ * 
+ * @todo Implement checking if the `roomId` is legitimate.
+ */
 function validateEvent(calEvent: CalendarEvent): CalendarEvent {
-    /* This function:
-     *  - Removes unecessary whitespace around the title and description
-     *  - Checks if the title and dates are present
-     *  - Checks if the end date is after the start date 
-     *  - Returns the calendar event.
-     * TODO:
-     *  - Implement checking if the roomId is legitimate */
     const title = calEvent.title.trim();
     const description = calEvent.description.trim();
 
@@ -33,9 +39,11 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 
     const start = new Date(calEvent.startTime);
     const end = new Date(calEvent.endTime);
+
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
         throw new Error('Calendar event must have valid start and end times');
     }
+
     if (end.getTime() <= start.getTime()) {
         throw new Error('Calendar event end time must be after start time');
     }
@@ -43,27 +51,32 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
     return new CalendarEvent(title, description, start, end);
 }
 
-
+/**
+ * Composable for calendar events. This should be used to interact with calendar events in the UI.
+ * @todo Add other message types, e.g. edit, delete, etc.
+ * @see `src/logic/core/events.ts`
+ * @see Commit `1a17660`
+ */
 export function useCalendarEvents() {
     // We export a group of functions to be called by the calendar UI elements.
     const calendar = useCalendarStore();
 
+    /**
+     * Creates a new calendar event in the specified room.
+     * @param roomId 
+     * @param calEvent 
+     * 
+     * @example
+     *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent`.
+     *  createCalendarEvent("a1b2c3", new CalendarEvent(
+     *       "cool title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)
+     *  )); 
+     */
     async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
-        /* This function posts a calendar event. 
-         * Example usage:
-         *   createCalendarEvent("a1b2c3", new CalendarEvent(
-         *       "a1b2c3", "desc", new Date(), new Date(Date.now()+60*60*1000)
-         *   )); 
-         * This would create a calendar event in roomid 'a1b2c3' named 'title',
-         * description 'desc' start date now and end date in an hour. */
         const normalisedEvent = validateEvent(calEvent);
         await calendar.addCalendarEvent(roomId, normalisedEvent);
         createCalendarEvent("a1b2c3", new CalendarEvent("title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)));
     }
-
-    /* TODO:
-     *  - Add other message types -- edit, delete, etc. 
-     *  - See src/logic/core/events.ts or commit 1a17660 */
 
     return {
         createCalendarEvent,
