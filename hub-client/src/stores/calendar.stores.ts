@@ -2,7 +2,6 @@
 import { defineStore } from 'pinia';
 
 // Composables
-import { useMatrix } from "@hub-client/composables/matrix.composable"
 
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
@@ -11,13 +10,10 @@ import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 // Stores
-/* At the moment we call our own client with useUser.
- * The client instructed us to use composables/matrix.composable.ts for client methods.
- * However I don't see a sendEvent method or a way to retrieve the client used in matrix composable...
- * This implementation should change when we understand the problem better. */
-import { useUser } from '@hub-client/stores/user'
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
-// Types
+// Services
+import { useMatrixService } from '@hub-client/services/matrix.service';
 
 /**
  * @todo Add other calendar event types, e.g. edit, delete, etc.
@@ -35,9 +31,9 @@ const useCalendarStore = defineStore('calendar', {
 		 * @param calEvent 
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
-			const user = useUser()
-			if (!user.client) {
-				throw new Error('User client not initialised')
+			const service = useMatrixService()
+			if (!service) {
+				throw new Error('Matrix service not initialised')
 			}
 
 			const content: TCalendarEventMessageContent = {
@@ -49,7 +45,18 @@ const useCalendarStore = defineStore('calendar', {
 				endTime: calEvent.endTime,
 			};
 			// @ts-ignore similar implementations in pubhubs ignore this error
-			await user.client.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+		},
+
+		/**
+		 * Deletes a calendar event.
+		 * Effectively an alias for deleteMessage, since I expect it to work the same.
+		 * @param roomId 
+		 * @param eventId 
+		 */
+		async delCalendarEvent(roomId: string, eventId: string): Promise<void> {
+			const pubhubs_store = usePubhubsStore();
+			await pubhubs_store.deleteMessage(roomId, eventId);
 		},
 
 		/**
@@ -59,12 +66,9 @@ const useCalendarStore = defineStore('calendar', {
 		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
 		 */
 		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
-			const user = useUser()
-			if (!user.client) {
-				throw new Error('User client not initialised')
-			}
+			const pubhubs_store = usePubhubsStore()
 
-			const room = user.client.getRoom(roomId);
+			const room = pubhubs_store.getRoom(roomId);
 			if (!room) {
 				throw new Error('Room not found')
 			}

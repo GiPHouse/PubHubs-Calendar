@@ -59,7 +59,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
  */
 export function useCalendarEvents() {
     // We export a group of functions to be called by the calendar UI elements.
-    const calendar = useCalendarStore();
+    const calendar_store = useCalendarStore();
 
     /**
      * Creates a new calendar event in the specified room.
@@ -74,11 +74,21 @@ export function useCalendarEvents() {
      */
     async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
         const normalisedEvent = validateEvent(calEvent);
-        await calendar.addCalendarEvent(roomId, normalisedEvent);
-        createCalendarEvent("a1b2c3", new CalendarEvent("title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)));
+        await calendar_store.addCalendarEvent(roomId, normalisedEvent);
     }
+
+    /**
+     * Removes a calendar event given the event ID.
+     * @param roomId 
+     * @param eventId 
+     */
+    async function removeCalendarEvent(roomId: string, eventId: string): Promise<void> {
+        await calendar_store.delCalendarEvent(roomId, eventId);
+    }
+
 
     return {
         createCalendarEvent,
+        removeCalendarEvent
     };
 }
