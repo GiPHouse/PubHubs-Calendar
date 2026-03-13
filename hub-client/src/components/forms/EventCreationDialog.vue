@@ -28,9 +28,10 @@
 									<span class="font-medium">{{ formattedDate }}</span>
 								</div>
 
-								<div class="mt-2 ml-6 grid grid-cols-3 gap-2">
-									<input type="date" v-model="form.date" class="rounded border p-2" />
+								<div class="mt-2 ml-6 grid grid-cols-2 gap-2">
+									<input type="date" v-model="form.startDate" class="rounded border p-2" />
 									<input type="time" v-model="form.startTime" step="900" class="rounded border p-2" />
+									<input type="date" v-model="form.endDate" class="rounded border p-2" />
 									<input type="time" v-model="form.endTime" step="900" class="rounded border p-2" />
 								</div>
 							</div>
@@ -112,50 +113,109 @@
 		location: '',
 		room: [] as string[],
 		description: '',
-		date: startDateObj.toISOString().split('T')[0],
+
+		startDate: startDateObj,
 		startTime: startDateObj.toTimeString().slice(0, 5),
-		endTime: endDateObj.toTimeString().slice(0, 5),
+
+		endDate: endDateObj,
+		endTime: (() => {
+			// If same day, 30 min later; else same day 30 min slot
+			const end = new Date(startDateObj);
+			end.setMinutes(end.getMinutes() + 30);
+			return end.toTimeString().slice(0, 5);
+		})(),
 	});
 
 	watch(
-		() => [form.startTime, form.endTime, form.date],
+		() => [form.startDate, form.startTime, form.endDate, form.endTime],
 		() => {
-			const start = new Date(`${form.date}T${form.startTime}`);
-			const end = new Date(`${form.date}T${form.endTime}`);
-			if (end <= start) {
+			const start = new Date(form.startDate);
+			const end = new Date(form.endDate);
+			const [sh, sm] = form.startTime.split(':').map(Number);
+			const [eh, em] = form.endTime.split(':').map(Number);
+			start.setHours(sh, sm);
+			end.setHours(eh, em);
+
+			// SAME DAY: endTime cannot be before startTime
+			if (start.toDateString() === end.toDateString() && end <= start) {
 				const newEnd = new Date(start);
-				newEnd.setMinutes(start.getMinutes() + 1);
+				newEnd.setMinutes(start.getMinutes() + 1); // 1 min after start
+				form.endTime = newEnd.toTimeString().slice(0, 5);
+				form.endDate = new Date(start);
+			}
+
+			// DIFFERENT DAY: endDate cannot be before startDate
+			if (end < start) {
+				form.endDate = new Date(start);
+				const newEnd = new Date(start);
+				newEnd.setMinutes(start.getMinutes() + 30); // default 30-min slot
 				form.endTime = newEnd.toTimeString().slice(0, 5);
 			}
 		},
 	);
 
+	watch(
+		() => [props.start, props.end],
+		([newStart, newEnd]) => {
+			const startDateObj = new Date(newStart);
+			const endDateObj = new Date(newEnd);
+
+			// If the prop start has hours/minutes (day/week view click), use them
+			// Otherwise (month view click), default to 09:00–09:30
+			const hasStartTime = startDateObj.getHours() !== 0 || startDateObj.getMinutes() !== 0;
+			const hasEndTime = endDateObj.getHours() !== 0 || endDateObj.getMinutes() !== 0;
+
+			form.startDate = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate());
+			form.startTime = hasStartTime ? `${String(startDateObj.getHours()).padStart(2, '0')}:${String(startDateObj.getMinutes()).padStart(2, '0')}` : '08:00';
+
+			form.endDate = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate());
+			form.endTime = hasEndTime
+				? `${String(endDateObj.getHours()).padStart(2, '0')}:${String(endDateObj.getMinutes()).padStart(2, '0')}`
+				: (() => {
+						const end = new Date(form.startDate);
+						end.setHours(8, 30); // default 8:30
+						return end.toTimeString().slice(0, 5);
+					})();
+		},
+		{ immediate: true },
+	);
+
 	const formattedDate = computed(() => {
-		const start = new Date(`${form.date}T${form.startTime}`);
+		const start = new Date(form.startDate);
+		const end = new Date(form.endDate);
+		const [sh, sm] = form.startTime.split(':').map(Number);
+		const [eh, em] = form.endTime.split(':').map(Number);
+		start.setHours(sh, sm);
+		end.setHours(eh, em);
 
-		let datePart = start.toLocaleDateString(locale.value, {
-			weekday: 'long',
-			day: 'numeric',
-			month: 'long',
-		});
+		let startStr = start.toLocaleDateString(locale.value, { weekday: 'long', day: 'numeric', month: 'long' });
+		let endStr = end.toLocaleDateString(locale.value, { weekday: 'long', day: 'numeric', month: 'long' });
 
-		// Capitalize each word
-		datePart = datePart.replace(/\b\w/g, (l) => l.toUpperCase());
+		startStr = startStr.replace(/\b\w/g, (l) => l.toUpperCase());
+		endStr = endStr.replace(/\b\w/g, (l) => l.toUpperCase());
 
-		return `${datePart}, ${form.startTime}–${form.endTime}`;
+		if (startStr === endStr) {
+			return `${startStr}, ${form.startTime}–${form.endTime}`;
+		}
+		return `${startStr} ${form.startTime}–${endStr} ${form.endTime}`;
 	});
 
 	function submit() {
-		const start = new Date(`${form.date}T${form.startTime}`).toISOString();
-		const end = new Date(`${form.date}T${form.endTime}`).toISOString();
+		const start = new Date(form.startDate);
+		const end = new Date(form.endDate);
+		const [sh, sm] = form.startTime.split(':').map(Number);
+		const [eh, em] = form.endTime.split(':').map(Number);
+
+		start.setHours(sh, sm);
+		end.setHours(eh, em);
 
 		emit('submit', {
 			title: form.title,
 			location: form.location,
 			room: form.room,
 			description: form.description,
-			start,
-			end,
+			start: start.toISOString(),
+			end: end.toISOString(),
 		});
 
 		showRoomDropdown.value = false;

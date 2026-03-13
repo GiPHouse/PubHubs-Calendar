@@ -176,9 +176,9 @@
 				dayHeaderFormat: { weekday: 'short', day: 'numeric' },
 			},
 
-			// Day view - full day name (Monday)
+			// Day view - day name + date (Monday 3)
 			timeGridDay: {
-				dayHeaderFormat: { weekday: 'long' },
+				dayHeaderFormat: { weekday: 'long', day: 'numeric' }, // Changed from just 'long'
 			},
 		},
 
@@ -243,11 +243,18 @@
 
 	// Event handlers
 	function handleDateClick(info) {
-		const clickedDate = new Date(info.dateStr);
+		const clickedDate = new Date(info.date); // Already has time in day/week, midnight in month
 
+		// Determine if clicked time is midnight (month view)
+		const isMonthViewClick = clickedDate.getHours() === 0 && clickedDate.getMinutes() === 0;
+
+		// Set start time
 		const start = new Date(clickedDate);
-		start.setHours(1, 0, 0, 0);
+		if (isMonthViewClick) {
+			start.setHours(8, 0, 0, 0); // default 09:00
+		}
 
+		// Set end time: 30 min after start
 		const end = new Date(start);
 		end.setMinutes(start.getMinutes() + 30);
 
@@ -256,7 +263,7 @@
 			endStr: end.toISOString(),
 		};
 
-		showEventCreationDialog.value = true;
+		showEventCreation.value = true;
 	}
 
 	function handleEventClick(info) {

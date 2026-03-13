@@ -13,7 +13,17 @@
 				</div>
 			</div>
 
-			<!-- Rooms/Location -->
+			<!-- Location -->
+			<div v-if="event.extendedProps?.location" class="flex flex-col md:flex-row">
+				<label class="text-on-surface/70 w-full font-semibold md:w-2/6">
+					{{ $t('calendar.location') }}
+				</label>
+				<div class="text-body text-on-surface rounded-xs border-0 p-1 md:w-4/6">
+					{{ event.extendedProps.location }}
+				</div>
+			</div>
+
+			<!-- Rooms -->
 			<div v-if="event.extendedProps?.room?.length" class="flex flex-col md:flex-row">
 				<label class="text-on-surface/70 w-full font-semibold md:w-2/6">
 					{{ $t('calendar.room') }}
@@ -36,22 +46,9 @@
 
 		<!-- Footer content - this will be passed to Dialog's footer slot -->
 		<template #footer>
-			<div class="flex w-full items-center justify-between">
-				<div v-if="canEdit" class="flex gap-2">
-					<button @click="editEvent" class="font-roboto text-on-surface hover:bg-surface-high/50 rounded-full px-4 py-2 text-sm font-medium transition">
-						<Icon type="pencil-simple" size="sm" class="mr-2 inline" />
-						{{ $t('calendar.edit') }}
-					</button>
-					<button @click="deleteEvent" class="font-roboto text-accent-red hover:bg-accent-red/10 rounded-full px-4 py-2 text-sm font-medium transition">
-						<Icon type="trash" size="sm" class="mr-2 inline" />
-						{{ $t('calendar.delete') }}
-					</button>
-				</div>
-				<div v-else />
-				<button @click="$emit('close')" class="bg-accent-blue font-roboto hover:bg-accent-blue/90 rounded-full px-5 py-2 text-sm font-medium text-white shadow-sm transition">
-					{{ $t('dialog.close') }}
-				</button>
-			</div>
+			<button @click="$emit('close')" class="border-primary bg-accent-blue hover:bg-accent-blue/90 text-primary hover:text-on-primary cursor-pointer rounded-md border px-5 py-2 text-sm font-medium shadow-sm transition">
+				{{ $t('notifications.info') }}
+			</button>
 		</template>
 
 		<ValidationErrors v-if="validationErrors.length" :errors="validationErrors" />
@@ -83,7 +80,7 @@
 	const dialogButtons = computed(() => {
 		return [
 			{
-				label: t('message.close'),
+				label: t('close'),
 				action: () => emit('close'),
 				enabled: true,
 			},
@@ -104,13 +101,23 @@
 			year: start.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
 		};
 
+		let dateString;
 		if (props.event.allDay) {
 			if (end && end > start) {
-				return `${start.toLocaleDateString(locale.value || 'en', options)} – ${end.toLocaleDateString(locale.value || 'en', options)}`;
+				dateString = `${start.toLocaleDateString(locale.value || 'en', options)} – ${end.toLocaleDateString(locale.value || 'en', options)}`;
+			} else {
+				dateString = start.toLocaleDateString(locale.value || 'en', options);
 			}
-			return start.toLocaleDateString(locale.value || 'en', options);
+		} else {
+			dateString = start.toLocaleDateString(locale.value || 'en', options);
 		}
-		return start.toLocaleDateString(locale.value || 'en', options);
+
+		// Capitalize each word for Dutch locale
+		if (locale.value === 'nl' || locale.value === 'nl-NL') {
+			dateString = dateString.replace(/\b\w/g, (l) => l.toUpperCase());
+		}
+
+		return dateString;
 	});
 
 	const formattedTime = computed(() => {

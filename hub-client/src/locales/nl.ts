@@ -13,6 +13,7 @@ const nl = {
 		description: 'Beschrijving',
 		location: 'Locatie',
 		selectRooms: 'Selecteer kamer(s)',
+		room: 'Kamer(s)',
 		save: 'Opslaan',
 	},
 	state: {

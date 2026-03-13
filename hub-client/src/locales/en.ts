@@ -13,6 +13,7 @@ const en = {
 		description: 'Description',
 		location: 'Location',
 		selectRooms: 'Select room(s)',
+		room: 'Room(s)',
 		save: 'Save',
 	},
 	state: {
