@@ -106,3 +106,8 @@ rc_login:
   failed_attempts:
     per_second: 1000
     burst_count: 1000
+
+auto_join_rooms:
+  - "#Calendar:testhub.matrix.host"  # DO CHANGE - To #Calander:<server_name> <<server_name> as configured above>>
+autocreate_auto_join_rooms: true     # DON'T CHANGE
+auto_join_mxid_localpart: system_bot # DON'T CHANGE 
