@@ -31,7 +31,7 @@ const useCalendarStore = defineStore('calendar', {
 		 * @param calEvent 
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
-			const service = useMatrixService()
+			const service = useMatrixService();
 
 			const content: TCalendarEventMessageContent = {
 				msgtype: PubHubsMgType.CalendarEvent,
@@ -63,11 +63,11 @@ const useCalendarStore = defineStore('calendar', {
 		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
 		 */
 		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
-			const pubhubs_store = usePubhubsStore()
+			const pubhubs_store = usePubhubsStore();
 
 			const room = pubhubs_store.getRoom(roomId);
 			if (!room) {
-				throw new Error('Room not found')
+				throw new Error('Room not found');
 			}
 
 			const events = room.getLiveTimeline().getEvents();
