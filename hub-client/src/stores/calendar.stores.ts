@@ -32,9 +32,6 @@ const useCalendarStore = defineStore('calendar', {
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
 			const service = useMatrixService()
-			if (!service) {
-				throw new Error('Matrix service not initialised')
-			}
 
 			const content: TCalendarEventMessageContent = {
 				msgtype: PubHubsMgType.CalendarEvent,
