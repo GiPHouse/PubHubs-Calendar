@@ -1,3 +1,4 @@
+from pubhubs_hub.modules.pubhubs._HubCalendarResource import HubCalendarResource
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource
 import logging
@@ -33,6 +34,7 @@ class HubResource(DirectServeJsonResource):
 		self.putChild(b'default-banner', HubMediaResource(module_api, module_config, media_type="banner", is_default=True))
 		self.putChild(b'settings', HubSettingsResource(module_api, module_config, store))
 		self.putChild(b'data', HubDataResource(module_api, module_config , store ))
+		self.putChild(b'calendar', HubCalendarResource(module_api, module_config))
  
 			
 		

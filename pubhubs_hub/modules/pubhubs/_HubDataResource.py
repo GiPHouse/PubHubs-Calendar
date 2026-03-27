@@ -133,6 +133,14 @@ class HubDataResource(DirectServeJsonResource):
 
 				response = room_notifications
 
+			case 'calendar_events':
+				# Dummy list of events to have SOME data
+				response = [{"id": 1, "title":"Test 1", "date": "2026-03-01"}, {"id": 2, "title":"Test 2", "date": "2026-03-02"}]
+
+			case 'calendar_event':
+				# Temporary test event
+				response = [{"success": True}]
+
 			case _:
 				respond_with_json(request, 400, {"error": "Not given a valid data value"})
 				return
