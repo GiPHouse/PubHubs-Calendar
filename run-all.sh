@@ -5,9 +5,9 @@ SESSION=pubhubs
 # Start new session detached with first command
 tmux new-session -d -s $SESSION -n pubhubs 'mask run yivi'
 
-function cleanup() {
-	mask run all cleanup
-}
+#function cleanup() {
+	#mask run all cleanup
+#}
 
 trap 'cleanup' SIGINT EXIT
 

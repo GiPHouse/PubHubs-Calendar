@@ -146,6 +146,10 @@ export default class Room {
 		return this.getType() === RoomType.SECURED;
 	}
 
+	public isCalendarRoom(): boolean {
+		return this.getType() === RoomType.PH_CALENDAR;
+	}
+
 	public isDirectMessageRoom(): boolean {
 		return this.isPrivateRoom() || this.isAdminContactRoom() || this.isStewardContactRoom() || this.isGroupRoom();
 	}
