@@ -144,7 +144,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
-			events: true,
+			events: false,
 			phCard: true,
 		},
 	},

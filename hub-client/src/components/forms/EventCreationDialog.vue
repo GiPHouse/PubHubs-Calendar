@@ -21,6 +21,22 @@
 							<!-- Title -->
 							<input v-model="form.title" type="text" required class="mt-1 w-full rounded border p-3 text-[22px] leading-tight font-bold" :placeholder="t('calendar.title')" />
 
+							<!-- Event Color  //  other option (round: class="w-5 h-5 rounded-full border-2 transition") -->
+							<div class="flex items-center gap-2">
+								<Icon type="smiley" />
+								<div class="ml-1 flex flex-wrap gap-3">
+									<button
+										v-for="color in colors"
+										:key="color.value"
+										type="button"
+										@click="form.color = getComputedColor(color.class)"
+										class="h-6 w-6 cursor-pointer rounded-sm border-2 transition hover:scale-110"
+										:style="{ backgroundColor: `var(--${color.class})` }"
+										:class="form.color === getComputedColor(color.class) ? 'border-on-surface scale-110' : 'border-transparent'"
+									/>
+								</div>
+							</div>
+
 							<!-- Date -->
 							<div>
 								<div class="flex items-center gap-2">
@@ -105,6 +121,19 @@
 
 	const rooms = ['Room A', 'Room B', 'Room C'];
 
+	const colors = [
+		{ class: 'accent-red', value: 'var(--on-blue)' },
+		{ class: 'accent-orange', value: '#a54800' },
+		{ class: 'accent-error', value: '#e45959' },
+		{ class: 'accent-yellow', value: '#e7d63d' },
+		{ class: 'accent-teal', value: '#27e0bf' },
+		{ class: 'accent-lime', value: '#61fe8d' },
+		{ class: 'accent-green', value: '#4c6b1f' },
+		{ class: 'accent-blue', value: '#005a9e' },
+		{ class: 'accent-purple', value: '#5e24ae' },
+		{ class: 'accent-pink', value: '#bf5cd8' },
+	];
+
 	const startDateObj = new Date(props.start);
 	const endDateObj = new Date(props.end);
 
@@ -113,6 +142,7 @@
 		location: '',
 		room: [] as string[],
 		description: '',
+		color: 'bg-blue-500', // default color
 
 		startDate: startDateObj,
 		startTime: startDateObj.toTimeString().slice(0, 5),
@@ -200,6 +230,16 @@
 		return `${startStr} ${form.startTime}–${endStr} ${form.endTime}`;
 	});
 
+	function getComputedColor(colorClass: string) {
+		const el = document.createElement('div');
+		el.style.display = 'none';
+		el.style.backgroundColor = `var(--${colorClass})`;
+		document.body.appendChild(el);
+		const computed = getComputedStyle(el).backgroundColor;
+		document.body.removeChild(el);
+		return computed;
+	}
+
 	function submit() {
 		const start = new Date(form.startDate);
 		const end = new Date(form.endDate);
@@ -214,6 +254,7 @@
 			location: form.location,
 			room: form.room,
 			description: form.description,
+			color: form.color,
 			start: start.toISOString(),
 			end: end.toISOString(),
 		});
