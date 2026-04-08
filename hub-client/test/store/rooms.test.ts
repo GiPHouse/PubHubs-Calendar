@@ -167,6 +167,17 @@ describe('rooms Store', () => {
 			expect(name).toHaveLength(3);
 			expect(name[0].userId).toEqual('B2');
 		});
+
+		test('isCalendarRoom returns true for calendar room type', () => {
+			const room = new Room(new MockedMatrixRoom('calendar-room-id', RoomType.PH_MESSAGES_CALENDAR));
+			expect(room.isCalendarRoom()).toEqual(true);
+		});
+
+		test('isCalendarRoom returns false for non-calendar room types', () => {
+			expect(new Room(new MockedMatrixRoom('default-room', RoomType.PH_MESSAGES_DEFAULT)).isCalendarRoom()).toEqual(false);
+			expect(new Room(new MockedMatrixRoom('dm-room', RoomType.PH_MESSAGES_DM)).isCalendarRoom()).toEqual(false);
+			expect(new Room(new MockedMatrixRoom('secured-room', RoomType.PH_MESSAGES_RESTRICTED)).isCalendarRoom()).toEqual(false);
+		});
 	});
 
 	describe('rooms', () => {
