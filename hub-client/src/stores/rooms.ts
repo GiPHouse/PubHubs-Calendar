@@ -14,7 +14,7 @@ import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
 import Room from '@hub-client/models/rooms/Room';
-import { DirectRooms, PublicRooms, RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+import { CalendarRooms, DirectRooms, PublicRooms, RoomListRoom, RoomType, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -128,6 +128,10 @@ const useRooms = defineStore('rooms', {
 			return this.roomList.filter((room) => room.isHidden === false && room.roomType && SecuredRooms.includes(room.roomType as RoomType));
 		},
 
+		loadedCalendarRooms(): RoomListRoom[] {
+			return this.roomList.filter((room) => room.isHidden === false && room.roomType && CalendarRooms.includes(room.roomType as RoomType));
+		},
+
 		// TODO never used. Can be deleted?
 		// sortedRoomsArrayByJoinedTime(): Array<Room> {
 		// 	const user = useUser();
@@ -197,13 +201,16 @@ const useRooms = defineStore('rooms', {
 
 		nonSecuredPublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
-				return room.room_type === undefined || room.room_type !== RoomType.PH_MESSAGES_RESTRICTED;
+				return room.room_type === undefined || (room.room_type !== RoomType.PH_MESSAGES_RESTRICTED && room.room_type !== RoomType.PH_MESSAGES_CALENDAR);
 			});
 		},
 
 		visiblePublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
 				if (this.room(room.room_id)?.isHidden()) {
+					return false;
+				}
+				if (room.room_type === RoomType.PH_MESSAGES_CALENDAR) {
 					return false;
 				}
 				return true;
