@@ -90,12 +90,14 @@
 
 
 	/*Calendar colors*/
-	--dark-blue: "#011242";
-	--light-blue: "#138DE8";
-	--blue: "#0B4F8C";
-	--button-blue-selected: "#0086E2";
-	--button-blue: "#01AEEF";
-	--day-numbers: "#E4E5E8";
+	--on-accent-button-blue: #5CBFF1;
+	--on-blue: #0086e2;
+	--calendar-grid: #e5e7eb;
+
+	--logo-dark-blue: #011242;
+	--logo-blue: #138DE8;
+	--logo-mid-blue: #084F95;
+	--day-numbers: #E4E5E8;
 }
 
 .dark {
@@ -132,8 +134,7 @@
 
 
 	/*Calendar colors*/
-	--day-numbers: "#C7C8CB";
-	--button-blue: "#01AEEF";
+	--calendar-grid: #737477;
 
 }
 
