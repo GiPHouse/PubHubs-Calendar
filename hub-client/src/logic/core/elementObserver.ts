@@ -1,6 +1,6 @@
 class ElementObserver {
 	private observer: IntersectionObserver | null = null;
-	private element: HTMLElement | null = null;
+	private elements: HTMLElement[] = [];
 
 	// Can be optional
 	// https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/IntersectionObserver#options
@@ -8,13 +8,13 @@ class ElementObserver {
 	// Better to keep threshold default value of 0 of the API instead of supplying our default value.
 	private options?: IntersectionObserverInit;
 
-	constructor(element: HTMLElement, options?: IntersectionObserverInit) {
-		this.element = element;
+	constructor(elements: HTMLElement[], options?: IntersectionObserverInit) {
+		this.elements = elements;
 		this.options = options;
 	}
 
 	setUpObserver(callback: IntersectionObserverCallback) {
-		if (!this.element) {
+		if (!this.elements.length) {
 			return; // do NOT throw an error, that stops further execution
 			//throw new Error('Element ${element} is not found');
 		}
@@ -25,8 +25,8 @@ class ElementObserver {
 			callback(intersectingEntries, observer);
 		}, this.options);
 
-		for (const value of Object.values(this.element)) {
-			this.observer.observe(value);
+		for (const element of this.elements) {
+			this.observer.observe(element);
 		}
 	}
 

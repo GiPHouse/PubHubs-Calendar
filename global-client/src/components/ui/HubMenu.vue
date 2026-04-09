@@ -1,37 +1,63 @@
 <template>
-	<div class="flex h-full flex-1 flex-col items-center justify-between gap-2 md:gap-4" :class="{ 'border-on-surface-disabled rounded-md border-2 border-dashed p-1': hubOrderingIsActive }">
+	<div class="flex h-full flex-1 flex-col items-center justify-between gap-2 overflow-y-auto md:gap-4">
 		<InlineSpinner v-if="global.loggedIn && global.hubsLoading" />
 		<draggable
-			@start="backupPinnedHubs = global.pinnedHubs.slice()"
-			@end="hoverOverHubremoval = false"
-			:list="global.pinnedHubs"
-			:item-key="'hubId'"
-			handle=".handle"
-			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto"
+			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden p-4"
+			:delay="300"
+			:delay-on-touch-only="true"
+			ghost-class="hub-drag-ghost"
 			group="hubs"
+			:item-key="'hubId'"
+			:list="global.pinnedHubs"
+			:touch-start-threshold="5"
+			@end="onDragEnd"
+			@start="onDragStart"
 		>
 			<template #item="{ element }">
-				<div v-if="hubs.hub(element.hubId)" class="flex h-auto justify-center p-4" :class="{ handle: hubOrderingIsActive }">
-					<router-link :to="{ name: 'hub', params: { name: element.hubName } }" v-slot="{ isActive }" class="w-full">
+				<div
+					v-if="hubs.hub(element.hubId)"
+					class="flex h-auto justify-center gap-4"
+				>
+					<router-link
+						v-slot="{ isActive }"
+						class="w-full"
+						:to="{ name: 'hub', params: { name: element.hubName } }"
+					>
 						<HubMenuHubIcon
-							class="text-on-surface"
 							v-if="global.loggedIn || element.hubId === hubs.currentHubId"
-							:hub="hubs.hub(element.hubId)"
-							:hubId="element.hubId"
 							:active="isActive"
+							class="text-on-surface"
+							:hub="hubs.hub(element.hubId)"
+							:hub-id="element.hubId"
 							:pinned="true"
-							:hubOrderingIsActive="hubOrderingIsActive"
 							@click="sendToHub"
 						/>
 					</router-link>
 				</div>
 			</template>
 		</draggable>
-		<div class="relative h-12 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out" :class="{ 'max-h-12': hubOrderingIsActive }">
+		<div
+			class="relative h-12 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out"
+			:class="{ 'max-h-12': isDragging }"
+		>
 			<div class="absolute grid h-full w-full items-center justify-center">
-				<Icon type="x" class="rounded-md p-1" :class="[hoverOverHubremoval ? 'text-accent-error opacity-100' : 'text-on-surface-disabled']" size="md" />
+				<Icon
+					:class="[hoverOverHubremoval ? 'text-on-accent-error' : 'text-accent-error']"
+					class="rounded-md p-1"
+					size="lg"
+					type="trash"
+				/>
 			</div>
-			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="unpinnedHubs" @change="confirmationHubRemoval" :item-key="'unpin'" tag="ul" class="list-group h-full opacity-0">
+			<draggable
+				class="list-group h-full opacity-0"
+				group="hubs"
+				:item-key="'unpin'"
+				:list="unpinnedHubs"
+				tag="ul"
+				@change="confirmationHubRemoval"
+				@dragleave="hoverOverHubremoval = false"
+				@dragover="hoverOverHubremoval = true"
+			>
 				<template #item="{ element: trash }">
 					<li>{{ trash }}</li>
 				</template>
@@ -40,7 +66,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -50,11 +76,10 @@
 	import HubMenuHubIcon from '@global-client/components/ui/HubMenuHubIcon.vue';
 
 	// Hub imports
-	import Icon from '@hub-client/components/elements/Icon.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
 	// Stores
-	import { PinnedHubs, useGlobal } from '@global-client/stores/global';
+	import { type PinnedHubs, useGlobal } from '@global-client/stores/global';
 	import { useHubs } from '@global-client/stores/hubs';
 	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
@@ -66,21 +91,24 @@
 	const toggleMenu = useToggleMenu();
 	const dialog = useDialog();
 	const { t } = useI18n();
+	const isDragging = ref(false);
 	const hoverOverHubremoval = ref(false);
 
 	let backupPinnedHubs = [] as PinnedHubs;
 	let unpinnedHubs = [] as PinnedHubs;
 
-	const props = defineProps({
-		hubOrderingIsActive: Boolean,
-	});
+	function onDragStart() {
+		backupPinnedHubs = global.pinnedHubs.slice();
+		isDragging.value = true;
+	}
 
-	function sendToHub(event: Event) {
-		if (props.hubOrderingIsActive) {
-			event.preventDefault();
-		} else {
-			toggleMenu.hideMenuAndSendToHub();
-		}
+	function onDragEnd() {
+		isDragging.value = false;
+		hoverOverHubremoval.value = false;
+	}
+
+	function sendToHub() {
+		toggleMenu.hideMenuAndSendToHub();
 	}
 
 	async function confirmationHubRemoval() {

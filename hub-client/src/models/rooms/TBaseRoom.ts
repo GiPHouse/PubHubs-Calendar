@@ -1,10 +1,9 @@
 // Packages
-import { IStateEvent } from 'matrix-js-sdk';
+import { type IStateEvent } from 'matrix-js-sdk';
 
 // Types
 enum RoomType {
 	PH_MESSAGES_DEFAULT = 'ph.messages.default',
-	PH_MESSAGES_CALENDAR = 'ph.messages.calendar',
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
 	PH_MESSAGES_DM = 'ph.messages.dm',
 	PH_MESSAGES_GROUP = 'ph.messages.group',
@@ -17,14 +16,12 @@ enum RoomCategory {
 	PUBLIC = 'public',
 	SECURED = 'secured',
 	DIRECT = 'direct',
-	CALENDAR = 'calendar',
 }
 
 // map roomtypes to roomcategories
 const RoomCategoryMap = {
 	[RoomType.PH_MESSAGES_DEFAULT]: RoomCategory.PUBLIC,
 	[RoomType.PH_FORUM_ROOM]: RoomCategory.PUBLIC,
-	[RoomType.PH_MESSAGES_CALENDAR]: RoomCategory.PUBLIC,
 
 	[RoomType.PH_MESSAGES_RESTRICTED]: RoomCategory.SECURED,
 
@@ -44,7 +41,6 @@ function getRoomsByCategory(category: RoomCategory): RoomType[] {
 const PublicRooms: RoomType[] = getRoomsByCategory(RoomCategory.PUBLIC);
 const SecuredRooms: RoomType[] = getRoomsByCategory(RoomCategory.SECURED);
 const DirectRooms: RoomType[] = getRoomsByCategory(RoomCategory.DIRECT);
-const CalendarRooms: RoomType[] = getRoomsByCategory(RoomCategory.CALENDAR);
 
 /**
  * Type for display of Rooms in the Roomlist-menu
@@ -54,7 +50,6 @@ type RoomListRoom = {
 	roomType: string;
 	name: string;
 	stateEvents: IStateEvent[];
-	lastMessageId: string | undefined; // id of the newest message, used as base for the roomtimeline (this paginates forward to catch the newly added events)
 	isHidden: boolean; // keep track of rooms that are removed from the list but are not synced yet
 };
 
@@ -69,4 +64,4 @@ type TBaseRoom = {
 	room_type?: string;
 };
 
-export { TBaseRoom, RoomListRoom, RoomType, PublicRooms, SecuredRooms, DirectRooms, CalendarRooms };
+export { TBaseRoom, RoomListRoom, RoomType, PublicRooms, SecuredRooms, DirectRooms };

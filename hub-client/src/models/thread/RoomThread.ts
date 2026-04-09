@@ -1,6 +1,6 @@
 // Packages
 import { TimelineEvent } from '../events/TimelineEvent';
-import { MatrixClient, MatrixEvent, Thread } from 'matrix-js-sdk';
+import { type MatrixClient, type MatrixEvent, type Thread } from 'matrix-js-sdk';
 
 import { Redaction } from '@hub-client/models/constants';
 
@@ -56,28 +56,40 @@ export default class TRoomThread {
 			return [];
 		}
 
-		// get events from liveTimeline and paginate to get them all
-		const events = this.matrixThread.liveTimeline.getEvents();
+		// paginate to load all events, then read them once
 		while (await matrixClient.paginateEventTimeline(this.matrixThread.liveTimeline, { backwards: true, limit: 100 })) {
-			events.concat(this.matrixThread.liveTimeline.getEvents());
+			// pagination accumulates events in the live timeline
 		}
+		const events = this.matrixThread.liveTimeline.getEvents();
 
 		// TODO better way of building thread-list
 		// using console.trace('events voor sorted: ', events); shows that this method is called to often
 		// which in the end can lead to multiple instances of the same event in the thread
 
 		// add events to current timelineEvents and filter unique events
-		let timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: this.matrixThread!.roomId, inThread: true }));
+		const threadRoomId = this.matrixThread?.roomId ?? '';
+		let timelineEvents = events.map((x) => new TimelineEvent({ matrixEvent: x, roomId: threadRoomId, inThread: true }));
 		timelineEvents = [...(this.threadEvents ?? []), ...timelineEvents];
 
 		// filter unique events
 		const uniqueEvents = new Map<string, TimelineEvent>();
-		timelineEvents.forEach((event) => uniqueEvents.set(event.matrixEvent.event.event_id!, event));
+		timelineEvents.forEach((event) => {
+			const eventId = event.matrixEvent.event.event_id;
+			if (eventId) {
+				uniqueEvents.set(eventId, event);
+			}
+		});
 		timelineEvents = Array.from(uniqueEvents.values());
 
 		// check for deletions
 		timelineEvents.forEach((event) => {
-			if (this.redactedEvents.find((redacted) => redacted.event.content?.[Redaction.Redacts] === event.matrixEvent.event.event_id && redacted.event.content?.[Redaction.Reason] === Redaction.DeletedFromThread)) {
+			if (
+				this.redactedEvents.find(
+					(redacted) =>
+						redacted.event.content?.[Redaction.Redacts] === event.matrixEvent.event.event_id &&
+						redacted.event.content?.[Redaction.Reason] === Redaction.DeletedFromThread,
+				)
+			) {
 				event.isDeleted = true;
 			}
 		});

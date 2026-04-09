@@ -1,11 +1,12 @@
 // Packages
 import { defineStore } from 'pinia';
+import { type RouteLocationRaw, type RouteRecordRaw, type Router } from 'vue-router';
 
 // Types
 type MenuItem = {
 	key: string; // i18n key for name
 	icon?: string;
-	to: any; // router-to object
+	to: RouteLocationRaw; // router-to object
 	path?: string;
 };
 
@@ -15,7 +16,6 @@ const defaultMenu: MenuItems = [
 	{ key: 'menu.home', icon: 'house', to: { name: 'home' }, path: '/' },
 	{ key: 'menu.directmsg', icon: 'chat-circle-text', to: { name: 'direct-msg' }, path: '/direct-msg' },
 	{ key: 'menu.discover', icon: 'compass', to: { name: 'discover-rooms' }, path: '/discover-rooms' },
-	{ key: 'menu.calendar', icon: 'calendar', to: { name: 'calendar' }, path: '/calendar' },
 ];
 
 const useMenu = defineStore('menu', {
@@ -38,7 +38,7 @@ const useMenu = defineStore('menu', {
 			this.menu.push(item);
 		},
 
-		addMenuItemWithRoute(item: MenuItem, route: any, router: any) {
+		addMenuItemWithRoute(item: MenuItem, route: RouteRecordRaw, router: Router) {
 			router.addRoute(route);
 			this.addMenuItem(item);
 		},
@@ -49,7 +49,7 @@ const useMenu = defineStore('menu', {
 
 		getMenuItemPath(routeName: string) {
 			return this.$state.menu
-				.filter((menuItem) => menuItem.to['name'] === routeName)
+				.filter((menuItem) => typeof menuItem.to !== 'string' && (menuItem.to as { name?: string })['name'] === routeName)
 				.map((filteredMenuItem) => filteredMenuItem.path)
 				.pop();
 		},
