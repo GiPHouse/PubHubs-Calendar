@@ -1,5 +1,5 @@
 import { RelationType } from '../constants';
-import { MatrixEvent } from 'matrix-js-sdk';
+import { type MatrixEvent } from 'matrix-js-sdk';
 import { ref } from 'vue';
 
 import { Events } from '@hub-client/logic/core/events';
@@ -61,7 +61,7 @@ class TimelineEvent {
 	}
 
 	get isThreadRoot(): boolean {
-		return this._thread !== undefined;
+		return this.matrixEvent.isThreadRoot;
 	}
 
 	get isThreadEvent(): boolean {
@@ -76,10 +76,12 @@ class TimelineEvent {
 		return this._thread?.findEventById(eventId) !== undefined;
 	}
 
-	async loadThread() {
+	loadThread() {
 		const room = this.rooms.room(this.roomId);
 		if (!room) return;
-		const thread = room.getMatrixThread(this.matrixEvent.event.event_id!);
+		const eventId = this.matrixEvent.event.event_id;
+		if (!eventId) return;
+		const thread = room.getMatrixThread(eventId);
 		if (thread) {
 			this._thread.setMatrixThread(thread);
 		}

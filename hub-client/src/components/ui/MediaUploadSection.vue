@@ -1,33 +1,56 @@
 <template>
-	<div>
-		<div class="mb-4 flex flex-col">
-			<H3>{{ title }}</H3>
+	<div class="flex flex-col gap-200">
+		<div class="gap-075 flex flex-col">
+			<Label>{{ title }}</Label>
 			<p>{{ description }}</p>
 		</div>
 
-		<div class="mb-8 flex h-14">
-			<input :accept="accept" ref="fileInput" type="file" class="hidden" @change="handleFileChange" />
+		<div class="flex h-14">
+			<input
+				ref="fileInput"
+				:accept="accept"
+				class="hidden"
+				type="file"
+				@change="handleFileChange"
+			/>
 
 			<div class="">
-				<slot name="preview"></slot>
+				<slot name="preview" />
 			</div>
 
 			<div>
-				<Icon @click="fileInput?.click()" type="pencil-simple" size="md" :as-button="true"></Icon>
-				<Icon @click="$emit('remove')" type="trash" size="md" :as-button="true"></Icon>
+				<Icon
+					:as-button="true"
+					size="md"
+					type="pencil-simple"
+					@click="fileInput?.click()"
+				/>
+				<Icon
+					:as-button="true"
+					size="md"
+					type="trash"
+					@click="$emit('remove')"
+				/>
 			</div>
 		</div>
-		<p v-if="errorText" class="text-red">{{ errorText }}</p>
+		<p
+			v-if="errorText"
+			class="text-red"
+		>
+			{{ errorText }}
+		</p>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { ref } from 'vue';
 
 	// Components
-	import H3 from '@hub-client/components/elements/H3.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// New design
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 
 	defineProps({
 		title: {

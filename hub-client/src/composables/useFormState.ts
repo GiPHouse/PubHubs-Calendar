@@ -2,10 +2,17 @@
 import { reactive, ref } from 'vue';
 
 // Stores
+<<<<<<< HEAD
 import { DialogButton } from '@hub-client/stores/dialog';
 
 // Types
 type FormDataType = string | number | boolean | Object;
+=======
+import { type DialogButton } from '@hub-client/stores/dialog';
+
+// Types
+type FormDataType = string | number | boolean | object;
+>>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 
 type FormValidation = {
 	required?: boolean;
@@ -28,7 +35,11 @@ type FormData = {
 		value: FormDataType;
 		validation?: FormValidation;
 		show_validation?: ShowValidationMessage;
+<<<<<<< HEAD
 		tmp?: any;
+=======
+		tmp?: FormDataType;
+>>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	};
 };
 
