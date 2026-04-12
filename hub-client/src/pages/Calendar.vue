@@ -1,3 +1,5 @@
+//TODO: add 'all-day' button, fix text color for dark mode in week/day view
+
 <template>
 	<HeaderFooter>
 		<template #header>
@@ -13,7 +15,7 @@
 		<div class="calendar-wrapper p-4 md:p-6">
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
-		<EventCreationDialog v-if="showEventCreationDialog" :start="selectedRange.startStr" :end="selectedRange.endStr" @close="showEventCreationDialog = false" @submit="addEvent" />
+		<EventCreationDialog v-if="showEventCreationDialog" :start="selectedRange.startStr" :end="selectedRange.endStr" :allDay="selectedRange.allDay" @close="showEventCreationDialog = false" @submit="handleAddEvent" />
 		<EventDetailsDialog v-if="showEventDetailsDialog && selectedEvent" :event="selectedEvent" @close="showEventDetailsDialog = false" />
 	</HeaderFooter>
 </template>
@@ -33,7 +35,7 @@
 
 	// Event creation
 	const showEventCreationDialog = ref(false);
-	const selectedRange = ref({ startStr: '', endStr: '' });
+	const selectedRange = ref({ startStr: '', endStr: '', allDay: false });
 
 	const showEventDetailsDialog = ref(false);
 	const selectedEvent = ref(null);
@@ -78,9 +80,9 @@
 				day: t('time.day'),
 			},
 			weekText: 'W',
-			allDayText: 'all-day',
+			allDayText: 'all-day', // You might want to add this to your locale files
 			moreLinkText: 'more',
-			noEventsText: 'No events',
+			noEventsText: 'No events', // You might want to add this to your locale files
 
 			// Day names - FullCalendar uses 0 = Sunday, 1 = Monday, etc.
 			dayNames: [
@@ -104,7 +106,7 @@
 				t('days.6'), // Sat
 			],
 
-			// Month names
+			// Month names - FullCalendar uses 0 = January, 1 = February, etc.
 			monthNames: [
 				t('monthsfull.1'), // January (index 0)
 				t('monthsfull.2'), // February (index 1)
@@ -142,12 +144,12 @@
 		if (!rgb) return 'white';
 
 		const [r, g, b] = rgb;
+
+		// Perceived brightness formula
 		const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
 		return brightness > 150 ? 'black' : 'white';
 	}
-
-	// Track if we've already processed the current view to prevent duplicates
-	let lastProcessedDate = null;
 
 	// Calendar options
 	const calendarOptions = ref({
@@ -158,53 +160,35 @@
 		eventDidMount(info) {
 			const bg = window.getComputedStyle(info.el).backgroundColor;
 			const textColor = getContrastTextColor(bg);
+
 			info.el.style.color = textColor;
 		},
 
-		firstDay: 1,
+		firstDay: 1, // 0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
 		headerToolbar: {
 			left: 'prev,next today',
 			center: 'title',
 			right: isMobile.value ? 'dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay',
 		},
 
-		// Today circle in month view day cells - with duplicate prevention
-		dayCellDidMount: function (info) {
-			const today = new Date().toDateString();
-			const cellDate = info.date.toDateString();
-
-			if (cellDate === today) {
-				const dayNumberEl = info.el.querySelector('.fc-daygrid-day-number');
-				if (dayNumberEl) {
-					// Check if already has the today circle wrapper to prevent duplication
-					if (!dayNumberEl.querySelector('.today-circle-wrapper')) {
-						const dayNumber = dayNumberEl.innerText.trim();
-						dayNumberEl.innerHTML = `<span class="today-circle-wrapper"><span class="today-circle">${dayNumber}</span></span>`;
-					}
-				}
-			}
-		},
-
-		// Clean up when view changes to prevent duplicates
-		datesSet: function (info) {
-			// Reset processed date tracker
-			lastProcessedDate = null;
-		},
-
 		views: {
+			// Month view - just day names (Mon, Tue, etc.)
 			dayGridMonth: {
 				dayHeaderFormat: { weekday: 'short' },
-				dayHeaderClassNames: 'month-day-header',
 			},
+
+			// Week view - day name + date (Mon 3)
 			timeGridWeek: {
-				dayHeaderFormat: { weekday: 'short' },
+				dayHeaderFormat: { weekday: 'short', day: 'numeric' },
 			},
+
+			// Day view - full day name (Monday)
 			timeGridDay: {
 				dayHeaderFormat: { weekday: 'long' },
-				dayHeaderClassNames: 'day-view-header',
 			},
 		},
 
+		// Customize the title format
 		titleFormat: {
 			year: 'numeric',
 			month: 'long',
@@ -213,29 +197,18 @@
 		dayHeaderContent: function (arg) {
 			const viewType = arg.view.type;
 
-			// Month view — short weekday names only
+			// Month view -- keep default rendering
 			if (viewType === 'dayGridMonth') {
 				const weekdayShort = arg.date.toLocaleDateString(locale.value, { weekday: 'short' });
 				return { html: `<span class="month-day-name">${weekdayShort}</span>` };
 			}
 
-			// Day view — full weekday name
-			if (viewType === 'timeGridDay') {
-				const weekdayLong = arg.date.toLocaleDateString(locale.value, { weekday: 'long' });
-				return { html: `<span class="day-view-name">${weekdayLong}</span>` };
-			}
-
-			// Week view — consistent styling for both day name and number
 			const date = arg.date;
 			const weekday = date.toLocaleDateString(locale.value, { weekday: 'short' });
 			const day = date.getDate();
-			const isToday = date.toDateString() === new Date().toDateString();
-
-			// Use same styling for both name and number
-			const dayNumHtml = isToday ? `<span class="fc-day-number fc-day-number--today">${day}</span>` : `<span class="fc-day-number">${day}</span>`;
 
 			return {
-				html: `<span class="fc-day-name">${weekday}</span>${dayNumHtml}`,
+				html: `<span>${weekday}</span><span class="fc-day-number">${day}</span>`,
 			};
 		},
 
@@ -246,34 +219,54 @@
 		dayMaxEvents: true,
 		events: calendarEvents,
 
+		// Event handlers
 		dateClick: handleDateClick,
 		eventClick: handleEventClick,
 		select: handleSelect,
 		eventDrop: handleEventDrop,
 		eventResize: handleEventResize,
 
+		// Event colors
 		eventColor: '#3788d8',
+
+		// Responsive settings
 		aspectRatio: isMobile.value ? 0.8 : 1.35,
-		contentHeight: 'auto',
-		locales: [getCalendarLocale()],
+
+		// Locale (adjust based on your needs)
+		locales: [getCalendarLocale()], // Add this
 		locale: locale.value,
+
+		// Loading state
 		loading: handleLoading,
 	});
 
 	watch(locale, () => {
 		if (fullCalendar.value) {
+			// Update the calendar with new locale
 			fullCalendar.value.getApi().setOption('locales', [getCalendarLocale()]);
 			fullCalendar.value.getApi().setOption('locale', locale.value);
-			fullCalendar.value.getApi().render();
 		}
 	});
 
+	function addOneDay(dateStr) {
+		const d = new Date(dateStr);
+		d.setDate(d.getDate() + 1);
+
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+
+		return `${year}-${month}-${day}`;
+	}
+
 	function addEvent(newEvent) {
 		calendarEvents.value.push({
-			id: Date.now().toString(),
 			title: newEvent.title,
 			start: newEvent.start,
-			end: newEvent.end,
+			end: newEvent.allDay
+				? addOneDay(newEvent.end) // FullCalendar expects exclusive end
+				: newEvent.end,
+			allDay: newEvent.allDay,
 			backgroundColor: newEvent.color,
 			borderColor: newEvent.color,
 			extendedProps: {
@@ -282,25 +275,42 @@
 				description: newEvent.description,
 			},
 		});
-		showEventCreationDialog.value = false;
 	}
 
 	function handleDateClick(info) {
-		const clickedDate = new Date(info.date);
-		const isMonthViewClick = clickedDate.getHours() === 0 && clickedDate.getMinutes() === 0;
+		const isAllDayClick = info.allDay;
 
-		const start = new Date(clickedDate);
-		if (isMonthViewClick) {
-			start.setHours(8, 0, 0, 0);
+		let start, end;
+
+		if (isAllDayClick) {
+			const date = new Date(info.date);
+
+			selectedRange.value = {
+				startStr: date.toISOString(),
+				endStr: date.toISOString(), // SAME DAY
+				allDay: true,
+			};
+		} else {
+			const clickedDate = new Date(info.date);
+			// Determine if clicked time is midnight (month view)
+			const isMonthViewClick = clickedDate.getHours() === 0 && clickedDate.getMinutes() === 0;
+
+			// Set start time
+			start = new Date(clickedDate);
+
+			if (isMonthViewClick) {
+				start.setHours(8, 0, 0, 0);
+			}
+
+			end = new Date(start);
+			end.setMinutes(start.getMinutes() + 30);
+
+			selectedRange.value = {
+				startStr: start.toISOString(),
+				endStr: end.toISOString(),
+				allDay: false,
+			};
 		}
-
-		const end = new Date(start);
-		end.setMinutes(start.getMinutes() + 30);
-
-		selectedRange.value = {
-			startStr: start.toISOString(),
-			endStr: end.toISOString(),
-		};
 
 		showEventCreationDialog.value = true;
 	}
@@ -320,18 +330,25 @@
 		showEventDetailsDialog.value = true;
 	}
 
+	function handleAddEvent(newEvent) {
+		addEvent(newEvent);
+		showEventCreationDialog.value = false;
+	}
+
 	function handleSelect(info) {
-		selectedRange.value = { startStr: info.startStr, endStr: info.endStr };
+		selectedRange.value = { startStr: info.startStr, endStr: info.endStr, allDay: info.allDay };
 		showEventCreationDialog.value = true;
 	}
 
 	function handleEventDrop(info) {
 		console.log('Event dropped:', info.event);
+		// Handle event drag & drop
 		emit('eventUpdated', info.event);
 	}
 
 	function handleEventResize(info) {
 		console.log('Event resized:', info.event);
+		// Handle event resize
 		emit('eventUpdated', info.event);
 	}
 
@@ -339,6 +356,7 @@
 		console.log('Loading:', isLoading);
 	}
 
+	// Navigation methods
 	function goToToday() {
 		if (fullCalendar.value) {
 			fullCalendar.value.getApi().today();
@@ -363,6 +381,7 @@
 		}
 	}
 
+	// Expose methods to parent if needed
 	defineExpose({
 		goToToday,
 		nextMonth,
@@ -373,12 +392,14 @@
 
 <style scoped>
 	.calendar-wrapper {
-		width: 100%;
+		height: calc(100vh - 120px);
+		min-height: 600px;
 	}
 
 	@media (max-width: 768px) {
 		.calendar-wrapper {
-			width: 100%;
+			height: calc(100vh - 100px);
+			min-height: 500px;
 		}
 	}
 
@@ -410,7 +431,7 @@
 	}
 
 	:deep(.fc-toolbar-chunk:last-child .fc-button) {
-		min-width: 70px;
+		min-width: 70px; /* Adjust this value as needed */
 		text-align: center;
 		white-space: nowrap;
 	}
@@ -447,71 +468,35 @@
 	}
 
 	:deep(.fc-timegrid-axis) {
-		width: 70px;
+		width: 70px; /* Adjust time column width */
 	}
 
 	:deep(.fc-timegrid-slot) {
-		height: 30px;
+		height: 30px; /* Adjust height of each time slot */
 	}
 
 	:deep(.fc-timegrid-slot-label) {
-		font-size: 12px;
-		color: var(--on-surface-dim);
+		font-size: 12px; /* Adjust time text size */
+		color: var(--on-surface-dim); /* Time text color */
 	}
 
 	:deep(.fc-timegrid-slot-label-frame) {
 		color: var(--on-surface-dim);
 	}
 
-	/* Unified header styling - consistent height for all views */
+	/* Day headers (day/week/month views) */
 	:deep(.fc-col-header-cell) {
-		padding: 0;
+		padding: 0.75rem 0;
 		background-color: var(--surface-low);
 		font-weight: 600;
 		font-size: 14px;
 		color: var(--on-surface);
-		height: 56px;
-		box-sizing: border-box;
-		vertical-align: middle;
 	}
 
 	:deep(.fc-col-header-cell-cushion) {
 		color: var(--on-surface);
 		text-decoration: none;
 		font-size: 14px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 4px;
-		height: 56px;
-		box-sizing: border-box;
-		line-height: 1.4;
-	}
-
-	/* Month view header styling */
-	:deep(.month-day-header) {
-		height: 56px;
-	}
-
-	:deep(.month-day-name) {
-		font-weight: 600;
-		font-size: 14px;
-		color: var(--on-surface);
-		display: inline-block;
-		line-height: 1.4;
-	}
-
-	/* Day view header styling */
-	:deep(.day-view-header) {
-		height: 56px;
-	}
-
-	:deep(.day-view-name) {
-		font-weight: 600;
-		font-size: 14px;
-		color: var(--on-surface);
-		display: inline-block;
-		line-height: 1.4;
 	}
 
 	/* Day numbers */
@@ -521,7 +506,6 @@
 		color: var(--on-surface);
 		padding: 0.5rem;
 		text-decoration: none;
-		display: inline-block;
 	}
 
 	:deep(.fc-daygrid-day-frame) {
@@ -532,94 +516,55 @@
 		font-size: 12px;
 	}
 
+	/* Day header in day/week view */
 	:deep(.fc-day-header) {
 		color: var(--on-surface);
 		font-size: 14px;
 	}
 
-	/* Month view today circle */
+	/* Today circle styling */
 	:deep(.fc-day-today .fc-daygrid-day-number) {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		width: 28px;
 		height: 28px;
+		background-color: var(--accent-blue);
+		color: var(--on-button-blue);
+		border-radius: 50%;
+		font-weight: 600;
+		line-height: 1;
+		font-size: 13px;
 		padding: 0;
 	}
 
-	:deep(.today-circle-wrapper) {
+	/* Today circle in week/day view */
+	:deep(.fc-timegrid .fc-day-today .fc-col-header-cell-cushion) {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
+		gap: 2px;
 	}
 
-	:deep(.today-circle) {
+	/* Circle for today in week/day header */
+	:deep(.fc-timegrid .fc-day-today .fc-day-number) {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 28px;
-		height: 28px;
-		background-color: var(--today-button);
-		color: white;
+		width: 26px;
+		height: 26px;
+		background-color: var(--accent-blue);
+		color: var(--on-button-blue);
 		border-radius: 50%;
 		font-weight: 600;
 		font-size: 13px;
-		line-height: 1;
 	}
 
-	/* Week view header styling - consistent font and size for both day name and number */
-	:deep(.fc-timegrid .fc-col-header-cell-cushion) {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 4px;
-		flex-wrap: nowrap;
-		font-size: 14px;
-		font-weight: 500;
+	:deep(.fc-col-header-cell-cushion) {
+		text-transform: capitalize; /* Capitalizes first letter of each word */
 	}
 
-	/* Week view: day name styling - same as day number */
-	:deep(.fc-day-name) {
-		font-size: 14px;
-		font-weight: 500;
-		display: inline-block;
-		line-height: 1.4;
-	}
-
-	/* Week view: day number styling - same as day name */
-	:deep(.fc-day-number) {
-		font-size: 14px;
-		font-weight: 500;
-		display: inline-block;
-		line-height: 1.4;
-		min-width: 28px;
-		text-align: center;
-	}
-
-	/* Week view: day number wrapper */
-	:deep(.fc-day-number-wrapper) {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 28px;
-		height: 28px;
-	}
-
-	/* Week view: today's day number circle - consistent styling */
-	:deep(.fc-day-number--today) {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
-		background-color: var(--today-button);
-		color: white;
-		border-radius: 50%;
-		font-weight: 600;
-		font-size: 14px;
-		line-height: 1;
+	:deep(.fc-col-header-cell-cushion span:first-child) {
+		margin-right: 3px;
 	}
 
 	:deep(.fc-timegrid-axis) {
@@ -652,53 +597,13 @@
 			min-height: 60px;
 		}
 
+		/* Adjust time column for mobile */
 		:deep(.fc-timegrid-axis) {
 			width: 50px;
 		}
 
 		:deep(.fc-timegrid-slot-label) {
 			font-size: 10px;
-		}
-
-		/* Mobile header heights - consistent */
-		:deep(.fc-col-header-cell) {
-			height: 48px;
-		}
-
-		:deep(.fc-col-header-cell-cushion) {
-			height: 48px;
-		}
-
-		:deep(.month-day-header),
-		:deep(.day-view-header) {
-			height: 48px;
-		}
-
-		:deep(.fc-day-number--today),
-		:deep(.today-circle) {
-			width: 24px;
-			height: 24px;
-			font-size: 12px;
-		}
-
-		:deep(.today-circle-wrapper) {
-			width: 24px;
-			height: 24px;
-		}
-
-		:deep(.fc-day-number-wrapper) {
-			min-width: 24px;
-			height: 24px;
-		}
-
-		/* Ensure consistent font sizes on mobile */
-		:deep(.fc-day-name),
-		:deep(.fc-day-number) {
-			font-size: 12px;
-		}
-
-		:deep(.fc-day-number--today) {
-			font-size: 12px;
 		}
 	}
 </style>

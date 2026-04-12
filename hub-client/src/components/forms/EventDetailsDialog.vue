@@ -46,9 +46,17 @@
 
 		<!-- Footer content - this will be passed to Dialog's footer slot -->
 		<template #footer>
-			<button @click="$emit('close')" class="border-primary bg-accent-blue hover:bg-accent-blue/90 text-primary hover:text-on-primary cursor-pointer rounded-md border px-5 py-2 text-sm font-medium shadow-sm transition">
-				{{ $t('notifications.info') }}
-			</button>
+			<div class="flex items-center gap-2">
+				<button v-if="canEdit" @click="deleteEvent" class="cursor-pointer rounded-md border border-red-500 bg-transparent px-5 py-2 text-sm font-medium text-red-500 shadow-sm transition hover:bg-red-500 hover:text-white">
+					{{ $t('actions.delete') }}
+				</button>
+				<button v-if="canEdit" @click="editEvent" class="border-primary text-on-surface hover:bg-surface-high cursor-pointer rounded-md border bg-transparent px-5 py-2 text-sm font-medium shadow-sm transition">
+					{{ $t('actions.edit') }}
+				</button>
+				<button @click="$emit('close')" class="border-primary bg-accent-blue hover:bg-accent-blue/90 text-primary hover:text-on-primary cursor-pointer rounded-md border px-5 py-2 text-sm font-medium shadow-sm transition">
+					{{ $t('notifications.info') }}
+				</button>
+			</div>
 		</template>
 
 		<ValidationErrors v-if="validationErrors.length" :errors="validationErrors" />
@@ -139,12 +147,21 @@
 	});
 
 	function editEvent() {
-		emit('edit', props.event);
+		// Emit the event data for editing
+		emit('edit', {
+			id: props.event.id,
+			title: props.event.title,
+			start: props.event.start,
+			end: props.event.end,
+			allDay: props.event.allDay,
+			color: props.event.backgroundColor,
+			extendedProps: props.event.extendedProps,
+		});
 	}
 
 	function deleteEvent() {
 		if (confirm(t('calendar.confirm_delete'))) {
-			emit('delete', props.event);
+			emit('delete', props.event.id);
 		}
 	}
 </script>
