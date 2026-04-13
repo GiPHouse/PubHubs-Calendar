@@ -132,7 +132,7 @@
 
 	const showRoomDropdown = ref(false);
 
-	const props = defineProps<{ start: string; end: string; allDay?: boolean }>();
+	const props = defineProps<{ start: string; end: string; allDay?: boolean; event?: any }>();
 	const emit = defineEmits(['submit', 'close']);
 
 	const rooms = ['Room A', 'Room B', 'Room C'];
@@ -319,6 +319,19 @@
 		const day = String(date.getDate()).padStart(2, '0');
 		return `${year}-${month}-${day}`;
 	}
+
+	watch(
+		() => props.event,
+		(event) => {
+			if (!event) return;
+			form.title = event.title ?? '';
+			form.location = event.extendedProps?.location ?? '';
+			form.room = event.extendedProps?.room ?? [];
+			form.description = event.extendedProps?.description ?? '';
+			form.color = event.backgroundColor ?? form.color;
+		},
+		{ immediate: true },
+	);
 
 	function submit() {
 		const start = new Date(form.startDate);

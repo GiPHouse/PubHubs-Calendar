@@ -15,8 +15,19 @@
 		<div class="calendar-wrapper p-4 md:p-6">
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
-		<EventCreationDialog v-if="showEventCreationDialog" :start="selectedRange.startStr" :end="selectedRange.endStr" :allDay="selectedRange.allDay" @close="showEventCreationDialog = false" @submit="handleAddEvent" />
-		<EventDetailsDialog v-if="showEventDetailsDialog && selectedEvent" :event="selectedEvent" @close="showEventDetailsDialog = false" />
+		<EventCreationDialog
+			v-if="showEventCreationDialog"
+			:start="selectedRange.startStr"
+			:end="selectedRange.endStr"
+			:allDay="selectedRange.allDay"
+			:event="selectedEventForEdit"
+			@close="
+				showEventCreationDialog = false;
+				selectedEventForEdit = null;
+			"
+			@submit="handleAddEvent"
+		/>
+		<EventDetailsDialog v-if="showEventDetailsDialog && selectedEvent" :event="selectedEvent" :can-edit="true" @close="showEventDetailsDialog = false" @edit="handleEditEvent" @delete="handleDeleteEvent" />
 	</HeaderFooter>
 </template>
 
@@ -38,6 +49,7 @@
 	const selectedRange = ref({ startStr: '', endStr: '', allDay: false });
 
 	const showEventDetailsDialog = ref(false);
+	const selectedEventForEdit = ref(null);
 	const selectedEvent = ref(null);
 
 	const { t, locale } = useI18n();
@@ -149,6 +161,22 @@
 		const brightness = (r * 299 + g * 587 + b * 114) / 1000;
 
 		return brightness > 150 ? 'black' : 'white';
+	}
+
+	function handleEditEvent(event) {
+		showEventDetailsDialog.value = false;
+		selectedEventForEdit.value = event;
+		selectedRange.value = {
+			startStr: event.start instanceof Date ? event.start.toISOString() : event.start,
+			endStr: event.end instanceof Date ? event.end.toISOString() : (event.end ?? event.start),
+			allDay: event.allDay,
+		};
+		showEventCreationDialog.value = true;
+	}
+
+	function handleDeleteEvent(eventId) {
+		calendarEvents.value = calendarEvents.value.filter((e) => e.id !== eventId);
+		showEventDetailsDialog.value = false;
 	}
 
 	// Calendar options
@@ -331,7 +359,30 @@
 	}
 
 	function handleAddEvent(newEvent) {
-		addEvent(newEvent);
+		if (selectedEventForEdit.value) {
+			// Update existing event
+			const index = calendarEvents.value.findIndex((e) => e.id === selectedEventForEdit.value.id);
+			if (index !== -1) {
+				calendarEvents.value[index] = {
+					...calendarEvents.value[index],
+					title: newEvent.title,
+					start: newEvent.start,
+					end: newEvent.end,
+					allDay: newEvent.allDay,
+					backgroundColor: newEvent.color,
+					borderColor: newEvent.color,
+					extendedProps: {
+						location: newEvent.location,
+						room: newEvent.room,
+						description: newEvent.description,
+					},
+				};
+			}
+			selectedEventForEdit.value = null;
+		} else {
+			// Create new event
+			addEvent(newEvent);
+		}
 		showEventCreationDialog.value = false;
 	}
 
