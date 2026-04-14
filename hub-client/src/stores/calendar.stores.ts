@@ -38,6 +38,8 @@ const useCalendarStore = defineStore('calendar', {
 				body: calEvent.title,
 				title: calEvent.title,
 				description: calEvent.description,
+				color: calEvent.color,
+				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 			};
@@ -78,8 +80,10 @@ const useCalendarStore = defineStore('calendar', {
 					return new CalendarEvent(
 						content.title,
 						content.description,
+						content.color,
+						content.isAllDay,
 						new Date(content.startTime),
-						new Date(content.endTime)
+						new Date(content.endTime),
 					);
 				});
 
