@@ -60,10 +60,12 @@
 	import { useI18n } from 'vue-i18n';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	const { t, locale } = useI18n();
+	const { formatDate } = useTimeFormat();
 
 	interface Props {
 		event: any;
@@ -126,16 +128,10 @@
 		const start = new Date(props.event.start);
 		const end = props.event.end ? new Date(props.event.end) : null;
 
-		const timeOptions: Intl.DateTimeFormatOptions = {
-			hour: 'numeric',
-			minute: '2-digit',
-			hour12: true,
-		};
-
 		if (end) {
-			return `${start.toLocaleTimeString(locale.value || 'en', timeOptions)} – ${end.toLocaleTimeString(locale.value || 'en', timeOptions)}`;
+			return `${formatDate(start)} – ${formatDate(end)}`;
 		}
-		return start.toLocaleTimeString(locale.value || 'en', timeOptions);
+		return formatDate(start);
 	});
 
 	function editEvent() {
