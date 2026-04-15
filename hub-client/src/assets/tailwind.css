@@ -93,11 +93,10 @@
 	--on-accent-button-blue: #5CBFF1;
 	--on-blue: #0086e2;
 	--calendar-grid: #e5e7eb;
-
-	--logo-dark-blue: #011242;
 	--logo-blue: #138DE8;
 	--logo-mid-blue: #084F95;
 	--day-numbers: #E4E5E8;
+	--today-button: #005a9e;
 }
 
 .dark {
@@ -135,6 +134,7 @@
 
 	/*Calendar colors*/
 	--calendar-grid: #737477;
+	--today-button: #3dadff;
 
 }
 

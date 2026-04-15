@@ -11,10 +11,11 @@ const nl = {
 	calendar: {
 		title: 'Titel',
 		description: 'Beschrijving',
+		room: 'Kamer',
 		location: 'Locatie',
 		selectRooms: 'Selecteer kamer(s)',
-		room: 'Kamer(s)',
 		save: 'Opslaan',
+		isAllDay: 'Hele dag',
 	},
 	state: {
 		button_request: 'Verleen toegang',
@@ -28,6 +29,8 @@ const nl = {
 		ok: 'Ok',
 		cancel: 'Annuleer',
 		close: 'Sluiten',
+		delete: 'Verwijderen',
+		edit: 'Bewerken',
 		yes: 'Ja',
 		no: 'Nee',
 		hub_unpin_title: 'Hub losmaken',
@@ -211,7 +214,7 @@ const nl = {
 		open_instructions: 'Bekijk uitleg',
 	},
 	menu: {
-		calendar: 'Kalender',
+		calendar: 'Kalendar',
 		contact: 'Admin Contact',
 		copy_hub_url: 'Kopieer link naar hub',
 		copy_room_url: 'Kopieer link naar kamer',

@@ -13,8 +13,19 @@
 		<div class="calendar-wrapper p-4 md:p-6">
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
-		<EventCreationDialog v-if="showEventCreationDialog" :start="selectedRange.startStr" :end="selectedRange.endStr" @close="showEventCreationDialog = false" @submit="addEvent" />
-		<EventDetailsDialog v-if="showEventDetailsDialog && selectedEvent" :event="selectedEvent" @close="showEventDetailsDialog = false" />
+		<EventCreationDialog
+			v-if="showEventCreationDialog"
+			:start="selectedRange.startStr"
+			:end="selectedRange.endStr"
+			:allDay="selectedRange.allDay"
+			:event="selectedEventForEdit"
+			@close="
+				showEventCreationDialog = false;
+				selectedEventForEdit = null;
+			"
+			@submit="handleAddEvent"
+		/>
+		<EventDetailsDialog v-if="showEventDetailsDialog && selectedEvent" :event="selectedEvent" :can-edit="true" @close="showEventDetailsDialog = false" @edit="handleEditEvent" @delete="handleDeleteEvent" />
 	</HeaderFooter>
 </template>
 
@@ -25,20 +36,27 @@
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
-	import { computed, ref, watch } from 'vue';
+	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	import { useSettings } from '@hub-client/stores/settings';
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
 
 	// Event creation
 	const showEventCreationDialog = ref(false);
-	const selectedRange = ref({ startStr: '', endStr: '' });
+	const selectedRange = ref({ startStr: '', endStr: '', allDay: false });
 
 	const showEventDetailsDialog = ref(false);
+	const selectedEventForEdit = ref(null);
 	const selectedEvent = ref(null);
 
 	const { t, locale } = useI18n();
+
+	const settings = useSettings();
+
+	const is24Hour = computed(() => settings.timeformat === 'format24');
 
 	// Mobile detection (adjust based on your setup)
 	const isMobile = computed(() => {
@@ -55,8 +73,9 @@
 			title: 'Team Meeting',
 			start: new Date(new Date().setHours(10, 0, 0, 0)),
 			end: new Date(new Date().setHours(11, 30, 0, 0)),
-			backgroundColor: '#3b82f6',
-			borderColor: '#3b82f6',
+			backgroundColor: '#00adee',
+			borderColor: '#00adee',
+			textColor: getContrastTextColor('#3b82f6'),
 		},
 		{
 			id: '2',
@@ -65,6 +84,7 @@
 			allDay: true,
 			backgroundColor: '#ef4444',
 			borderColor: '#ef4444',
+			textColor: getContrastTextColor('#ef4444'),
 		},
 	]);
 
@@ -83,7 +103,6 @@
 			noEventsText: 'No events', // You might want to add this to your locale files
 
 			// Day names - FullCalendar uses 0 = Sunday, 1 = Monday, etc.
-			// Your days.7 = Sunday, days.1 = Monday, etc.
 			dayNames: [
 				t('daysfull.7'), // Sunday (index 0)
 				t('daysfull.1'), // Monday (index 1)
@@ -125,18 +144,56 @@
 				t('months.1'), // Jan
 				t('months.2'), // Feb
 				t('months.3'), // Mar
-				t('months.4'), // Mar
-				t('months.5'), // Mar
-				t('months.6'), // Mar
-				t('months.7'), // Mar
-				t('months.8'), // Mar
-				t('months.9'), // Mar
-				t('months.10'), // Mar
-				t('months.11'), // Mar
-				t('months.12'), // Mar
+				t('months.4'), // Apr
+				t('months.5'), // May
+				t('months.6'), // Jun
+				t('months.7'), // Jul
+				t('months.8'), // Aug
+				t('months.9'), // Sep
+				t('months.10'), // Oct
+				t('months.11'), // Nov
+				t('months.12'), // Dec
 			],
 		};
 	};
+
+	function getContrastTextColor(bgColor) {
+		let r, g, b;
+
+		// HEX → RGB
+		if (bgColor.startsWith('#')) {
+			const hex = bgColor.replace('#', '');
+			const bigint = parseInt(hex, 16);
+
+			r = (bigint >> 16) & 255;
+			g = (bigint >> 8) & 255;
+			b = bigint & 255;
+		} else {
+			const rgb = bgColor.match(/\d+/g)?.map(Number);
+			if (!rgb) return 'white';
+			[r, g, b] = rgb;
+		}
+
+		const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+		return brightness > 150 ? 'black' : 'white';
+	}
+
+	function handleEditEvent(event) {
+		showEventDetailsDialog.value = false;
+		selectedEventForEdit.value = event;
+		selectedRange.value = {
+			startStr: event.start instanceof Date ? event.start.toISOString() : event.start,
+			endStr: event.end instanceof Date ? event.end.toISOString() : (event.end ?? event.start),
+			allDay: event.allDay,
+		};
+		showEventCreationDialog.value = true;
+	}
+
+	function handleDeleteEvent(eventId) {
+		calendarEvents.value = calendarEvents.value.filter((e) => e.id !== eventId);
+		showEventDetailsDialog.value = false;
+	}
 
 	// Calendar options
 	const calendarOptions = ref({
@@ -144,25 +201,15 @@
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
 		selectable: true,
 
+		eventClassNames(arg) {
+			return arg.event.allDay ? ['all-day-event'] : ['timed-event'];
+		},
+
 		firstDay: 1, // 0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
 		headerToolbar: {
 			left: 'prev,next today',
 			center: 'title',
 			right: isMobile.value ? 'dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay',
-		},
-
-		dayCellDidMount: function (info) {
-			// Check if this is the current day
-			if (info.date.toDateString() === new Date().toDateString()) {
-				// Get the day number element
-				const dayNumberEl = info.el.querySelector('.fc-daygrid-day-number');
-
-				if (dayNumberEl) {
-					// Wrap the day number in a circle
-					const dayNumber = dayNumberEl.innerText;
-					dayNumberEl.innerHTML = `<span class="today-circle">${dayNumber}</span>`;
-				}
-			}
 		},
 
 		views: {
@@ -176,9 +223,9 @@
 				dayHeaderFormat: { weekday: 'short', day: 'numeric' },
 			},
 
-			// Day view - day name + date (Monday 3)
+			// Day view - full day name (Monday)
 			timeGridDay: {
-				dayHeaderFormat: { weekday: 'long', day: 'numeric' }, // Changed from just 'long'
+				dayHeaderFormat: { weekday: 'long' },
 			},
 		},
 
@@ -186,6 +233,24 @@
 		titleFormat: {
 			year: 'numeric',
 			month: 'long',
+		},
+
+		dayHeaderContent: function (arg) {
+			const viewType = arg.view.type;
+
+			// Month view -- keep default rendering
+			if (viewType === 'dayGridMonth') {
+				const weekdayShort = arg.date.toLocaleDateString(locale.value, { weekday: 'short' });
+				return { html: `<span class="month-day-name">${weekdayShort}</span>` };
+			}
+
+			const date = arg.date;
+			const weekday = date.toLocaleDateString(locale.value, { weekday: 'short' });
+			const day = date.getDate();
+
+			return {
+				html: `<span>${weekday}</span><span class="fc-day-number">${day}</span>`,
+			};
 		},
 
 		weekends: true,
@@ -212,11 +277,20 @@
 		locales: [getCalendarLocale()], // Add this
 		locale: locale.value,
 
+		// Time format (24h or 12h)
+		slotLabelFormat: {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: !is24Hour.value,
+		},
+		eventTimeFormat: {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: !is24Hour.value,
+		},
+
 		// Loading state
 		loading: handleLoading,
-
-		// Event rendering
-		eventContent: renderEventContent,
 	});
 
 	watch(locale, () => {
@@ -227,43 +301,80 @@
 		}
 	});
 
+	watch(is24Hour, (val) => {
+		if (fullCalendar.value) {
+			const timeFormat = { hour: 'numeric', minute: '2-digit', hour12: !val };
+			fullCalendar.value.getApi().setOption('slotLabelFormat', timeFormat);
+			fullCalendar.value.getApi().setOption('eventTimeFormat', timeFormat);
+		}
+	});
+
+	function addOneDay(dateStr) {
+		const d = new Date(dateStr);
+		d.setDate(d.getDate() + 1);
+
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+
+		return `${year}-${month}-${day}`;
+	}
+
 	function addEvent(newEvent) {
+		const textColor = getContrastTextColor(newEvent.color);
+
 		calendarEvents.value.push({
 			title: newEvent.title,
 			start: newEvent.start,
-			end: newEvent.end,
+			end: newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end,
+			allDay: newEvent.allDay,
+			backgroundColor: newEvent.color,
+			borderColor: newEvent.color,
+			textColor,
 			extendedProps: {
 				location: newEvent.location,
 				room: newEvent.room,
 				description: newEvent.description,
 			},
 		});
-		showEventCreationDialog.value = false;
 	}
 
-	// Event handlers
 	function handleDateClick(info) {
-		const clickedDate = new Date(info.date); // Already has time in day/week, midnight in month
+		const isAllDayClick = info.allDay;
 
-		// Determine if clicked time is midnight (month view)
-		const isMonthViewClick = clickedDate.getHours() === 0 && clickedDate.getMinutes() === 0;
+		let start, end;
 
-		// Set start time
-		const start = new Date(clickedDate);
-		if (isMonthViewClick) {
-			start.setHours(8, 0, 0, 0); // default 09:00
+		if (isAllDayClick) {
+			const date = new Date(info.date);
+
+			selectedRange.value = {
+				startStr: date.toISOString(),
+				endStr: date.toISOString(), // SAME DAY
+				allDay: true,
+			};
+		} else {
+			const clickedDate = new Date(info.date);
+			// Determine if clicked time is midnight (month view)
+			const isMonthViewClick = clickedDate.getHours() === 0 && clickedDate.getMinutes() === 0;
+
+			// Set start time
+			start = new Date(clickedDate);
+
+			if (isMonthViewClick) {
+				start.setHours(8, 0, 0, 0);
+			}
+
+			end = new Date(start);
+			end.setMinutes(start.getMinutes() + 30);
+
+			selectedRange.value = {
+				startStr: start.toISOString(),
+				endStr: end.toISOString(),
+				allDay: false,
+			};
 		}
 
-		// Set end time: 30 min after start
-		const end = new Date(start);
-		end.setMinutes(start.getMinutes() + 30);
-
-		selectedRange.value = {
-			startStr: start.toISOString(),
-			endStr: end.toISOString(),
-		};
-
-		showEventCreation.value = true;
+		showEventCreationDialog.value = true;
 	}
 
 	function handleEventClick(info) {
@@ -281,8 +392,36 @@
 		showEventDetailsDialog.value = true;
 	}
 
+	function handleAddEvent(newEvent) {
+		if (selectedEventForEdit.value) {
+			// Update existing event
+			const index = calendarEvents.value.findIndex((e) => e.id === selectedEventForEdit.value.id);
+			if (index !== -1) {
+				calendarEvents.value[index] = {
+					...calendarEvents.value[index],
+					title: newEvent.title,
+					start: newEvent.start,
+					end: newEvent.end,
+					allDay: newEvent.allDay,
+					backgroundColor: newEvent.color,
+					borderColor: newEvent.color,
+					extendedProps: {
+						location: newEvent.location,
+						room: newEvent.room,
+						description: newEvent.description,
+					},
+				};
+			}
+			selectedEventForEdit.value = null;
+		} else {
+			// Create new event
+			addEvent(newEvent);
+		}
+		showEventCreationDialog.value = false;
+	}
+
 	function handleSelect(info) {
-		selectedRange.value = { startStr: info.startStr, endStr: info.endStr };
+		selectedRange.value = { startStr: info.startStr, endStr: info.endStr, allDay: info.allDay };
 		showEventCreationDialog.value = true;
 	}
 
@@ -300,18 +439,6 @@
 
 	function handleLoading(isLoading) {
 		console.log('Loading:', isLoading);
-	}
-
-	// Custom event rendering
-	function renderEventContent(eventInfo) {
-		return {
-			html: `
-      <div class="fc-event-custom p-1">
-        <b>${eventInfo.timeText}</b>
-        <span>${eventInfo.event.title}</span>
-      </div>
-    `,
-		};
 	}
 
 	// Navigation methods
@@ -469,20 +596,48 @@
 	}
 
 	/* Today circle styling */
-	:deep(.fc-day-today .fc-daygrid-day-number .today-circle) {
-		display: flex;
+	:deep(.fc-day-today .fc-daygrid-day-number) {
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		width: 28px;
 		height: 28px;
 		background-color: var(--accent-blue);
-		color: white;
+		color: var(--on-button-blue);
 		border-radius: 50%;
 		font-weight: 600;
+		line-height: 1;
+		font-size: 13px;
+		padding: 0;
+	}
+
+	/* Today circle in week/day view */
+	:deep(.fc-timegrid .fc-day-today .fc-col-header-cell-cushion) {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	/* Circle for today in week/day header */
+	:deep(.fc-timegrid .fc-day-today .fc-day-number) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		background-color: var(--accent-blue);
+		color: var(--on-button-blue);
+		border-radius: 50%;
+		font-weight: 600;
+		font-size: 13px;
 	}
 
 	:deep(.fc-col-header-cell-cushion) {
 		text-transform: capitalize; /* Capitalizes first letter of each word */
+	}
+
+	:deep(.fc-col-header-cell-cushion span:first-child) {
+		margin-right: 3px;
 	}
 
 	:deep(.fc-timegrid-axis) {
