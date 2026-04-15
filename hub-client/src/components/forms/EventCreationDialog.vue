@@ -128,12 +128,17 @@
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	import { useSettings } from '@hub-client/stores/settings';
+
 	const { t, locale } = useI18n();
 
 	const showRoomDropdown = ref(false);
 
 	const props = defineProps<{ start: string; end: string; allDay?: boolean; event?: any }>();
+
 	const emit = defineEmits(['submit', 'close']);
+
+	const settings = useSettings();
 
 	const rooms = ['Room A', 'Room B', 'Room C'];
 
@@ -297,11 +302,22 @@
 		end.setHours(eh, em);
 
 		if (startStr === endStr) {
-			return `${startStr}, ${form.startTime}–${form.endTime}`;
+			return `${startStr}, ${formatTime(form.startTime)}–${formatTime(form.endTime)}`;
 		}
 
-		return `${startStr} ${form.startTime} – ${endStr} ${form.endTime}`;
+		return `${startStr} ${formatTime(form.startTime)} – ${endStr} ${formatTime(form.endTime)}`;
 	});
+
+	function formatTime(timeStr: string): string {
+		const [h, m] = timeStr.split(':').map(Number);
+		if (settings.timeFormat === '24') {
+			return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+		}
+		const period = h >= 12 ? 'PM' : 'AM';
+		const hour12 = h % 12 === 0 ? 12 : h % 12;
+		if (m === 0) return `${hour12} ${period}`;
+		return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+	}
 
 	function getComputedColor(colorClass: string) {
 		const el = document.createElement('div');

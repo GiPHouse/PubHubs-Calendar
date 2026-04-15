@@ -1,5 +1,3 @@
-//TODO: add 'all-day' button, fix text color for dark mode in week/day view
-
 <template>
 	<HeaderFooter>
 		<template #header>
@@ -41,6 +39,8 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import { useSettings } from '@hub-client/stores/settings';
+
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
 
@@ -53,6 +53,10 @@
 	const selectedEvent = ref(null);
 
 	const { t, locale } = useI18n();
+
+	const settings = useSettings();
+
+	const is24Hour = computed(() => settings.timeformat === 'format24');
 
 	// Mobile detection (adjust based on your setup)
 	const isMobile = computed(() => {
@@ -69,8 +73,9 @@
 			title: 'Team Meeting',
 			start: new Date(new Date().setHours(10, 0, 0, 0)),
 			end: new Date(new Date().setHours(11, 30, 0, 0)),
-			backgroundColor: '#3b82f6',
-			borderColor: '#3b82f6',
+			backgroundColor: '#00adee',
+			borderColor: '#00adee',
+			textColor: getContrastTextColor('#3b82f6'),
 		},
 		{
 			id: '2',
@@ -79,6 +84,7 @@
 			allDay: true,
 			backgroundColor: '#ef4444',
 			borderColor: '#ef4444',
+			textColor: getContrastTextColor('#ef4444'),
 		},
 	]);
 
@@ -152,12 +158,22 @@
 	};
 
 	function getContrastTextColor(bgColor) {
-		const rgb = bgColor.match(/\d+/g)?.map(Number);
-		if (!rgb) return 'white';
+		let r, g, b;
 
-		const [r, g, b] = rgb;
+		// HEX → RGB
+		if (bgColor.startsWith('#')) {
+			const hex = bgColor.replace('#', '');
+			const bigint = parseInt(hex, 16);
 
-		// Perceived brightness formula
+			r = (bigint >> 16) & 255;
+			g = (bigint >> 8) & 255;
+			b = bigint & 255;
+		} else {
+			const rgb = bgColor.match(/\d+/g)?.map(Number);
+			if (!rgb) return 'white';
+			[r, g, b] = rgb;
+		}
+
 		const brightness = (r * 299 + g * 587 + b * 114) / 1000;
 
 		return brightness > 150 ? 'black' : 'white';
@@ -185,11 +201,8 @@
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
 		selectable: true,
 
-		eventDidMount(info) {
-			const bg = window.getComputedStyle(info.el).backgroundColor;
-			const textColor = getContrastTextColor(bg);
-
-			info.el.style.color = textColor;
+		eventClassNames(arg) {
+			return arg.event.allDay ? ['all-day-event'] : ['timed-event'];
 		},
 
 		firstDay: 1, // 0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
@@ -264,6 +277,18 @@
 		locales: [getCalendarLocale()], // Add this
 		locale: locale.value,
 
+		// Time format (24h or 12h)
+		slotLabelFormat: {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: !is24Hour.value,
+		},
+		eventTimeFormat: {
+			hour: 'numeric',
+			minute: '2-digit',
+			hour12: !is24Hour.value,
+		},
+
 		// Loading state
 		loading: handleLoading,
 	});
@@ -273,6 +298,14 @@
 			// Update the calendar with new locale
 			fullCalendar.value.getApi().setOption('locales', [getCalendarLocale()]);
 			fullCalendar.value.getApi().setOption('locale', locale.value);
+		}
+	});
+
+	watch(is24Hour, (val) => {
+		if (fullCalendar.value) {
+			const timeFormat = { hour: 'numeric', minute: '2-digit', hour12: !val };
+			fullCalendar.value.getApi().setOption('slotLabelFormat', timeFormat);
+			fullCalendar.value.getApi().setOption('eventTimeFormat', timeFormat);
 		}
 	});
 
@@ -288,15 +321,16 @@
 	}
 
 	function addEvent(newEvent) {
+		const textColor = getContrastTextColor(newEvent.color);
+
 		calendarEvents.value.push({
 			title: newEvent.title,
 			start: newEvent.start,
-			end: newEvent.allDay
-				? addOneDay(newEvent.end) // FullCalendar expects exclusive end
-				: newEvent.end,
+			end: newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end,
 			allDay: newEvent.allDay,
 			backgroundColor: newEvent.color,
 			borderColor: newEvent.color,
+			textColor,
 			extendedProps: {
 				location: newEvent.location,
 				room: newEvent.room,
@@ -499,18 +533,6 @@
 		font-size: 1rem;
 		cursor: pointer;
 		transition: all 0.2s ease;
-	}
-
-	/* Month view events — dark text */
-	:deep(.fc-daygrid-event .fc-event-title),
-	:deep(.fc-daygrid-event .fc-event-time) {
-		color: var(--on-surface) !important;
-	}
-
-	/* Week / day view events — white text */
-	:deep(.fc-timegrid-event .fc-event-title),
-	:deep(.fc-timegrid-event .fc-event-time) {
-		color: white !important;
 	}
 
 	:deep(.fc-event:hover) {
