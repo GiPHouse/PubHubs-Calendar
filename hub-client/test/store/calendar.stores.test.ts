@@ -45,6 +45,34 @@ describe('CalendarStore', () => {
         });
     });
 
+    test('editCalendarEvent sends modify matrix event content with relation', async () => {
+        const sendEventMock = vi.fn(async () => ({}));
+        const matrixServiceStub = initMatrixService({} as any);
+        (matrixServiceStub as any).sendEvent = sendEventMock;
+
+        const calendarStore = useCalendarStore();
+        const startTime = new Date('2026-03-29T12:00:00.000Z');
+        const endTime = new Date('2026-03-29T13:00:00.000Z');
+
+        const event = new CalendarEvent('Updated Event', 'Updated description', startTime, endTime);
+
+        await calendarStore.editCalendarEvent('!room:example', '$event123', event);
+
+        expect(sendEventMock).toHaveBeenCalledTimes(1);
+        expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalenderEventModify, {
+            msgtype: PubHubsMgType.CalenderEventEdit,
+            body: 'Updated Event',
+            title: 'Updated Event',
+            description: 'Updated description',
+            startTime,
+            endTime,
+            'm.relates_to': {
+                event_id: '$event123',
+                rel_type: PubHubsMgType.CalenderEventEdit,
+            },
+        });
+    });
+
     test('delCalendarEvent calls pubhubs.deleteMessage', async () => {
         const pubhubs = usePubhubsStore() as any;
         const deleteMessageMock = vi.spyOn(pubhubs, 'deleteMessage').mockResolvedValue(undefined);
