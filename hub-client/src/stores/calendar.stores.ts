@@ -9,11 +9,11 @@ import { PubHubsMgType } from '@hub-client/logic/core/events';
 // Models
 import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
-// Stores
-import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-
 // Services
 import { useMatrixService } from '@hub-client/services/matrix.service';
+
+// Stores
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 /**
  * @todo Add other calendar event types, e.g. edit, delete, etc.
@@ -24,11 +24,11 @@ const useCalendarStore = defineStore('calendar', {
 	actions: {
 		/**
 		 * Adds a calendar event using `sendEvent`.
-		 * 
+		 *
 		 * NOTE: This should only be called by the calendar composable.
 		 * @see `src/composables/calendar.composable.ts`
 		 * @param roomId RoomID to send the event in.
-		 * @param calEvent 
+		 * @param calEvent
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
 			const service = useMatrixService();
@@ -42,6 +42,7 @@ const useCalendarStore = defineStore('calendar', {
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
+				location: calEvent.location,
 			};
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
@@ -50,8 +51,8 @@ const useCalendarStore = defineStore('calendar', {
 		/**
 		 * Deletes a calendar event.
 		 * Effectively an alias for deleteMessage, since I expect it to work the same.
-		 * @param roomId 
-		 * @param eventId 
+		 * @param roomId
+		 * @param eventId
 		 */
 		async delCalendarEvent(roomId: string, eventId: string): Promise<void> {
 			const pubhubs_store = usePubhubsStore();
@@ -60,8 +61,8 @@ const useCalendarStore = defineStore('calendar', {
 
 		/**
 		 * Get all calendar events for a given room.
-		 * 
-		 * @param roomId 
+		 *
+		 * @param roomId
 		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
 		 */
 		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
@@ -74,22 +75,15 @@ const useCalendarStore = defineStore('calendar', {
 
 			const events = room.getLiveTimeline().getEvents();
 			const calendarEvents = events
-				.filter(event => event.getType() === PubHubsMgType.CalendarEvent)
-				.map(event => {
+				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
+				.map((event) => {
 					const content = event.getContent() as TCalendarEventMessageContent;
-					return new CalendarEvent(
-						content.title,
-						content.description,
-						content.color,
-						content.isAllDay,
-						new Date(content.startTime),
-						new Date(content.endTime),
-					);
+					return new CalendarEvent(content.title, content.description, content.color, content.location, content.isAllDay, new Date(content.startTime), new Date(content.endTime));
 				});
 
 			return calendarEvents;
-		}
-	}
-})
+		},
+	},
+});
 
 export { useCalendarStore };

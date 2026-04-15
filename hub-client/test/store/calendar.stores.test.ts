@@ -30,7 +30,7 @@ describe('CalendarStore', () => {
         const startTime = new Date('2026-03-29T12:00:00.000Z');
         const endTime = new Date('2026-03-29T13:00:00.000Z');
 
-        const event = new CalendarEvent('Some Event', 'Some cool description', '#4c6b1f', false, startTime, endTime);
+        const event = new CalendarEvent('Some Event', 'Some cool description', '#4c6b1f', 'conference room', false, startTime, endTime);
 
         await calendarStore.addCalendarEvent('!room:example', event);
 
@@ -41,6 +41,7 @@ describe('CalendarStore', () => {
             title: 'Some Event',
             description: 'Some cool description',
             color: '#4c6b1f',
+            location: 'conference room',
             isAllDay: false,
             startTime,
             endTime,
@@ -67,6 +68,7 @@ describe('CalendarStore', () => {
                 title: 'Some Event',
                 description: 'Some cool description',
                 color: '#4c6b1f',
+                location: 'conference room',
                 isAllDay: false,
                 startTime: '2026-03-29T12:00:00.000Z',
                 endTime: '2026-03-29T13:00:00.000Z',
@@ -94,6 +96,7 @@ describe('CalendarStore', () => {
             title: 'Some Event',
             description: 'Some cool description',
             color: '#4c6b1f',
+            location: 'conference room',
             isAllDay: false,
         }));
         expect(events[0].startTime.toISOString()).toBe('2026-03-29T12:00:00.000Z');
