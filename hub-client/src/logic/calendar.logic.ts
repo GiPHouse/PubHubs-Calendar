@@ -10,6 +10,7 @@ export function generateIcsFromEvent(event: CalendarEvent): string {
 	const description = event.description;
 	const start = event.startTime;
 	const end = event.endTime;
+	const location = event.location;
 
 	if (!title) throw new Error('event.title is required');
 	if (!start) throw new Error('event.startTime is required');
@@ -21,7 +22,7 @@ export function generateIcsFromEvent(event: CalendarEvent): string {
 		start: start,
 		end: end,
 		description: description,
-		//location: ...,
+		location: location,
 		//timezone: ...
 	});
 
