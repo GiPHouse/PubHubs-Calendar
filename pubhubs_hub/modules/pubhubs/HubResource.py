@@ -1,4 +1,4 @@
-from pubhubs_hub.modules.pubhubs._HubCalendarResource import HubCalendarResource
+from ._HubCalendarResource import HubCalendarResource
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource
 import logging

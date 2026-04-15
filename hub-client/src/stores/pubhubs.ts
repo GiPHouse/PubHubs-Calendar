@@ -26,7 +26,6 @@ import { SystemDefaults } from '@hub-client/models/constants';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@hub-client/models/events/voting/TVotingMessageEvent';
 import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
-import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
 import Room from '@hub-client/models/rooms/Room';
 import { RoomListRoom, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { TSearchParameters } from '@hub-client/models/search/TSearch';
