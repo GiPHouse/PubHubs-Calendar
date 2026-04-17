@@ -39,6 +39,11 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	import { useCalendarEvents } from '@hub-client/composables/calendar.composable';
+
+	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
@@ -55,6 +60,9 @@
 	const { t, locale } = useI18n();
 
 	const settings = useSettings();
+	const rooms = useRooms();
+	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent, getCalendarEvents } = useCalendarEvents();
+	const currentRoomId = computed(() => rooms.currentRoom?.roomId ?? '');
 
 	const is24Hour = computed(() => settings.timeformat === 'format24');
 
@@ -67,27 +75,57 @@
 	const fullCalendar = ref(null);
 
 	// Calendar events data
-	const calendarEvents = ref([
-		{
-			id: '1',
-			title: 'Team Meeting',
-			start: new Date(new Date().setHours(10, 0, 0, 0)),
-			end: new Date(new Date().setHours(11, 30, 0, 0)),
-			backgroundColor: '#00adee',
-			borderColor: '#00adee',
-			textColor: getContrastTextColor('#3b82f6'),
-		},
-		{
-			id: '2',
-			title: 'Project Deadline',
-			start: new Date(new Date().setDate(new Date().getDate() + 2)),
-			allDay: true,
-			backgroundColor: '#ef4444',
-			borderColor: '#ef4444',
-			textColor: getContrastTextColor('#ef4444'),
-		},
-	]);
+	const calendarEvents = ref([]);
 
+	function mapCalendarEventToFullCalendarEvent(event) {
+		return {
+			id: event.id ?? `${event.title}-${event.startTime?.getTime?.() ?? event.start}-${Math.random().toString(36).slice(2, 8)}`,
+			title: event.title,
+			start: event.startTime ?? event.start,
+			end: event.endTime ?? event.end,
+			allDay: event.isAllDay ?? event.allDay,
+			backgroundColor: event.color ?? '#3788d8',
+			borderColor: event.color ?? '#3788d8',
+			textColor: getContrastTextColor(event.color ?? '#3788d8'),
+			extendedProps: {
+				location: event.location ?? event.extendedProps?.location ?? '',
+				room: event.room ?? event.extendedProps?.room ?? '',
+				description: event.description ?? event.extendedProps?.description ?? '',
+			},
+		};
+	}
+
+	function createCalendarEventObject(eventPayload, eventId) {
+		return new CalendarEvent(
+			eventPayload.title,
+			eventPayload.description ?? '',
+			eventPayload.color ?? '#3788d8',
+			eventPayload.allDay ?? false,
+			new Date(eventPayload.start),
+			new Date(eventPayload.end ?? eventPayload.start),
+			eventId,
+			eventPayload.location ?? '',
+			eventPayload.room ?? '',
+		);
+	}
+
+	async function loadCalendarEvents() {
+		if (!rooms.currentRoomExists) {
+			calendarEvents.value = [];
+			return;
+		}
+
+		try {
+			const events = await getCalendarEvents(currentRoomId.value);
+			calendarEvents.value = events.map(mapCalendarEventToFullCalendarEvent);
+		} catch (err) {
+			console.error('Failed to load calendar events', err);
+			calendarEvents.value = [];
+		}
+	}
+
+	onMounted(loadCalendarEvents);
+	watch(() => rooms.currentRoomId, loadCalendarEvents);
 	const getCalendarLocale = () => {
 		return {
 			code: locale.value,
@@ -190,8 +228,18 @@
 		showEventCreationDialog.value = true;
 	}
 
-	function handleDeleteEvent(eventId) {
-		calendarEvents.value = calendarEvents.value.filter((e) => e.id !== eventId);
+	async function handleDeleteEvent(eventId) {
+		if (!rooms.currentRoomExists) {
+			console.error('Cannot delete event without a selected room.');
+			return;
+		}
+
+		try {
+			await removeCalendarEvent(currentRoomId.value, eventId);
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to delete calendar event', err);
+		}
 		showEventDetailsDialog.value = false;
 	}
 
@@ -392,31 +440,27 @@
 		showEventDetailsDialog.value = true;
 	}
 
-	function handleAddEvent(newEvent) {
-		if (selectedEventForEdit.value) {
-			// Update existing event
-			const index = calendarEvents.value.findIndex((e) => e.id === selectedEventForEdit.value.id);
-			if (index !== -1) {
-				calendarEvents.value[index] = {
-					...calendarEvents.value[index],
-					title: newEvent.title,
-					start: newEvent.start,
-					end: newEvent.end,
-					allDay: newEvent.allDay,
-					backgroundColor: newEvent.color,
-					borderColor: newEvent.color,
-					extendedProps: {
-						location: newEvent.location,
-						room: newEvent.room,
-						description: newEvent.description,
-					},
-				};
-			}
-			selectedEventForEdit.value = null;
-		} else {
-			// Create new event
-			addEvent(newEvent);
+	async function handleAddEvent(newEvent) {
+		if (!rooms.currentRoomExists) {
+			console.error('Cannot add event without a selected room.');
+			console.error('Calendar debug: currentRoomId=', currentRoomId.value);
+			console.error('Calendar debug: rooms.rooms keys=', Object.keys(rooms.rooms));
+			console.error('Calendar debug: rooms.roomList=', rooms.roomList);
+			return;
 		}
+
+		try {
+			if (selectedEventForEdit.value) {
+				await updateCalendarEvent(currentRoomId.value, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
+				selectedEventForEdit.value = null;
+			} else {
+				await createCalendarEvent(currentRoomId.value, createCalendarEventObject(newEvent));
+			}
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to save calendar event', err);
+		}
+
 		showEventCreationDialog.value = false;
 	}
 
@@ -425,15 +469,55 @@
 		showEventCreationDialog.value = true;
 	}
 
-	function handleEventDrop(info) {
+	async function handleEventDrop(info) {
 		console.log('Event dropped:', info.event);
-		// Handle event drag & drop
+		if (!rooms.currentRoomExists) {
+			return;
+		}
+
+		try {
+			await updateCalendarEvent(
+				currentRoomId.value,
+				info.event.id,
+				createCalendarEventObject({
+					title: info.event.title,
+					description: info.event.extendedProps?.description,
+					color: info.event.backgroundColor,
+					allDay: info.event.allDay,
+					start: info.event.start,
+					end: info.event.end ?? info.event.start,
+				}),
+			);
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to update event after drag', err);
+		}
 		emit('eventUpdated', info.event);
 	}
 
-	function handleEventResize(info) {
+	async function handleEventResize(info) {
 		console.log('Event resized:', info.event);
-		// Handle event resize
+		if (!rooms.currentRoomExists) {
+			return;
+		}
+
+		try {
+			await updateCalendarEvent(
+				currentRoomId.value,
+				info.event.id,
+				createCalendarEventObject({
+					title: info.event.title,
+					description: info.event.extendedProps?.description,
+					color: info.event.backgroundColor,
+					allDay: info.event.allDay,
+					start: info.event.start,
+					end: info.event.end ?? info.event.start,
+				}),
+			);
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to update event after resize', err);
+		}
 		emit('eventUpdated', info.event);
 	}
 
