@@ -126,6 +126,45 @@
 
 	onMounted(loadCalendarEvents);
 	watch(() => rooms.currentRoomId, loadCalendarEvents);
+
+	// TODO (optional): real-time calendar updates from other users / other tabs.
+	//
+	// The current flow is pull-based: loadCalendarEvents() runs on mount, on
+	// room change, and after every local mutation. This matches the pattern
+	// used across the rest of the hub-client (voting widgets, reactions,
+	// library files) — matrix-js-sdk keeps the live timeline fresh from /sync
+	// in memory, but nothing nudges the UI to re-read it.
+	//
+	// Consequence: if another user in the room (or the same user on another
+	// tab) creates / edits / deletes a calendar event, this page won't see
+	// the change until the user switches rooms or reloads.
+	//
+	// Backend: nothing to add. Matrix homeserver already pushes the events.
+	// Frontend: a single Room.timeline listener on the current room will do
+	// the job. Sketch:
+	//
+	//   import { RoomEvent } from 'matrix-js-sdk';
+	//   import { PubHubsMgType } from '@hub-client/logic/core/events';
+	//   import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	//
+	//   const pubhubs = usePubhubsStore();
+	//   let unsubscribe = () => {};
+	//   const subscribe = () => {
+	//       unsubscribe();
+	//       const room = pubhubs.client.getRoom(currentRoomId.value);
+	//       const handler = (ev) => {
+	//           if (ev.getRoomId() !== currentRoomId.value) return;
+	//           if (ev.getType() !== PubHubsMgType.CalendarEvent) return;
+	//           loadCalendarEvents();
+	//       };
+	//       room?.on(RoomEvent.Timeline, handler);
+	//       unsubscribe = () => room?.off(RoomEvent.Timeline, handler);
+	//   };
+	//   watch(() => rooms.currentRoomId, subscribe, { immediate: true });
+	//   onUnmounted(() => unsubscribe());
+	//
+	// Also listen for RoomEvent.Redaction if you want live removal when an
+	// event is deleted by another client.
 	const getCalendarLocale = () => {
 		return {
 			code: locale.value,
