@@ -163,10 +163,7 @@ class HubStore:
                     """,
                     (join_time_txn, user_id_txn, room_id_txn),
                 )
-<<<<<<< HEAD
-=======
                 logger.info(f"allowed_to_join_room: renewed access for user {user_id_txn} in room {room_id_txn}")
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
             else:
                 # Insert a new record if the user is not already allowed
                 txn.execute(
@@ -176,10 +173,7 @@ class HubStore:
                     """,
                     (user_id_txn, room_id_txn, join_time_txn),
                 )
-<<<<<<< HEAD
-=======
                 logger.info(f"allowed_to_join_room: granted access for user {user_id_txn} in room {room_id_txn}")
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 
 
         await self._module_api.run_db_interaction(
@@ -236,10 +230,7 @@ class HubStore:
         for row in result:
             user_id, room_id =  row
             try:
-<<<<<<< HEAD
-=======
                 logger.info(f"allowed_to_join_room: removing expired user {user_id} from room {room_id}")
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
                 await self._module_api.update_room_membership(user_id, user_id, room_id, "leave")
             except Exception as e:
                 logger.error(f"Could not remove user with id {user_id} from room {room_id} after the user was expired, Error: {e}")
@@ -386,16 +377,12 @@ class HubStore:
 
                 txn.execute(
                         """
-<<<<<<< HEAD
-                            SELECT MAX(received_ts), room_id FROM events GROUP BY room_id
-=======
                             SELECT e.received_ts, s.room_id
                             FROM sliding_sync_joined_rooms s
                             JOIN events e ON e.stream_ordering = s.event_stream_ordering
                             JOIN rooms r ON r.room_id = s.room_id
                             WHERE r.is_public = 1
 
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
                             """,
                     )
                 return txn.fetchall()
@@ -444,10 +431,7 @@ class HubStore:
                 (room_id_txn,),
             )
 
-<<<<<<< HEAD
-=======
         logger.info(f"allowed_to_join_room: removing all users from room {room_id}")
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
         await self._module_api.run_db_interaction(
             "remove_users_from_secured_room",
             remove_users_from_secured_room_txn,

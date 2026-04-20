@@ -1,9 +1,5 @@
 // Packages
-<<<<<<< HEAD
-import { MatrixClient } from 'matrix-js-sdk';
-=======
 import { type MatrixClient } from 'matrix-js-sdk';
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 import { computed } from 'vue';
 
 // Services

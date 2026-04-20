@@ -1,18 +1,12 @@
 // Stores
-<<<<<<< HEAD
-=======
 import { type BlobManager } from '@hub-client/logic/core/blobManager';
 
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 import { useDialog } from '@hub-client/stores/dialog';
 
 interface ExtendedFile extends File {
 	status: number;
 	progress: number;
-<<<<<<< HEAD
-=======
 	blobManager: BlobManager;
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 }
 
 // Better to pass pubhubs object to useMatrixFiles.
@@ -52,11 +46,7 @@ const fileUpload = (errorMsg: string, accessToken: string, uploadUrl: string, fi
 	}
 };
 
-<<<<<<< HEAD
-const asyncFileUpload = (accessToken: string, uploadUrl: string, file: File, onProgress: Function, onReady: Function) => {
-=======
 const asyncFileUpload = (accessToken: string, uploadUrl: string, file: File, onProgress: (e: ProgressEvent) => void, onReady: (uri: string) => void) => {
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	const fileReader = new FileReader();
 	fileReader.readAsArrayBuffer(file);
 

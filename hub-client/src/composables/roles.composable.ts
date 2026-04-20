@@ -26,21 +26,13 @@ function useRoles() {
 		if (roomId) {
 			room = roomsStore.room(roomId);
 		}
-<<<<<<< HEAD
-		const powerLevel = room?.getPowerLevel(user.userId) ?? 0;
-=======
 		const powerLevel = room?.getStateMemberPowerLevel(user.userId) ?? 0;
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		assert(powerLevel in UserPowerLevel, 'Powerlevel not one of the predefined powerlevels');
 		return powerLevel;
 	};
 
 	const getRoleByPowerLevel = (powerLevel: number): UserRole => {
-<<<<<<< HEAD
-		if (powerLevel == UserPowerLevel.Admin) return UserRole.Admin;
-=======
 		if (powerLevel === UserPowerLevel.Admin) return UserRole.Admin;
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		if (powerLevel >= UserPowerLevel.SuperSteward) return UserRole.SuperSteward;
 		if (powerLevel >= UserPowerLevel.Steward) return UserRole.Steward;
 		if (powerLevel >= UserPowerLevel.Expert) return UserRole.Expert;
@@ -48,17 +40,11 @@ function useRoles() {
 	};
 
 	const userRole = (roomId: string | undefined = undefined): UserRole => {
-<<<<<<< HEAD
-		if (userIsSuperAdmin()) return UserRole.Admin;
-=======
 		if (userIsHubAdmin()) return UserRole.Admin;
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		const powerLevel = userPowerLevel(roomId);
 		return getRoleByPowerLevel(powerLevel);
 	};
 
-<<<<<<< HEAD
-=======
 	const userHasRoleOrHigher = (role: UserRole, roomId: string | undefined = undefined): boolean => {
 		assert(role in UserRole, 'Given role not a defined role');
 		const currentPowerLevel = userPowerLevel(roomId);
@@ -71,17 +57,12 @@ function useRoles() {
 	const userIsStewardOrHigher = (roomId?: string) => userHasRoleOrHigher(UserRole.Steward, roomId);
 	const userIsExpertOrHigher = (roomId?: string) => userHasRoleOrHigher(UserRole.Expert, roomId);
 
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	const userHasRole = (role: UserRole, roomId: string | undefined = undefined): boolean => {
 		assert(role in UserRole, 'Given role not a defined role');
 		return role === userRole(roomId);
 	};
 
-<<<<<<< HEAD
-	const userIsSuperAdmin = (): boolean => {
-=======
 	const userIsHubAdmin = (): boolean => {
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		return userStore.isAdmin;
 	};
 
@@ -114,24 +95,17 @@ function useRoles() {
 	return {
 		currentRoomId,
 		getRoleByPowerLevel,
-<<<<<<< HEAD
-		userIsSuperAdmin,
-=======
 		userIsHubAdmin,
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		userIsAdmin,
 		userIsSuperSteward,
 		userIsSteward,
 		userIsUser,
 		userHasAccessForRoles,
 		userHasPermissionForAction,
-<<<<<<< HEAD
-=======
 		userIsStewardOrHigher,
 		userIsExpertOrHigher,
 		userIsSuperStewardOrHigher,
 		userIsAdminOrHigher,
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	};
 }
 export { useRoles };

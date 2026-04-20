@@ -1,32 +1,18 @@
-<<<<<<< HEAD
-import { MatrixEvent, Room as MatrixRoom } from 'matrix-js-sdk';
-import { ref } from 'vue';
-
-import { api_synapse } from '@hub-client/logic/core/api';
-=======
 import { MatrixEvent, type Room as MatrixRoom } from 'matrix-js-sdk';
 import { ref } from 'vue';
 
 import { api_synapse } from '@hub-client/logic/core/api';
 import { createLogger } from '@hub-client/logic/logging/Logger';
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 export class LibraryMatrixEvent extends MatrixEvent {
-<<<<<<< HEAD
-	public signed: Boolean | undefined;
-=======
 	public signed: boolean | undefined;
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	public signedEvents: Array<MatrixEvent> | undefined;
 }
 
 const useRoomLibrary = () => {
-<<<<<<< HEAD
-=======
 	const logger = createLogger('RoomLibrary');
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const fileObject = ref<File>({} as File);
 	const uri = ref('');
@@ -65,11 +51,7 @@ const useRoomLibrary = () => {
 
 			return combinedHashHex;
 		} catch (error) {
-<<<<<<< HEAD
-			console.error(error);
-=======
 			logger.error(error);
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 			return '';
 		}
 	}
@@ -79,20 +61,12 @@ const useRoomLibrary = () => {
 			await api_synapse.apiDELETE(url);
 			await pubhubsStore.deleteMessage(roomId, eventId);
 		} catch (error) {
-<<<<<<< HEAD
-			console.error('Unable to delete the media file ' + error);
-=======
 			logger.error('Unable to delete the media file ' + error);
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 			return null;
 		}
 	}
 
-<<<<<<< HEAD
-	async function removeFromTimeline(eventId: string, roomId: string, signedEvents: any) {
-=======
 	async function removeFromTimeline(eventId: string, roomId: string, signedEvents: Array<MatrixEvent>) {
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		try {
 			await pubhubsStore.deleteLibraryMessage(roomId, eventId);
 			// Remove all the related child events (signed banners) from the timeline
@@ -102,11 +76,7 @@ const useRoomLibrary = () => {
 				}
 			}
 		} catch (error) {
-<<<<<<< HEAD
-			console.error('Unable to update the roomlibrary timeline ' + error);
-=======
 			logger.error('Unable to update the roomlibrary timeline ' + error);
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		}
 	}
 

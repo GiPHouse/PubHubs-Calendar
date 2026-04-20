@@ -42,11 +42,7 @@ interface FormObjectInputTemplate {
 	type: string;
 	options?: Options;
 	default: InputType;
-<<<<<<< HEAD
-	disabled: Boolean;
-=======
 	disabled: boolean;
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	// Used for textarea's.
 	maxLength?: number;
 }
@@ -60,11 +56,7 @@ enum FormInputType {
 
 const usedEvents = ['update', 'update:modelValue', 'changed', 'cancel', 'submit'];
 
-<<<<<<< HEAD
-const useFormInputEvents = (emit: Function, set: InputType = '') => {
-=======
 const useFormInputEvents = (emit: (event: string, ...args: unknown[]) => void, set: InputType = '') => {
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 	const value = ref<InputType>(set);
 
 	let options = [] as Options;
@@ -77,11 +69,7 @@ const useFormInputEvents = (emit: (event: string, ...args: unknown[]) => void, s
 		options = set;
 	};
 
-<<<<<<< HEAD
-	const selectOption = (option: any) => {
-=======
 	const selectOption = (option: Option) => {
->>>>>>> c63863ea3eaad8cf84505eb8d6c315eeb82a929e
 		value.value = option.value;
 	};
 
