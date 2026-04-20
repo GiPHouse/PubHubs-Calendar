@@ -1,41 +1,37 @@
 // Packages
 import { defineStore } from 'pinia';
 
+// Composables
+
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
-import { RelationType } from '@hub-client/models/constants';
 import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
+
+// Services
+import { useMatrixService } from '@hub-client/services/matrix.service';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 /**
- * Calendar store — stores and retrieves calendar events as custom Matrix room
- * timeline events (Matrix-native design). See the Matrix-native plan for the
- * rationale and the contract with the UI layer.
- *
- * Wire format: every calendar event uses `PubHubsMgType.CalendarEvent` as
- * msgtype. Edits are sent as a replacement (`m.relates_to.rel_type: m.replace`
- * + `m.new_content`) following the Matrix edit convention so that
- * matrix-js-sdk's edit handling works automatically. Deletions are redactions,
- * handled via `pubhubs_store.deleteMessage`.
- *
+ * @todo Add other calendar event types, e.g. edit, delete, etc.
  * @see `src/logic/core/events.ts`
+ * @see Commit `1a1766`
  */
 const useCalendarStore = defineStore('calendar', {
 	actions: {
 		/**
-		 * Adds a calendar event to the given room by sending a Matrix custom
-		 * event with msgtype `pubhubs.calendar_event.event`.
+		 * Adds a calendar event using `sendEvent`.
 		 *
-		 * NOTE: This should only be called by the calendar composable — the
-		 * composable is responsible for validating the payload.
+		 * NOTE: This should only be called by the calendar composable.
 		 * @see `src/composables/calendar.composable.ts`
+		 * @param roomId RoomID to send the event in.
+		 * @param calEvent
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
-			const pubhubs_store = usePubhubsStore();
+			const service = useMatrixService();
 
 			const content: TCalendarEventMessageContent = {
 				msgtype: PubHubsMgType.CalendarEvent,
@@ -46,56 +42,39 @@ const useCalendarStore = defineStore('calendar', {
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
-				location: calEvent.location ?? '',
-				room: calEvent.room ?? '',
 			};
-
-			// @ts-ignore — custom msgtype not in matrix-js-sdk's TimelineEvents union.
-			await pubhubs_store.client.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+			// @ts-ignore similar implementations in pubhubs ignore this error
+			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
-		/**
-		 * Edits an existing calendar event by sending a Matrix `m.replace`
-		 * edit targeting the original event. We reuse `PubHubsMgType.CalendarEvent`
-		 * as the outer msgtype so the server-side auth rules treat it uniformly.
-		 */
 		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
-			const pubhubs_store = usePubhubsStore();
+			const service = useMatrixService();
 
-			const newContent: TCalendarEventMessageContent = {
-				msgtype: PubHubsMgType.CalendarEvent,
+			const content: TCalendarEventMessageContent = {
+				msgtype: PubHubsMgType.CalenderEventEdit,
 				body: calEvent.title,
 				title: calEvent.title,
 				description: calEvent.description,
 				color: calEvent.color,
+				location: calEvent.location ?? '',
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
-				location: calEvent.location ?? '',
-				room: calEvent.room ?? '',
-			};
-
-			// Matrix edit convention: outer body is prefixed with '* ' for
-			// clients that don't understand the replacement, and the actual
-			// new content goes in `m.new_content`.
-			const content: TCalendarEventMessageContent = {
-				...newContent,
-				body: `* ${calEvent.title}`,
 				'm.relates_to': {
-					rel_type: RelationType.Replace as unknown as PubHubsMgType,
 					event_id: eventId,
+					rel_type: PubHubsMgType.CalenderEventEdit,
 				},
-				'm.new_content': newContent,
 			};
 
-			// @ts-ignore — custom msgtype not in matrix-js-sdk's TimelineEvents union.
-			await pubhubs_store.client.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+			// @ts-ignore similar implementations in pubhubs ignore this error
+			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
 		},
 
 		/**
-		 * Deletes a calendar event by redacting it. `deleteMessage` sends an
-		 * `m.room.redaction`, which strips the content; `getCalendarEvents`
-		 * filters redacted events back out.
+		 * Deletes a calendar event.
+		 * Effectively an alias for deleteMessage, since I expect it to work the same.
+		 * @param roomId
+		 * @param eventId
 		 */
 		async delCalendarEvent(roomId: string, eventId: string): Promise<void> {
 			const pubhubs_store = usePubhubsStore();
@@ -103,18 +82,10 @@ const useCalendarStore = defineStore('calendar', {
 		},
 
 		/**
-		 * Returns all calendar events for `roomId`, with edits collapsed into
-		 * the original event and redacted events filtered out.
+		 * Get all calendar events for a given room.
 		 *
-		 * Traversal:
-		 *  1. Bucket every `PubHubsMgType.CalendarEvent` in the room's live
-		 *     timeline by id. Skip events that look redacted (empty content
-		 *     or explicit `redacted_because` metadata).
-		 *  2. Separate the originals (no `m.relates_to`) from the replacement
-		 *     events (`m.relates_to.rel_type === 'm.replace'`).
-		 *  3. For each original, find the *latest* replacement targeting it
-		 *     (by origin server timestamp), and apply its `m.new_content`.
-		 *  4. Hydrate each merged content object into a `CalendarEvent`.
+		 * @param roomId
+		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
 		 */
 		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
 			const pubhubs_store = usePubhubsStore();
@@ -125,74 +96,19 @@ const useCalendarStore = defineStore('calendar', {
 			}
 
 			const events = room.getLiveTimeline().getEvents();
+			const calendarEvents = events
+				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
+				.map((event) => {
+					const content = event.getContent() as TCalendarEventMessageContent;
+					const eventId = typeof event.getId === 'function' ? event.getId() : '';
+					const location = (content as any).location ?? '';
+					const roomName = (content as any).room ?? '';
+					return new CalendarEvent(content.title, content.description, content.color, content.isAllDay, new Date(content.startTime), new Date(content.endTime), eventId, location, roomName);
+				});
 
-			// Pass 1: collect originals and replacements keyed by target id.
-			type Original = {
-				id: string;
-				ts: number;
-				content: TCalendarEventMessageContent;
-			};
-			const originals: Original[] = [];
-			const latestReplacement = new Map<string, { ts: number; content: TCalendarEventMessageContent }>();
-
-			for (const ev of events) {
-				if (ev.getType() !== PubHubsMgType.CalendarEvent) continue;
-				if (isRedactedEvent(ev)) continue;
-
-				const content = ev.getContent() as TCalendarEventMessageContent;
-				// An event with empty content that wasn't explicitly flagged
-				// redacted is still not a usable calendar event — ignore it.
-				if (!content || !content.title) continue;
-
-				const ts = typeof ev.getTs === 'function' ? ev.getTs() : 0;
-				const relatesTo = content['m.relates_to'];
-
-				if (relatesTo && (relatesTo.rel_type as unknown as string) === RelationType.Replace) {
-					const newContent = (content as any)['m.new_content'] as TCalendarEventMessageContent | undefined;
-					if (!newContent) continue;
-					const existing = latestReplacement.get(relatesTo.event_id);
-					if (!existing || ts > existing.ts) {
-						latestReplacement.set(relatesTo.event_id, { ts, content: newContent });
-					}
-					continue;
-				}
-
-				const id = typeof ev.getId === 'function' ? (ev.getId() ?? '') : '';
-				originals.push({ id, ts, content });
-			}
-
-			// Pass 2: apply the latest replacement per original.
-			return originals.map(({ id, content }) => {
-				const replacement = id ? latestReplacement.get(id) : undefined;
-				const finalContent = replacement ? replacement.content : content;
-
-				return new CalendarEvent(
-					finalContent.title,
-					finalContent.description,
-					finalContent.color,
-					finalContent.isAllDay,
-					new Date(finalContent.startTime),
-					new Date(finalContent.endTime),
-					id,
-					finalContent.location ?? '',
-					finalContent.room ?? '',
-				);
-			});
+			return calendarEvents;
 		},
 	},
 });
-
-/**
- * Best-effort check that a matrix-js-sdk event has been redacted. We use
- * `isRedacted()` when available (production path) and fall back to checking
- * for the `redacted_because` unsigned marker or empty content so that tests
- * can pass plain objects without stubbing the whole MatrixEvent surface.
- */
-function isRedactedEvent(ev: any): boolean {
-	if (typeof ev?.isRedacted === 'function' && ev.isRedacted()) return true;
-	if (ev?.unsigned?.redacted_because) return true;
-	if (typeof ev?.getUnsigned === 'function' && ev.getUnsigned()?.redacted_because) return true;
-	return false;
-}
 
 export { useCalendarStore };
