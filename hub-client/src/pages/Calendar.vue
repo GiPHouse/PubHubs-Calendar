@@ -43,8 +43,11 @@
 
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
+
+	const pubhubs_store = usePubhubsStore();
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
@@ -480,20 +483,42 @@
 	}
 
 	async function handleAddEvent(newEvent) {
+		let roomId = currentRoomId.value;
+
 		if (!rooms.currentRoomExists) {
 			console.error('Cannot add event without a selected room.');
-			console.error('Calendar debug: currentRoomId=', currentRoomId.value);
-			console.error('Calendar debug: rooms.rooms keys=', Object.keys(rooms.rooms));
-			console.error('Calendar debug: rooms.roomList=', rooms.roomList);
+			console.log(">> Couldn't find this room, checking for existing calendar room");
+
+			const existingCalendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
+			if (existingCalendarRoom) {
+				roomId = existingCalendarRoom.roomId;
+				console.log('>> Found existing calendar room with ID:', roomId);
+				await rooms.joinRoomListRoom(roomId);
+			} else {
+				console.log('>> Creating new calendar room');
+				const result = await pubhubs_store.createRoom({
+					name: 'Calendar Room',
+					visibility: 'private',
+					preset: 'private_chat',
+					topic: 'Room for calendar events',
+				});
+
+				if (result) {
+					roomId = result.room_id;
+					console.log('>> Created room with ID:', roomId);
+					await rooms.joinRoomListRoom(roomId);
+				}
+			}
+
 			return;
 		}
 
 		try {
 			if (selectedEventForEdit.value) {
-				await updateCalendarEvent(currentRoomId.value, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
+				await updateCalendarEvent(roomId.value, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
 				selectedEventForEdit.value = null;
 			} else {
-				await createCalendarEvent(currentRoomId.value, createCalendarEventObject(newEvent));
+				await createCalendarEvent(roomId.value, createCalendarEventObject(newEvent));
 			}
 			await loadCalendarEvents();
 		} catch (err) {
