@@ -33,7 +33,7 @@ describe('CalendarComposable', () => {
 
         const startTime = new Date('2026-04-08T15:30:00.000Z');
         const endTime = new Date('2026-04-08T18:00:00.000Z');
-        const event = new CalendarEvent('  SWE Meeting  ', '  Weekly planning  ', '   #bf5cd8 ', false, startTime, endTime);
+        const event = new CalendarEvent('  SWE Meeting  ', '  Weekly planning  ', '   #bf5cd8 ', '     The Launch', false, startTime, endTime);
 
         await createCalendarEvent('!room:example', event);
 
@@ -44,6 +44,7 @@ describe('CalendarComposable', () => {
                 title: 'SWE Meeting',
                 description: 'Weekly planning',
                 color: '#bf5cd8',
+                location: 'The Launch',
                 isAllDay: false,
                 startTime,
                 endTime,
@@ -56,7 +57,7 @@ describe('CalendarComposable', () => {
 
         const startTime = new Date('2026-04-08T15:30:00.000Z');
         const endTime = new Date('2026-04-08T18:00:00.000Z');
-        const event = new CalendarEvent('  Updated Event  ', '  Updated description  ', startTime, endTime);
+        const event = new CalendarEvent('  Updated Event  ', '  Updated description  ', '#5cd0d8', ' New location', false, startTime, endTime);
 
         await updateCalendarEvent('!room:example', '$event123', event);
 
@@ -67,6 +68,8 @@ describe('CalendarComposable', () => {
             expect.objectContaining({
                 title: 'Updated Event',
                 description: 'Updated description',
+                color: '#5cd0d8',
+                isAllDay: false,
                 startTime,
                 endTime,
             })
