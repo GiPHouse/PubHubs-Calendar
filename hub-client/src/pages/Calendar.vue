@@ -485,40 +485,35 @@
 	async function handleAddEvent(newEvent) {
 		let roomId = currentRoomId.value;
 
-		if (!rooms.currentRoomExists) {
-			console.error('Cannot add event without a selected room.');
-			console.log(">> Couldn't find this room, checking for existing calendar room");
+		const existingCalendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
+		if (existingCalendarRoom) {
+			roomId = existingCalendarRoom.roomId;
+			console.log('>> Found existing calendar room with ID:', roomId);
+			await rooms.joinRoomListRoom(roomId);
+		} else {
+			console.log('>> Creating new calendar room');
+			const result = await pubhubs_store.createRoom({
+				name: 'Calendar Room',
+				visibility: 'private',
+				preset: 'private_chat',
+				topic: 'Room for calendar events',
+			});
 
-			const existingCalendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
-			if (existingCalendarRoom) {
-				roomId = existingCalendarRoom.roomId;
-				console.log('>> Found existing calendar room with ID:', roomId);
+			if (result) {
+				roomId = result.room_id;
+				console.log('>> Created room with ID:', roomId);
 				await rooms.joinRoomListRoom(roomId);
-			} else {
-				console.log('>> Creating new calendar room');
-				const result = await pubhubs_store.createRoom({
-					name: 'Calendar Room',
-					visibility: 'private',
-					preset: 'private_chat',
-					topic: 'Room for calendar events',
-				});
-
-				if (result) {
-					roomId = result.room_id;
-					console.log('>> Created room with ID:', roomId);
-					await rooms.joinRoomListRoom(roomId);
-				}
 			}
-
-			return;
 		}
 
 		try {
 			if (selectedEventForEdit.value) {
 				await updateCalendarEvent(roomId.value, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
 				selectedEventForEdit.value = null;
+				console.log('>> Edited event with ID:', selectedEventForEdit.value.id);
 			} else {
 				await createCalendarEvent(roomId.value, createCalendarEventObject(newEvent));
+				console.log('>> Created new event in room ID:', roomId.value);
 			}
 			await loadCalendarEvents();
 		} catch (err) {
