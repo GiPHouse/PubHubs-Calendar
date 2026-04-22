@@ -19,7 +19,7 @@ class CalendarEvent {
 		color: string,
 		location: string = '',
 		isAllDay: boolean = false,
-		startTime: Date = new Date(), // if not provided, set to now
+		startTime: Date = new Date(Date.now() + 24 * 60 * 60 * 1000), // if not provided, set to now
 		endTime?: Date,
 	) {
 		this.title = title;

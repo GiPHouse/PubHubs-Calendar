@@ -16,14 +16,14 @@ export function generateIcsFromEvent(event: CalendarEvent): string {
 	if (!start) throw new Error('event.startTime is required');
 	if (!end) throw new Error('event.endTime is required');
 
-	const calendar = ical({ name: title });
+	const calendar = ical({ name: 'Calendar' });
 
 	calendar.createEvent({
+		summary: title,
 		start: start,
 		end: end,
 		description: description,
 		location: location,
-		//timezone: ...
 	});
 
 	const icsString = calendar.toString();
