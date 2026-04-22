@@ -27,21 +27,22 @@ import { useCalendarStore } from '@hub-client/stores/calendar.stores';
  * @todo Implement checking if the `roomId` is legitimate.
  */
 function validateEvent(calEvent: CalendarEvent): CalendarEvent {
-    const title = calEvent.title.trim();
-    const description = calEvent.description.trim();
-    const color = calEvent.color.trim();
+	const title = calEvent.title.trim();
+	const description = calEvent.description.trim();
+	const color = calEvent.color.trim();
+	const location = calEvent.location.trim();
 
 	if (!title) {
 		throw new Error('Calendar event title is required');
 	}
 
-    // Checks if color is a valid hexadecimal (e.g. #6789ab)
-    if (!/#[0-9A-Fa-f]{6}/.test(color)) {
-        throw new Error('Color field is not a valid hexadecimal color string.');
-    }
+	// Checks if color is a valid hexadecimal (e.g. #6789ab)
+	if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+		throw new Error('Color field is not a valid hexadecimal color string.');
+	}
 
-    const start = new Date(calEvent.startTime);
-    const end = new Date(calEvent.endTime);
+	const start = new Date(calEvent.startTime);
+	const end = new Date(calEvent.endTime);
 
 	if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
 		throw new Error('Calendar event must have valid start and end times');
@@ -51,7 +52,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event end time must be after start time');
 	}
 
-  return new CalendarEvent(title, description, color, calEvent.isAllDay, start, end);
+	return new CalendarEvent(title, description, color, location, calEvent.isAllDay, start, end);
 }
 
 /**
