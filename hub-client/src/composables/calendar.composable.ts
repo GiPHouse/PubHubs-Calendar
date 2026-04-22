@@ -36,10 +36,10 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event title is required');
 	}
 
-	// Checks if color is a valid hexadecimal (e.g. #6789ab)
-	if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
-		throw new Error('Color field is not a valid hexadecimal color string.');
-	}
+    // Checks if color is a valid hexadecimal (e.g. #6789ab)
+    if (!/#^[0-9A-Fa-f]{6}$/.test(color)) {
+        throw new Error('Color field is not a valid hexadecimal color string.');
+    }
 
 	const start = new Date(calEvent.startTime);
 	const end = new Date(calEvent.endTime);

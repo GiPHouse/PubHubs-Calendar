@@ -144,12 +144,9 @@
 
 	const colors = [
 		{ class: 'accent-red', value: '#ae2e24' },
-		{ class: 'accent-orange', value: '#a54800' },
 		{ class: 'accent-error', value: '#e45959' },
 		{ class: 'accent-yellow', value: '#e7d63d' },
 		{ class: 'accent-teal', value: '#27e0bf' },
-		{ class: 'accent-lime', value: '#61fe8d' },
-		{ class: 'accent-green', value: '#4c6b1f' },
 		{ class: 'accent-blue', value: '#005a9e' },
 		{ class: 'accent-purple', value: '#5e24ae' },
 		{ class: 'accent-pink', value: '#bf5cd8' },
