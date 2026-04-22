@@ -30,7 +30,7 @@ describe('CalendarStore', () => {
         const startTime = new Date('2026-03-29T12:00:00.000Z');
         const endTime = new Date('2026-03-29T13:00:00.000Z');
 
-        const event = new CalendarEvent('Some Event', 'Some cool description', '#4c6b1f', 'conference room', false, startTime, endTime);
+        const event = new CalendarEvent('Some Event', 'Some cool description', '#4c6b1f', 'Coolest place', false, startTime, endTime);
 
         await calendarStore.addCalendarEvent('!room:example', event);
 
@@ -40,11 +40,43 @@ describe('CalendarStore', () => {
             body: 'Some Event',
             title: 'Some Event',
             description: 'Some cool description',
+            location: 'Coolest place',
             color: '#4c6b1f',
             location: 'conference room',
             isAllDay: false,
-            startTime,
-            endTime,
+            startTime: startTime,
+            endTime: endTime,
+        });
+    });
+
+    test('editCalendarEvent sends modify matrix event content with relation', async () => {
+        const sendEventMock = vi.fn(async () => ({}));
+        const matrixServiceStub = initMatrixService({} as any);
+        (matrixServiceStub as any).sendEvent = sendEventMock;
+
+        const calendarStore = useCalendarStore();
+        const startTime = new Date('2026-03-29T12:00:00.000Z');
+        const endTime = new Date('2026-03-29T13:00:00.000Z');
+
+        const event = new CalendarEvent('Updated Event', 'Updated description', '#5cd0d8', 'New place', false, startTime, endTime);
+
+        await calendarStore.editCalendarEvent('!room:example', '$event123', event);
+
+        expect(sendEventMock).toHaveBeenCalledTimes(1);
+        expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalenderEventModify, {
+            msgtype: PubHubsMgType.CalenderEventEdit,
+            body: 'Updated Event',
+            title: 'Updated Event',
+            description: 'Updated description',
+            color: '#5cd0d8',
+            location: 'New place',
+            isAllDay: false,
+            startTime: startTime,
+            endTime: endTime,
+            'm.relates_to': {
+                event_id: '$event123',
+                rel_type: PubHubsMgType.CalenderEventEdit,
+            },
         });
     });
 
@@ -68,7 +100,7 @@ describe('CalendarStore', () => {
                 title: 'Some Event',
                 description: 'Some cool description',
                 color: '#4c6b1f',
-                location: 'conference room',
+                location: 'Some cool place',
                 isAllDay: false,
                 startTime: '2026-03-29T12:00:00.000Z',
                 endTime: '2026-03-29T13:00:00.000Z',
@@ -96,7 +128,7 @@ describe('CalendarStore', () => {
             title: 'Some Event',
             description: 'Some cool description',
             color: '#4c6b1f',
-            location: 'conference room',
+            location: 'Some cool place',
             isAllDay: false,
         }));
         expect(events[0].startTime.toISOString()).toBe('2026-03-29T12:00:00.000Z');

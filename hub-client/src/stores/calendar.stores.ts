@@ -39,6 +39,7 @@ const useCalendarStore = defineStore('calendar', {
 				title: calEvent.title,
 				description: calEvent.description,
 				color: calEvent.color,
+				location: calEvent.location,
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
@@ -46,6 +47,29 @@ const useCalendarStore = defineStore('calendar', {
 			};
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+		},
+
+		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
+			const service = useMatrixService();
+
+			const content: TCalendarEventMessageContent = {
+				msgtype: PubHubsMgType.CalenderEventEdit,
+				body: calEvent.title,
+				title: calEvent.title,
+				description: calEvent.description,
+				color: calEvent.color,
+				location: calEvent.location,
+				isAllDay: calEvent.isAllDay,
+				startTime: calEvent.startTime,
+				endTime: calEvent.endTime,
+				'm.relates_to': {
+					event_id: eventId,
+					rel_type: PubHubsMgType.CalenderEventEdit,
+				},
+			};
+
+			// @ts-ignore similar implementations in pubhubs ignore this error
+			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
 		},
 
 		/**

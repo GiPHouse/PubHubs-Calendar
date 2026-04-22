@@ -21,6 +21,38 @@
 							<!-- Title -->
 							<input v-model="form.title" type="text" required class="mt-1 w-full rounded border p-3 text-[22px] leading-tight font-bold" :placeholder="t('calendar.title')" />
 
+							<!-- Event Color  //  other option (round: class="w-5 h-5 rounded-full border-2 transition") -->
+							<div class="flex items-center gap-2">
+								<Icon type="smiley" />
+								<div class="ml-1 flex flex-wrap gap-3">
+									<button
+										v-for="color in colors"
+										:key="color.value"
+										type="button"
+										@click="form.color = getComputedColor(color.class)"
+										class="h-6 w-6 cursor-pointer rounded-sm border-2 transition hover:scale-110"
+										:style="{ backgroundColor: `var(--${color.class})` }"
+										:class="form.color === getComputedColor(color.class) ? 'border-on-surface scale-110' : 'border-transparent'"
+									/>
+								</div>
+							</div>
+
+							<div class="flex items-center gap-2">
+								<Icon type="calendar" />
+								<div class="flex items-center gap-3">
+									<span>{{ t('calendar.isAllDay') }}</span>
+
+									<button
+										type="button"
+										@click="form.allDay = !form.allDay"
+										class="flex h-5 w-10 cursor-pointer items-center rounded-full border px-0.5 transition"
+										:class="form.allDay ? 'bg-accent-blue border-accent-blue justify-end' : 'justify-start border-gray-400 bg-gray-300'"
+									>
+										<span class="h-4 w-4 rounded-full bg-white shadow transition" />
+									</button>
+								</div>
+							</div>
+
 							<!-- Date -->
 							<div>
 								<div class="flex items-center gap-2">
@@ -30,9 +62,9 @@
 
 								<div class="mt-2 ml-6 grid grid-cols-2 gap-2">
 									<input type="date" v-model="form.startDate" class="rounded border p-2" />
-									<input type="time" v-model="form.startTime" step="900" class="rounded border p-2" />
+									<input v-if="!form.allDay" type="time" v-model="form.startTime" step="900" class="rounded border p-2" />
 									<input type="date" v-model="form.endDate" class="rounded border p-2" />
-									<input type="time" v-model="form.endTime" step="900" class="rounded border p-2" />
+									<input v-if="!form.allDay" type="time" v-model="form.endTime" step="900" class="rounded border p-2" />
 								</div>
 							</div>
 
@@ -96,14 +128,29 @@
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	import { useSettings } from '@hub-client/stores/settings';
+
 	const { t, locale } = useI18n();
 
 	const showRoomDropdown = ref(false);
 
-	const props = defineProps<{ start: string; end: string }>();
+	const props = defineProps<{ start: string; end: string; allDay?: boolean; event?: any }>();
+
 	const emit = defineEmits(['submit', 'close']);
 
+	const settings = useSettings();
+
 	const rooms = ['Room A', 'Room B', 'Room C'];
+
+	const colors = [
+		{ class: 'accent-red', value: '#ae2e24' },
+		{ class: 'accent-error', value: '#e45959' },
+		{ class: 'accent-yellow', value: '#e7d63d' },
+		{ class: 'accent-teal', value: '#27e0bf' },
+		{ class: 'accent-blue', value: '#005a9e' },
+		{ class: 'accent-purple', value: '#5e24ae' },
+		{ class: 'accent-pink', value: '#bf5cd8' },
+	];
 
 	const startDateObj = new Date(props.start);
 	const endDateObj = new Date(props.end);
@@ -113,6 +160,9 @@
 		location: '',
 		room: [] as string[],
 		description: '',
+		color: 'bg-blue-500', // default color
+
+		allDay: props.allDay ?? false,
 
 		startDate: startDateObj,
 		startTime: startDateObj.toTimeString().slice(0, 5),
@@ -155,10 +205,12 @@
 	);
 
 	watch(
-		() => [props.start, props.end],
-		([newStart, newEnd]) => {
+		() => [props.start, props.end, props.allDay],
+		([newStart, newEnd, newAllDay]) => {
 			const startDateObj = new Date(newStart);
 			const endDateObj = new Date(newEnd);
+
+			form.allDay = newAllDay ?? false;
 
 			// If the prop start has hours/minutes (day/week view click), use them
 			// Otherwise (month view click), default to 09:00–09:30
@@ -180,42 +232,150 @@
 		{ immediate: true },
 	);
 
+	watch(
+		() => [form.startDate, form.endDate, form.allDay],
+		() => {
+			if (form.allDay) {
+				const start = new Date(form.startDate);
+				const end = new Date(form.endDate);
+
+				// If end is before start → fix it
+				if (end < start) {
+					form.endDate = new Date(start);
+				}
+			}
+		},
+	);
+
+	watch(
+		() => form.allDay,
+		(isAllDay) => {
+			if (isAllDay) {
+				// optional: normalize times
+				form.startTime = '00:00';
+				form.endTime = '23:59';
+			}
+		},
+	);
+
+	watch(
+		() => props.allDay,
+		(val) => {
+			form.allDay = val ?? false;
+		},
+		{ immediate: true },
+	);
+
 	const formattedDate = computed(() => {
 		const start = new Date(form.startDate);
 		const end = new Date(form.endDate);
-		const [sh, sm] = form.startTime.split(':').map(Number);
-		const [eh, em] = form.endTime.split(':').map(Number);
-		start.setHours(sh, sm);
-		end.setHours(eh, em);
 
-		let startStr = start.toLocaleDateString(locale.value, { weekday: 'long', day: 'numeric', month: 'long' });
-		let endStr = end.toLocaleDateString(locale.value, { weekday: 'long', day: 'numeric', month: 'long' });
+		let startStr = start.toLocaleDateString(locale.value, {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+		});
+
+		let endStr = end.toLocaleDateString(locale.value, {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+		});
 
 		startStr = startStr.replace(/\b\w/g, (l) => l.toUpperCase());
 		endStr = endStr.replace(/\b\w/g, (l) => l.toUpperCase());
 
-		if (startStr === endStr) {
-			return `${startStr}, ${form.startTime}–${form.endTime}`;
+		// ALL DAY EVENT
+		if (form.allDay) {
+			if (startStr === endStr) return startStr;
+			return `${startStr} – ${endStr}`;
 		}
-		return `${startStr} ${form.startTime}–${endStr} ${form.endTime}`;
-	});
 
-	function submit() {
-		const start = new Date(form.startDate);
-		const end = new Date(form.endDate);
+		// NORMAL EVENT
 		const [sh, sm] = form.startTime.split(':').map(Number);
 		const [eh, em] = form.endTime.split(':').map(Number);
 
 		start.setHours(sh, sm);
 		end.setHours(eh, em);
+
+		if (startStr === endStr) {
+			return `${startStr}, ${formatTime(form.startTime)}–${formatTime(form.endTime)}`;
+		}
+
+		return `${startStr} ${formatTime(form.startTime)} – ${endStr} ${formatTime(form.endTime)}`;
+	});
+
+	function formatTime(timeStr: string): string {
+		const [h, m] = timeStr.split(':').map(Number);
+		if (settings.timeFormat === '24') {
+			return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+		}
+		const period = h >= 12 ? 'PM' : 'AM';
+		const hour12 = h % 12 === 0 ? 12 : h % 12;
+		if (m === 0) return `${hour12} ${period}`;
+		return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+	}
+
+	function getComputedColor(colorClass: string) {
+		const el = document.createElement('div');
+		el.style.display = 'none';
+		el.style.backgroundColor = `var(--${colorClass})`;
+		document.body.appendChild(el);
+		const computed = getComputedStyle(el).backgroundColor;
+		document.body.removeChild(el);
+		return computed;
+	}
+
+	function toLocalDateString(date: Date) {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
+	watch(
+		() => props.event,
+		(event) => {
+			if (!event) return;
+			form.title = event.title ?? '';
+			form.location = event.extendedProps?.location ?? '';
+			form.room = event.extendedProps?.room ?? [];
+			form.description = event.extendedProps?.description ?? '';
+			form.color = event.backgroundColor ?? form.color;
+		},
+		{ immediate: true },
+	);
+
+	function submit() {
+		const start = new Date(form.startDate);
+		const end = new Date(form.endDate);
+
+		let startISO;
+		let endISO;
+
+		if (!form.allDay) {
+			const [sh, sm] = form.startTime.split(':').map(Number);
+			const [eh, em] = form.endTime.split(':').map(Number);
+
+			start.setHours(sh, sm);
+			end.setHours(eh, em);
+
+			startISO = start.toISOString();
+			endISO = end.toISOString();
+		} else {
+			startISO = toLocalDateString(start);
+			endISO = toLocalDateString(end);
+		}
 
 		emit('submit', {
 			title: form.title,
 			location: form.location,
 			room: form.room,
 			description: form.description,
-			start: start.toISOString(),
-			end: end.toISOString(),
+			color: form.color,
+			allDay: form.allDay,
+			start: startISO,
+			end: endISO,
 		});
 
 		showRoomDropdown.value = false;

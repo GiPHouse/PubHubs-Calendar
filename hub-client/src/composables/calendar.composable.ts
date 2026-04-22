@@ -90,8 +90,14 @@ export function useCalendarEvents() {
 		await calendar_store.delCalendarEvent(roomId, eventId);
 	}
 
+	async function updateCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent): Promise<void> {
+		const normalisedEvent = validateEvent(calEvent);
+		await calendar_store.editCalendarEvent(roomId, eventId, normalisedEvent);
+	}
+
 	return {
 		createCalendarEvent,
 		removeCalendarEvent,
+		updateCalendarEvent,
 	};
 }

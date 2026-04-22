@@ -14,22 +14,22 @@ class CalendarEvent {
 
 	constructor(
 		// some default values are provided
-		title: string = 'New Calendar Event',
+		title: string = 'Untitled',
 		description: string = '',
 		color: string,
-		location: string = '',
+		location: string,
 		isAllDay: boolean = false,
-		startTime: Date = new Date(Date.now() + 24 * 60 * 60 * 1000), // if not provided, set to now
+		startTime: Date = new Date(), // if not provided, set to now
 		endTime?: Date,
 	) {
 		this.title = title;
 		this.description = description;
 		this.color = color;
+		this.location = location;
 		this.startTime = startTime;
 		// is endTime provided? if not, set to startime + 1h
 		this.endTime = endTime ?? new Date(startTime.getTime() + 60 * 60 * 1000);
 		this.isAllDay = isAllDay;
-		this.location = location;
 	}
 }
 
