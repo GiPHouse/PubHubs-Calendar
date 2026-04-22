@@ -39,6 +39,7 @@ const useCalendarStore = defineStore('calendar', {
 				title: calEvent.title,
 				description: calEvent.description,
 				color: calEvent.color,
+				location: calEvent.location,
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
@@ -55,6 +56,9 @@ const useCalendarStore = defineStore('calendar', {
 				body: calEvent.title,
 				title: calEvent.title,
 				description: calEvent.description,
+				color: calEvent.color,
+				location: calEvent.location,
+				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 				'm.relates_to': {
@@ -97,14 +101,7 @@ const useCalendarStore = defineStore('calendar', {
 				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
 				.map((event) => {
 					const content = event.getContent() as TCalendarEventMessageContent;
-					return new CalendarEvent(
-						content.title,
-						content.description,
-						content.color,
-						content.isAllDay,
-						new Date(content.startTime),
-						new Date(content.endTime),
-					);
+					return new CalendarEvent(content.title, content.description, content.color, content.location, content.isAllDay, new Date(content.startTime), new Date(content.endTime));
 				});
 
 			return calendarEvents;
