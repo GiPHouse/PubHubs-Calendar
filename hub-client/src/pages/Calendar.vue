@@ -344,10 +344,13 @@
 		const calendarEvent = new CalendarEvent(
 			newEvent.title,
 			newEvent.description,
-			newEvent.start,
-        	newEvent.allDay
-            ? addOneDay(newEvent.end)
-            : newEvent.end
+			newEvent.color,
+			newEvent.location,
+			newEvent.allDay,
+			new Date(newEvent.start),
+			newEvent.allDay
+				? new Date(addOneDay(newEvent.end))
+				: new Date(newEvent.end)
 		);
 
 		createCalendarEvent(newEvent.id, calendarEvent);

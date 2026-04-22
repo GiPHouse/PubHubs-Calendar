@@ -37,7 +37,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	}
 
     // Checks if color is a valid hexadecimal (e.g. #6789ab)
-    if (!/#^[0-9A-Fa-f]{6}$/.test(color)) {
+    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
         throw new Error('Color field is not a valid hexadecimal color string.');
     }
 
