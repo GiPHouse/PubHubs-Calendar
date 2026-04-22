@@ -42,6 +42,7 @@ describe('CalendarStore', () => {
             description: 'Some cool description',
             location: 'Coolest place',
             color: '#4c6b1f',
+            location: 'conference room',
             isAllDay: false,
             startTime: startTime,
             endTime: endTime,

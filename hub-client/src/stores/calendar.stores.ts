@@ -43,6 +43,7 @@ const useCalendarStore = defineStore('calendar', {
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
+				location: calEvent.location,
 			};
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);

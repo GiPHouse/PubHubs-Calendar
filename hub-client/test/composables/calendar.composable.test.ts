@@ -33,7 +33,7 @@ describe('CalendarComposable', () => {
 
         const startTime = new Date('2026-04-08T15:30:00.000Z');
         const endTime = new Date('2026-04-08T18:00:00.000Z');
-        const event = new CalendarEvent('  SWE Meeting  ', '  Weekly planning  ', '   #bf5cd8 ', '     The Launch', false, startTime, endTime);
+        const event = new CalendarEvent('  SWE Meeting  ', '  Weekly planning  ', '   #bf5cd8 ', '  Conference Room  ', false, startTime, endTime);
 
         await createCalendarEvent('!room:example', event);
 
