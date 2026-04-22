@@ -103,22 +103,13 @@ const useCalendarStore = defineStore('calendar', {
 		},
 
 		/**
-		 * Returns all calendar events for `roomId`, with edits collapsed into
-		 * the original event and redacted events filtered out.
-		 *
-		 * Traversal:
-		 *  1. Bucket every `PubHubsMgType.CalendarEvent` in the room's live
-		 *     timeline by id. Skip events that look redacted (empty content
-		 *     or explicit `redacted_because` metadata).
-		 *  2. Separate the originals (no `m.relates_to`) from the replacement
-		 *     events (`m.relates_to.rel_type === 'm.replace'`).
-		 *  3. For each original, find the *latest* replacement targeting it
-		 *     (by origin server timestamp), and apply its `m.new_content`.
-		 *  4. Hydrate each merged content object into a `CalendarEvent`.
+		 * Get all calendar events in a room. This also checks for replacements, thus
+		 * editing events if they still have pending changes.
+		 * @param roomId Room to fetch events for.
+		 * @returns List of calendar events, formatted to `CalendarEvent`
 		 */
 		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
 			const pubhubs_store = usePubhubsStore();
-
 			const room = pubhubs_store.getRoom(roomId);
 			if (!room) {
 				throw new Error('Room not found');
@@ -126,33 +117,33 @@ const useCalendarStore = defineStore('calendar', {
 
 			const events = room.getLiveTimeline().getEvents();
 
-			// Pass 1: collect originals and replacements keyed by target id.
 			type Original = {
 				id: string;
 				ts: number;
 				content: TCalendarEventMessageContent;
 			};
 			const originals: Original[] = [];
-			const latestReplacement = new Map<string, { ts: number; content: TCalendarEventMessageContent }>();
+			const latestReplacements = new Map<string, { ts: number; content: TCalendarEventMessageContent }>();
 
 			for (const ev of events) {
 				if (ev.getType() !== PubHubsMgType.CalendarEvent) continue;
 				if (isRedactedEvent(ev)) continue;
 
 				const content = ev.getContent() as TCalendarEventMessageContent;
-				// An event with empty content that wasn't explicitly flagged
-				// redacted is still not a usable calendar event — ignore it.
 				if (!content || !content.title) continue;
 
-				const ts = typeof ev.getTs === 'function' ? ev.getTs() : 0;
+				const ts = ev.getTs() ?? 0;
 				const relatesTo = content['m.relates_to'];
 
+				// Resolve possible pending edit
 				if (relatesTo && (relatesTo.rel_type as unknown as string) === RelationType.Replace) {
-					const newContent = (content as any)['m.new_content'] as TCalendarEventMessageContent | undefined;
+					const newContent = content['m.new_content'] as TCalendarEventMessageContent | undefined;
 					if (!newContent) continue;
-					const existing = latestReplacement.get(relatesTo.event_id);
+
+					const existing = latestReplacements.get(relatesTo.event_id);
 					if (!existing || ts > existing.ts) {
-						latestReplacement.set(relatesTo.event_id, { ts, content: newContent });
+						// todo: multiple replacements might break?
+						latestReplacements.set(relatesTo.event_id, { ts, content: newContent });
 					}
 					continue;
 				}
@@ -161,23 +152,24 @@ const useCalendarStore = defineStore('calendar', {
 				originals.push({ id, ts, content });
 			}
 
-			// Pass 2: apply the latest replacement per original.
-			return originals.map(({ id, content }) => {
-				const replacement = id ? latestReplacement.get(id) : undefined;
-				const finalContent = replacement ? replacement.content : content;
+			return originals
+				.map(({ id, content }) => {
+					const replacement = id ? latestReplacements.get(id) : undefined;
+					const finalContent = replacement ? replacement.content : content;
 
-				return new CalendarEvent(
-					finalContent.title,
-					finalContent.description,
-					finalContent.color,
-					finalContent.isAllDay,
-					new Date(finalContent.startTime),
-					new Date(finalContent.endTime),
-					id,
-					finalContent.location ?? '',
-					finalContent.room ?? '',
-				);
-			});
+					return new CalendarEvent(
+						finalContent.title,
+						finalContent.description,
+						finalContent.color,
+						finalContent.isAllDay,
+						new Date(finalContent.startTime),
+						new Date(finalContent.endTime),
+						id,
+						finalContent.location ?? '',
+						finalContent.room ?? '',
+					);
+				})
+				.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 		},
 	},
 });
