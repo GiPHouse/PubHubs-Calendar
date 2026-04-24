@@ -38,6 +38,9 @@ const useCalendarStore = defineStore('calendar', {
 				body: calEvent.title,
 				title: calEvent.title,
 				description: calEvent.description,
+				color: calEvent.color,
+				location: calEvent.location,
+				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 			};
@@ -47,7 +50,6 @@ const useCalendarStore = defineStore('calendar', {
 
 		/**
 		 * Deletes a calendar event.
-		 * Effectively an alias for deleteMessage, since I expect it to work the same.
 		 * @param roomId 
 		 * @param eventId 
 		 */
@@ -78,6 +80,9 @@ const useCalendarStore = defineStore('calendar', {
 					return new CalendarEvent(
 						content.title,
 						content.description,
+						content.color,
+						content.location,
+						content.isAllDay,
 						new Date(content.startTime),
 						new Date(content.endTime)
 					);
