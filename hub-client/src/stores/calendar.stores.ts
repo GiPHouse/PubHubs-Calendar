@@ -88,67 +88,42 @@ const useCalendarStore = defineStore('calendar', {
 		 * @returns List of calendar events, formatted to `CalendarEvent`
 		 */
 		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
+			console.log('>> store#getCalendarEvents');
+
+			// TODO (IMPORTANT!): For whatever reason, we hang here.
 			const pubhubs_store = usePubhubsStore();
 			const room = pubhubs_store.getRoom(roomId);
 			if (!room) {
-				throw new Error('Room not found');
+				throw new Error(`Room "${roomId}" not found!`);
 			}
 
 			const events = room.getLiveTimeline().getEvents();
-
-			type Original = {
-				id: string;
-				ts: number;
-				content: TCalendarEventMessageContent;
-			};
-			const originals: Original[] = [];
-			const latestReplacements = new Map<string, { ts: number; content: TCalendarEventMessageContent }>();
-
-			for (const ev of events) {
-				if (ev.getType() !== PubHubsMgType.CalendarEvent) continue;
-				if (isRedactedEvent(ev)) continue;
-
-				const content = ev.getContent() as TCalendarEventMessageContent;
-				if (!content || !content.title) continue;
-
-				const ts = ev.getTs() ?? 0;
-				const relatesTo = content['m.relates_to'];
-
-				// Resolve possible pending edit
-				if (relatesTo && (relatesTo.rel_type as unknown as string) === RelationType.Replace) {
-					const newContent = content['m.new_content'] as TCalendarEventMessageContent | undefined;
-					if (!newContent) continue;
-
-					const existing = latestReplacements.get(relatesTo.event_id);
-					if (!existing || ts > existing.ts) {
-						// todo: multiple replacements might break?
-						latestReplacements.set(relatesTo.event_id, { ts, content: newContent });
-					}
-					continue;
-				}
-
-				const id = typeof ev.getId === 'function' ? (ev.getId() ?? '') : '';
-				originals.push({ id, ts, content });
-			}
-
-			return originals
-				.map(({ id, content }) => {
-					const replacement = id ? latestReplacements.get(id) : undefined;
-					const finalContent = replacement ? replacement.content : content;
-
+			// The `.filter` might be redundent?
+			const calendarEvents = events
+				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
+				.map((e) => {
+					const content = e.getContent() as TCalendarEventMessageContent;
 					return new CalendarEvent(
-						finalContent.title,
-						finalContent.description,
-						finalContent.color,
-						finalContent.isAllDay,
-						new Date(finalContent.startTime),
-						new Date(finalContent.endTime),
-						id,
-						finalContent.location ?? '',
-						finalContent.room ?? '',
+						content.title,
+						content.description,
+						content.color,
+						content.isAllDay,
+						new Date(content.startTime),
+						new Date(content.endTime),
+						'', // id???
+						content.location,
+						content.room,
 					);
-				})
-				.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+				});
+
+			// In the previous iteration of this method, we also sorted and applied
+			// pending edits and what not... I've removed thsoe for MVP's sake. The
+			// function is already broken as-is for now anyway...
+
+			// In the future, if need be or preferred, we can add i.e. a sort statement
+			// to sort the events by their creation date or whatever!
+
+			return calendarEvents;
 		},
 	},
 });

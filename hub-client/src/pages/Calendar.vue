@@ -113,6 +113,16 @@
 	}
 
 	async function loadCalendarEvents() {
+		const calendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
+		if (!calendarRoom) {
+			console.error('[Calendar] No calendar room exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
+			return;
+		}
+
+		const events = await getCalendarEvents(calendarRoom);
+		// TODO: Use the events from here to map them into the calendar somehow
+		//			-> Probably talk through how this bit below works with the front-end team!
+
 		if (!rooms.currentRoomExists) {
 			calendarEvents.value = [];
 			return;
