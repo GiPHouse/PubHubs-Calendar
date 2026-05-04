@@ -90,11 +90,14 @@ const useCalendarStore = defineStore('calendar', {
 		 * @returns List of calendar events, formatted to `CalendarEvent`
 		 */
 		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
+			console.log('>> store#getCalendarEvents');
+
 			const events = room.getLiveTimeline().getEvents();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
 				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
 				.map((e) => {
+					console.log(`>> Found an event: ${e}`);
 					const content = e.getContent() as TCalendarEventMessageContent;
 					return new CalendarEvent(
 						content.title,
