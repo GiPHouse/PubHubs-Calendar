@@ -3,6 +3,9 @@ import { useRooms } from './rooms';
 import { Room } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
+// Services
+import { useMatrix } from '@hub-client/composables/matrix.composable';
+
 // Composables
 
 // Logic
@@ -14,9 +17,6 @@ import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
-// Services
-import { useMatrix } from '@hub-client/composables/matrix.composable'
-
 /**
  * @todo Add other calendar event types, e.g. edit, delete, etc.
  * @see `src/logic/core/events.ts`
@@ -26,11 +26,11 @@ const useCalendarStore = defineStore('calendar', {
 	actions: {
 		/**
 		 * Adds a calendar event using `sendEvent`.
-		 * 
+		 *
 		 * NOTE: This should only be called by the calendar composable.
 		 * @see `src/composables/calendar.composable.ts`
 		 * @param roomId RoomID to send the event in.
-		 * @param calEvent 
+		 * @param calEvent
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
 			const { sendEvent } = useMatrix();
@@ -47,11 +47,11 @@ const useCalendarStore = defineStore('calendar', {
 				endTime: calEvent.endTime,
 			};
 			// @ts-ignore similar implementations in pubhubs ignore this error
-<<<<<<< linking-funcs
 			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
 		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
+			// (!) useMatrixService is not defined/imported, we should take a look at this
 			const service = useMatrixService();
 
 			const content: TCalendarEventMessageContent = {
@@ -72,15 +72,12 @@ const useCalendarStore = defineStore('calendar', {
 
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
-=======
-			await sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
->>>>>>> matrix-composable-sendevent
 		},
 
 		/**
 		 * Deletes a calendar event.
-		 * @param roomId 
-		 * @param eventId 
+		 * @param roomId
+		 * @param eventId
 		 */
 		async delCalendarEvent(roomId: string, eventId: string): Promise<void> {
 			const { redactEvent } = useMatrix();
@@ -88,17 +85,10 @@ const useCalendarStore = defineStore('calendar', {
 		},
 
 		/**
-<<<<<<< linking-funcs
 		 * Get all calendar events in a room. This also checks for replacements, thus
 		 * editing events if they still have pending changes.
 		 * @param roomId Room to fetch events for.
 		 * @returns List of calendar events, formatted to `CalendarEvent`
-=======
-		 * Get all calendar events for a given room.
-		 * 
-		 * @param roomId 
-		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
->>>>>>> matrix-composable-sendevent
 		 */
 		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
 			console.log('>> store#getCalendarEvents');
@@ -106,16 +96,10 @@ const useCalendarStore = defineStore('calendar', {
 			const events = room.getLiveTimeline().getEvents();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
-<<<<<<< linking-funcs
-				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
-				.map((e) => {
-					console.log(`>> Found an event: ${e}`);
-					const content = e.getContent() as TCalendarEventMessageContent;
-=======
-				.filter(event => event.getType() === PubHubsMgType.CalendarEvent)
-				.map(event => {
+				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
+				.map((event) => {
+					console.log(`>> Found an event: ${event}`);
 					const content = event.getContent() as TCalendarEventMessageContent;
->>>>>>> matrix-composable-sendevent
 					return new CalendarEvent(
 						content.title,
 						content.description,
@@ -123,14 +107,11 @@ const useCalendarStore = defineStore('calendar', {
 						content.location,
 						content.isAllDay,
 						new Date(content.startTime),
-<<<<<<< linking-funcs
 						new Date(content.endTime),
 						'', // id???
 						content.location,
-						content.room,
-=======
-						new Date(content.endTime)
->>>>>>> matrix-composable-sendevent
+						// (!) calendarEvent only accepts 9 arguments not 10, someone should look at this
+						//content.room,
 					);
 				});
 
@@ -142,8 +123,8 @@ const useCalendarStore = defineStore('calendar', {
 			// to sort the events by their creation date or whatever!
 
 			return calendarEvents;
-		}
-	}
-})
+		},
+	},
+});
 
 export { useCalendarStore };
