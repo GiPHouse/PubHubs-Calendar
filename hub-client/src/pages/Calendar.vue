@@ -30,12 +30,20 @@
 </template>
 
 <script setup>
+	//components
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
+
+	//composables
+	import {useCalendarEvents} from '../composables/calendar.composable.ts';
+
+	//fullCalendar
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
+	
+	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -51,6 +59,8 @@
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
+
+	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent } = useCalendarEvents();
 
 	// Event creation
 	const showEventCreationDialog = ref(false);
@@ -298,6 +308,13 @@
 	// Calendar options
 	const calendarOptions = ref({
 		plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+
+		fixedWeekCount: false,
+
+		slotMinTime: "00:00:00",
+		slotMaxTime: "24:00:00",
+		expandRows: true,
+
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
 		selectable: true,
 
@@ -371,7 +388,8 @@
 		eventColor: '#3788d8',
 
 		// Responsive settings
-		aspectRatio: isMobile.value ? 0.8 : 1.35,
+		height: "auto",
+		contentHeight: "auto",
 
 		// Locale (adjust based on your needs)
 		locales: [getCalendarLocale()], // Add this
@@ -423,20 +441,16 @@
 	function addEvent(newEvent) {
 		const textColor = getContrastTextColor(newEvent.color);
 
-		calendarEvents.value.push({
-			title: newEvent.title,
-			start: newEvent.start,
-			end: newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end,
-			allDay: newEvent.allDay,
-			backgroundColor: newEvent.color,
-			borderColor: newEvent.color,
-			textColor,
-			extendedProps: {
-				location: newEvent.location,
-				room: newEvent.room,
-				description: newEvent.description,
-			},
-		});
+		const calendarEvent = new CalendarEvent(
+			newEvent.title,
+			newEvent.description,
+			newEvent.start,
+        	newEvent.allDay
+            ? addOneDay(newEvent.end)
+            : newEvent.end
+		);
+
+		createCalendarEvent(newEvent.id, calendarEvent);
 	}
 
 	function handleDateClick(info) {
@@ -627,209 +641,3 @@
 		changeView,
 	});
 </script>
-
-<style scoped>
-	.calendar-wrapper {
-		height: calc(100vh - 120px);
-		min-height: 600px;
-	}
-
-	@media (max-width: 768px) {
-		.calendar-wrapper {
-			height: calc(100vh - 100px);
-			min-height: 500px;
-		}
-	}
-
-	/* FullCalendar styles */
-	:deep(.fc) {
-		--fc-border-color: var(--calendar-grid);
-		--fc-button-bg-color: var(--accent-primary);
-		--fc-button-border-color: var(--accent-primary);
-		--fc-button-hover-bg-color: var(--on-accent-button-blue);
-		--fc-button-hover-border-color: var(--on-accent-button-blue);
-		--fc-button-active-bg-color: var(--on-blue);
-		--fc-button-active-border-color: var(--on-blue);
-		--fc-event-bg-color: var(--accent-primary);
-		--fc-event-border-color: var(--accent-primary);
-		--fc-today-bg-color: transparent;
-	}
-
-	:deep(.fc-toolbar-title) {
-		font-size: 16px;
-		font-weight: 600;
-		color: var(--on-surface);
-		text-transform: capitalize;
-	}
-
-	:deep(.fc-button) {
-		font-weight: 500;
-		font-size: 14px;
-		border-radius: 0.7rem;
-	}
-
-	:deep(.fc-toolbar-chunk:last-child .fc-button) {
-		min-width: 70px; /* Adjust this value as needed */
-		text-align: center;
-		white-space: nowrap;
-	}
-
-	:deep(.fc-button-primary:not(:disabled):active:focus),
-	:deep(.fc-button-primary:not(:disabled).fc-button-active:focus),
-	:deep(.fc-button-primary:focus) {
-		box-shadow: none;
-	}
-
-	:deep(.fc-event) {
-		border-radius: 0.375rem;
-		padding: 0.25rem 0.5rem;
-		font-size: 1rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	:deep(.fc-event:hover) {
-		transform: translateY(-1px);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	}
-
-	:deep(.fc-timegrid-axis) {
-		width: 70px; /* Adjust time column width */
-	}
-
-	:deep(.fc-timegrid-slot) {
-		height: 30px; /* Adjust height of each time slot */
-	}
-
-	:deep(.fc-timegrid-slot-label) {
-		font-size: 12px; /* Adjust time text size */
-		color: var(--on-surface-dim); /* Time text color */
-	}
-
-	:deep(.fc-timegrid-slot-label-frame) {
-		color: var(--on-surface-dim);
-	}
-
-	/* Day headers (day/week/month views) */
-	:deep(.fc-col-header-cell) {
-		padding: 0.75rem 0;
-		background-color: var(--surface-low);
-		font-weight: 600;
-		font-size: 14px;
-		color: var(--on-surface);
-	}
-
-	:deep(.fc-col-header-cell-cushion) {
-		color: var(--on-surface);
-		text-decoration: none;
-		font-size: 14px;
-	}
-
-	/* Day numbers */
-	:deep(.fc-daygrid-day-number) {
-		font-weight: 500;
-		font-size: 14px;
-		color: var(--on-surface);
-		padding: 0.5rem;
-		text-decoration: none;
-	}
-
-	:deep(.fc-daygrid-day-frame) {
-		min-height: 100px;
-	}
-
-	:deep(.fc-timegrid-axis-frame) {
-		font-size: 12px;
-	}
-
-	/* Day header in day/week view */
-	:deep(.fc-day-header) {
-		color: var(--on-surface);
-		font-size: 14px;
-	}
-
-	/* Today circle styling */
-	:deep(.fc-day-today .fc-daygrid-day-number) {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
-		background-color: var(--accent-blue);
-		color: var(--on-button-blue);
-		border-radius: 50%;
-		font-weight: 600;
-		line-height: 1;
-		font-size: 13px;
-		padding: 0;
-	}
-
-	/* Today circle in week/day view */
-	:deep(.fc-timegrid .fc-day-today .fc-col-header-cell-cushion) {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-	}
-
-	/* Circle for today in week/day header */
-	:deep(.fc-timegrid .fc-day-today .fc-day-number) {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 26px;
-		height: 26px;
-		background-color: var(--accent-blue);
-		color: var(--on-button-blue);
-		border-radius: 50%;
-		font-weight: 600;
-		font-size: 13px;
-	}
-
-	:deep(.fc-col-header-cell-cushion) {
-		text-transform: capitalize; /* Capitalizes first letter of each word */
-	}
-
-	:deep(.fc-col-header-cell-cushion span:first-child) {
-		margin-right: 3px;
-	}
-
-	:deep(.fc-timegrid-axis) {
-		font-size: 12px;
-	}
-
-	/* Mobile adjustments */
-	@media (max-width: 768px) {
-		:deep(.fc-toolbar-chunk:last-child .fc-button) {
-			min-width: 60px;
-			font-size: 0.875rem;
-			padding: 0.25rem 0.5rem;
-		}
-
-		:deep(.fc-toolbar) {
-			flex-direction: column;
-			gap: 1rem;
-		}
-
-		:deep(.fc-toolbar-title) {
-			font-size: 1rem;
-		}
-
-		:deep(.fc-button) {
-			padding: 0.25rem 0.5rem;
-			font-size: 0.875rem;
-		}
-
-		:deep(.fc-daygrid-day-frame) {
-			min-height: 60px;
-		}
-
-		/* Adjust time column for mobile */
-		:deep(.fc-timegrid-axis) {
-			width: 50px;
-		}
-
-		:deep(.fc-timegrid-slot-label) {
-			font-size: 10px;
-		}
-	}
-</style>

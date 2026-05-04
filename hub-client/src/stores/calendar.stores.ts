@@ -11,11 +11,11 @@ import { PubHubsMgType } from '@hub-client/logic/core/events';
 // Models
 import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
-// Services
-import { useMatrixService } from '@hub-client/services/matrix.service';
-
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+// Services
+import { useMatrix } from '@hub-client/composables/matrix.composable'
 
 /**
  * @todo Add other calendar event types, e.g. edit, delete, etc.
@@ -26,14 +26,14 @@ const useCalendarStore = defineStore('calendar', {
 	actions: {
 		/**
 		 * Adds a calendar event using `sendEvent`.
-		 *
+		 * 
 		 * NOTE: This should only be called by the calendar composable.
 		 * @see `src/composables/calendar.composable.ts`
 		 * @param roomId RoomID to send the event in.
-		 * @param calEvent
+		 * @param calEvent 
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
-			const service = useMatrixService();
+			const { sendEvent } = useMatrix();
 
 			const content: TCalendarEventMessageContent = {
 				msgtype: PubHubsMgType.CalendarEvent,
@@ -41,11 +41,13 @@ const useCalendarStore = defineStore('calendar', {
 				title: calEvent.title,
 				description: calEvent.description,
 				color: calEvent.color,
+				location: calEvent.location,
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 			};
 			// @ts-ignore similar implementations in pubhubs ignore this error
+<<<<<<< linking-funcs
 			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
@@ -70,24 +72,33 @@ const useCalendarStore = defineStore('calendar', {
 
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
+=======
+			await sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+>>>>>>> matrix-composable-sendevent
 		},
 
 		/**
 		 * Deletes a calendar event.
-		 * Effectively an alias for deleteMessage, since I expect it to work the same.
-		 * @param roomId
-		 * @param eventId
+		 * @param roomId 
+		 * @param eventId 
 		 */
 		async delCalendarEvent(roomId: string, eventId: string): Promise<void> {
-			const pubhubs_store = usePubhubsStore();
-			await pubhubs_store.deleteMessage(roomId, eventId);
+			const { redactEvent } = useMatrix();
+			await redactEvent(roomId, eventId);
 		},
 
 		/**
+<<<<<<< linking-funcs
 		 * Get all calendar events in a room. This also checks for replacements, thus
 		 * editing events if they still have pending changes.
 		 * @param roomId Room to fetch events for.
 		 * @returns List of calendar events, formatted to `CalendarEvent`
+=======
+		 * Get all calendar events for a given room.
+		 * 
+		 * @param roomId 
+		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
+>>>>>>> matrix-composable-sendevent
 		 */
 		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
 			console.log('>> store#getCalendarEvents');
@@ -95,20 +106,31 @@ const useCalendarStore = defineStore('calendar', {
 			const events = room.getLiveTimeline().getEvents();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
+<<<<<<< linking-funcs
 				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
 				.map((e) => {
 					console.log(`>> Found an event: ${e}`);
 					const content = e.getContent() as TCalendarEventMessageContent;
+=======
+				.filter(event => event.getType() === PubHubsMgType.CalendarEvent)
+				.map(event => {
+					const content = event.getContent() as TCalendarEventMessageContent;
+>>>>>>> matrix-composable-sendevent
 					return new CalendarEvent(
 						content.title,
 						content.description,
 						content.color,
+						content.location,
 						content.isAllDay,
 						new Date(content.startTime),
+<<<<<<< linking-funcs
 						new Date(content.endTime),
 						'', // id???
 						content.location,
 						content.room,
+=======
+						new Date(content.endTime)
+>>>>>>> matrix-composable-sendevent
 					);
 				});
 
@@ -120,8 +142,8 @@ const useCalendarStore = defineStore('calendar', {
 			// to sort the events by their creation date or whatever!
 
 			return calendarEvents;
-		},
-	},
-});
+		}
+	}
+})
 
 export { useCalendarStore };

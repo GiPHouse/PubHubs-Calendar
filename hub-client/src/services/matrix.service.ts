@@ -6,6 +6,7 @@ import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, 
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { MainRoomSubscription, RoomLists, makeMainRoomSubscriptionName } from '@hub-client/logic/matrix.logic.js';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
 import { MatrixType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
@@ -298,6 +299,22 @@ class MatrixService {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });
 		}
 	};
+
+	public sendEvent = (roomId: string, msgType: PubHubsMgType, content: any) => {
+		try {
+			this.client.sendEvent(roomId, msgType, content);
+		} catch (err) {
+			LOGGER.error(SMI.ROOM, 'sendEvent to Matrix API failed', { roomId, msgType, err });
+		}
+	}
+
+	public redactEvent = (roomId: string, eventId: string) => {
+		try {
+			this.client.redactEvent(roomId, eventId);
+		} catch (err) {
+			LOGGER.error(SMI.ROOM, 'redactEvent to Matrix API failed', { roomId, err });
+		}
+	}
 
 	// #endregion
 }

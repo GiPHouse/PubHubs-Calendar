@@ -82,10 +82,10 @@ describe('CalendarStore', () => {
 			title: 'Some Event',
 			description: 'Some cool description',
 			color: '#4c6b1f',
+      location: 'Coolest place',
 			isAllDay: false,
-			startTime,
-			endTime,
-			location: '',
+			startTime: startTime,
+			endTime: endTime,
 			room: '',
 		});
 	});
@@ -112,7 +112,7 @@ describe('CalendarStore', () => {
 
 		const startTime = new Date('2026-03-29T12:00:00.000Z');
 		const endTime = new Date('2026-03-29T13:00:00.000Z');
-		const event = new CalendarEvent('Updated Event', 'Updated description', '#4c6b1f', false, startTime, endTime);
+		const event = new CalendarEvent('Updated Event', 'Updated description', '#5cd0d8', 'New place', false, startTime, endTime);
 
 		const calendarStore = useCalendarStore();
 		await calendarStore.editCalendarEvent('!room:example', '$event123', event);
@@ -144,8 +144,8 @@ describe('CalendarStore', () => {
 			isAllDay: false,
 			startTime,
 			endTime,
-			location: '',
-			room: '',
+			location: '#5cd0d8',
+			room: 'New place',
 		});
 	});
 

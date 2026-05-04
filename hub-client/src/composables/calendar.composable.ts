@@ -28,6 +28,7 @@ import { Room } from '@hub-client/stores/rooms';
  * @todo Implement checking if the `roomId` is legitimate.
  */
 function validateEvent(calEvent: CalendarEvent): CalendarEvent {
+<<<<<<< linking-funcs
 	// Tolerate non-string inputs for robustness — TypeScript will usually
 	// catch these, but the UI wires through user-supplied values and we want
 	// a clear error rather than a cryptic "undefined is not a function".
@@ -38,13 +39,23 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	const title = rawTitle.trim();
 	const description = rawDescription.trim();
 	const color = rawColor.trim();
+=======
+	const title = calEvent.title.trim();
+	const description = calEvent.description.trim();
+	const color = calEvent.color.trim();
+	const location = calEvent.location.trim();
+>>>>>>> matrix-composable-sendevent
 
 	if (!title) {
 		throw new Error('Calendar event title is required');
 	}
 
 	// Checks if color is a valid hexadecimal (e.g. #6789ab)
+<<<<<<< linking-funcs
 	if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+=======
+	if (!/#[0-9A-Fa-f]{6}/.test(color)) {
+>>>>>>> matrix-composable-sendevent
 		throw new Error('Color field is not a valid hexadecimal color string.');
 	}
 
@@ -59,6 +70,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event end time must be after start time');
 	}
 
+<<<<<<< linking-funcs
 	// Preserve `id`, `location`, and `room` — they're metadata that came in
 	// from the dialog / existing event, and dropping them silently breaks
 	// edit flows that need to hand the same object back to the store.
@@ -73,6 +85,9 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		typeof calEvent.location === 'string' ? calEvent.location.trim() : calEvent.location,
 		typeof calEvent.room === 'string' ? calEvent.room.trim() : calEvent.room,
 	);
+=======
+	return new CalendarEvent(title, description, color, location, calEvent.isAllDay, start, end);
+>>>>>>> matrix-composable-sendevent
 }
 
 /**
@@ -91,9 +106,9 @@ export function useCalendarEvents() {
 	 * @param calEvent
 	 *
 	 * @example
-	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent`.
+	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent` interface.
 	 *  createCalendarEvent("a1b2c3", new CalendarEvent(
-	 *       "cool title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)
+	 *       "cool title", "desc", "#005a9e", new Date(), new Date(Date.now() + 60 * 60 * 1000)
 	 *  ));
 	 */
 	async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
