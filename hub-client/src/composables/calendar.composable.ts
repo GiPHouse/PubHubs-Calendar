@@ -6,6 +6,7 @@
 import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 import { useCalendarStore } from '@hub-client/stores/calendar.stores';
+import { Room } from '@hub-client/stores/rooms';
 
 /* This file is the composable for calendar events.
  * This means that this file should handle use-case and UI-related logic.
@@ -114,8 +115,8 @@ export function useCalendarEvents() {
 		await calendar_store.editCalendarEvent(roomId, eventId, normalisedEvent);
 	}
 
-	async function getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
-		return await calendar_store.getCalendarEvents(roomId);
+	async function getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
+		return await calendar_store.getCalendarEvents(room);
 	}
 
 	return {

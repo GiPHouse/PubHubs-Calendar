@@ -1,4 +1,6 @@
 // Packages
+import { useRooms } from './rooms';
+import { Room } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
 // Composables
@@ -87,16 +89,7 @@ const useCalendarStore = defineStore('calendar', {
 		 * @param roomId Room to fetch events for.
 		 * @returns List of calendar events, formatted to `CalendarEvent`
 		 */
-		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
-			console.log('>> store#getCalendarEvents');
-
-			// TODO (IMPORTANT!): For whatever reason, we hang here.
-			const pubhubs_store = usePubhubsStore();
-			const room = pubhubs_store.getRoom(roomId);
-			if (!room) {
-				throw new Error(`Room "${roomId}" not found!`);
-			}
-
+		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
 			const events = room.getLiveTimeline().getEvents();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
