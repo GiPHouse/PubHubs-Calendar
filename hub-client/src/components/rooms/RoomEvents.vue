@@ -46,8 +46,8 @@
 </template>
 
 <script setup>
-	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
-	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
+	import EventCreationDialog from '../forms/EventCreationDialog.vue';
+	import EventDetailsDialog from '../forms/EventDetailsDialog.vue';
 	import Icon from '../elements/Icon.vue';
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';

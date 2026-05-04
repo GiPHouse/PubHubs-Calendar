@@ -46,8 +46,7 @@
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
-	import { useSettings } from '@hub-client/stores/settings';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
@@ -490,4 +489,5 @@
 		previousMonth,
 		changeView,
 	});
+	
 </script>
