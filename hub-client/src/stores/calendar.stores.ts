@@ -41,6 +41,7 @@ const useCalendarStore = defineStore('calendar', {
 				title: calEvent.title,
 				description: calEvent.description,
 				color: calEvent.color,
+				location: calEvent.location,
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
@@ -91,6 +92,10 @@ const useCalendarStore = defineStore('calendar', {
 		 */
 		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
 			console.log('>> store#getCalendarEvents');
+
+			if (!room) {
+				throw new Error('Room not found');
+			}
 
 			const events = room.getLiveTimeline().getEvents();
 			// The `.filter` might be redundent?
