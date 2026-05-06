@@ -46,8 +46,8 @@ const useCalendarStore = defineStore('calendar', {
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 			};
-			// @ts-ignore similar implementations in pubhubs ignore this error
-			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+
+			await sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
 		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
@@ -93,6 +93,7 @@ const useCalendarStore = defineStore('calendar', {
 		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
 			console.log('>> store#getCalendarEvents');
 
+			// Is it possible to use room from Room.ts? This method doesn't seem to work in practice but is implemented in Room.ts ln 547
 			const events = room.getLiveTimeline().getEvents();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
@@ -104,12 +105,11 @@ const useCalendarStore = defineStore('calendar', {
 						content.title,
 						content.description,
 						content.color,
-						content.location,
 						content.isAllDay,
 						new Date(content.startTime),
 						new Date(content.endTime),
-						'', // id???
 						content.location,
+						'', // id???
 						// (!) calendarEvent only accepts 9 arguments not 10, someone should look at this
 						//content.room,
 					);

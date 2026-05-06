@@ -33,21 +33,15 @@
 	//components
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
-
 	//composables
-	import {useCalendarEvents} from '../composables/calendar.composable.ts';
-
+	import { useCalendarEvents } from '../composables/calendar.composable.ts';
 	//fullCalendar
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
-	
-	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
-	import { useCalendarEvents } from '@hub-client/composables/calendar.composable';
 
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
@@ -59,8 +53,6 @@
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
-
-	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent } = useCalendarEvents();
 
 	// Event creation
 	const showEventCreationDialog = ref(false);
@@ -311,8 +303,8 @@
 
 		fixedWeekCount: false,
 
-		slotMinTime: "00:00:00",
-		slotMaxTime: "24:00:00",
+		slotMinTime: '00:00:00',
+		slotMaxTime: '24:00:00',
 		expandRows: true,
 
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
@@ -388,8 +380,8 @@
 		eventColor: '#3788d8',
 
 		// Responsive settings
-		height: "auto",
-		contentHeight: "auto",
+		height: 'auto',
+		contentHeight: 'auto',
 
 		// Locale (adjust based on your needs)
 		locales: [getCalendarLocale()], // Add this
@@ -441,14 +433,7 @@
 	function addEvent(newEvent) {
 		const textColor = getContrastTextColor(newEvent.color);
 
-		const calendarEvent = new CalendarEvent(
-			newEvent.title,
-			newEvent.description,
-			newEvent.start,
-        	newEvent.allDay
-            ? addOneDay(newEvent.end)
-            : newEvent.end
-		);
+		const calendarEvent = new CalendarEvent(newEvent.title, newEvent.description, newEvent.start, newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end);
 
 		createCalendarEvent(newEvent.id, calendarEvent);
 	}
