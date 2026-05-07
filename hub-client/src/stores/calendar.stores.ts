@@ -71,6 +71,7 @@ const useCalendarStore = defineStore('calendar', {
 
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
+			await this.delCalendarEvent(roomId, eventId);
 		},
 
 		/**
@@ -104,17 +105,8 @@ const useCalendarStore = defineStore('calendar', {
 				.map((e) => {
 					console.log(`>> Found an event: ${e}`);
 					const content = e.getContent() as TCalendarEventMessageContent;
-					return new CalendarEvent(
-						content.title,
-						content.description,
-						content.color,
-						content.isAllDay,
-						new Date(content.startTime),
-						new Date(content.endTime),
-						'', // id???
-						content.location,
-						content.room,
-					);
+					const eventId = e.getId?.() ?? e.event?.event_id ?? undefined;
+					return new CalendarEvent(content.title, content.description, content.color, content.isAllDay, new Date(content.startTime), new Date(content.endTime), eventId, content.location, content.room);
 				});
 
 			// In the previous iteration of this method, we also sorted and applied

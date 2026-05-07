@@ -48,6 +48,41 @@ describe("Calendar Store", () => {
 		});
 	});
 
+	test('editCalendarEvent sends modify event and deletes the original calendar event', async () => {
+		const sendEventMock = vi.fn(async () => ({}));
+		const matrixServiceStub = initMatrixService({} as any);
+		(matrixServiceStub as any).sendEvent = sendEventMock;
+
+		const pubhubs = usePubhubsStore() as any;
+		const deleteMessageMock = vi.spyOn(pubhubs, 'deleteMessage').mockResolvedValue(undefined as any);
+
+		const calendarStore = useCalendarStore();
+		const startTime = new Date('2026-03-29T12:00:00.000Z');
+		const endTime = new Date('2026-03-29T13:00:00.000Z');
+		const event = new CalendarEvent('Some Event', 'Some cool description', '#3788d8', false, startTime, endTime);
+
+		await calendarStore.editCalendarEvent('!room:example', '$event123', event);
+
+		expect(sendEventMock).toHaveBeenCalledTimes(1);
+		expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalenderEventModify, {
+			msgtype: PubHubsMgType.CalenderEventEdit,
+			body: 'Some Event',
+			title: 'Some Event',
+			description: 'Some cool description',
+			color: '#3788d8',
+			location: '',
+			isAllDay: false,
+			startTime,
+			endTime,
+			'm.relates_to': {
+				event_id: '$event123',
+				rel_type: PubHubsMgType.CalenderEventEdit,
+			},
+		});
+		expect(deleteMessageMock).toHaveBeenCalledTimes(1);
+		expect(deleteMessageMock).toHaveBeenCalledWith('!room:example', '$event123');
+	});
+
 	test('delCalendarEvent redacts the event via the pubhubs store', async () => {
 		const pubhubs = usePubhubsStore() as any;
 		const delMessageMock = vi.spyOn(pubhubs, 'deleteMessage').mockResolvedValue(undefined as any);
@@ -63,6 +98,7 @@ describe("Calendar Store", () => {
 		const pubhubs = usePubhubsStore() as any;
 		const mockCalendarEvent = {
 			getType: () => PubHubsMgType.CalendarEvent,
+			getId: () => '$event123',
 			getContent: () => ({
 				msgtype: PubHubsMgType.CalendarEvent,
 				title: 'Some Event',
@@ -93,6 +129,7 @@ describe("Calendar Store", () => {
 				description: 'Some cool description',
 				color: '#4c6b1f',
 				isAllDay: false,
+				id: '$event123',
 			}),
 		);
 		expect(events[0].startTime.toISOString()).toBe('2026-03-29T12:00:00.000Z');
