@@ -115,10 +115,18 @@
 	}
 
 	async function loadCalendarEvents() {
-		const calendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
-		if (!calendarRoom) {
-			console.error('[Calendar] No calendar room exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
+		// This method finds the calendar room interface
+		const calendarRoomData = rooms.roomList.find((room) => room.name === 'Calendar Room');
+		if (!calendarRoomData) {
+			console.error('[Calendar] No calendar room data exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
 			return;
+		}
+		// We use the roomId from the room interface to find the Room class.
+		// Note that this is PubHub's Room model, NOT matrix-sdk's Room object!
+		const calendarRoom = rooms.rooms[calendarRoomData.roomId];
+		console.log('[Calendar] No. of Rooms:' + Object.keys(rooms.rooms).length);
+		if (!calendarRoom) {
+			console.error('[Calendar] Calendar room does not exist!');
 		}
 
 		const events = await getCalendarEvents(calendarRoom);
@@ -131,7 +139,8 @@
 		}
 
 		try {
-			const events = await getCalendarEvents(currentRoomId.value);
+			// const events = await getCalendarEvents(currentRoomId.value);
+			const events = await getCalendarEvents(calendarRoom);
 			calendarEvents.value = events.map(mapCalendarEventToFullCalendarEvent);
 		} catch (err) {
 			console.error('Failed to load calendar events', err);

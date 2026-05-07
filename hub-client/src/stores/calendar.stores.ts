@@ -1,6 +1,5 @@
 // Packages
 import { useRooms } from './rooms';
-import { Room } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
 // Services
@@ -11,8 +10,9 @@ import { useMatrix } from '@hub-client/composables/matrix.composable';
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
-// Models
 import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
+// Models
+import Room from '@hub-client/models/rooms/Room';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -93,8 +93,7 @@ const useCalendarStore = defineStore('calendar', {
 		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
 			console.log('>> store#getCalendarEvents');
 
-			// Is it possible to use room from Room.ts? This method doesn't seem to work in practice but is implemented in Room.ts ln 547
-			const events = room.getLiveTimeline().getEvents();
+			const events = room.getLiveTimelineEvents();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
 				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
