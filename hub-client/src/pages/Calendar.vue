@@ -116,6 +116,8 @@
 
 	async function loadCalendarEvents() {
 		// This method finds the calendar room interface
+		await rooms.waitForInitialRoomsLoaded();
+
 		const calendarRoomData = rooms.roomList.find((room) => room.name === 'Calendar Room');
 		if (!calendarRoomData) {
 			console.error('[Calendar] No calendar room data exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
@@ -123,6 +125,9 @@
 		}
 		// We use the roomId from the room interface to find the Room class.
 		// Note that this is PubHub's Room model, NOT matrix-sdk's Room object!
+		if (!rooms.rooms[calendarRoomData.roomId]) {
+			await rooms.joinRoomListRoom(calendarRoomData.roomId);
+		}
 		const calendarRoom = rooms.rooms[calendarRoomData.roomId];
 		console.log('[Calendar] No. of Rooms:' + Object.keys(rooms.rooms).length);
 		if (!calendarRoom) {
@@ -526,12 +531,12 @@
 
 		try {
 			if (selectedEventForEdit.value) {
-				await updateCalendarEvent(roomId.value, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
+				await updateCalendarEvent(roomId, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
 				selectedEventForEdit.value = null;
 				console.log('>> Edited event with ID:', selectedEventForEdit.value.id);
 			} else {
-				await createCalendarEvent(roomId.value, createCalendarEventObject(newEvent));
-				console.log('>> Created new event in room ID:', roomId.value);
+				await createCalendarEvent(roomId, createCalendarEventObject(newEvent));
+				console.log('>> Created new event in room ID:', roomId);
 			}
 			await loadCalendarEvents();
 		} catch (err) {
