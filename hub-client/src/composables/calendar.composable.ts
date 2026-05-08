@@ -31,14 +31,15 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	const title = calEvent.title.trim();
 	const description = calEvent.description.trim();
 	const color = calEvent.color.trim();
-	const location = calEvent.location.trim();
+	const location = calEvent.location?.trim();
 
 	if (!title) {
 		throw new Error('Calendar event title is required');
 	}
 
 	// Checks if color is a valid hexadecimal (e.g. #6789ab)
-	if (/#[0-9A-Fa-f]{6}/.test(color)) {
+	console.log(color);
+	if (!/#[0-9A-Fa-f]{6}/.test(color)) {
 		throw new Error('Color field is not a valid hexadecimal color string.');
 	}
 
@@ -53,7 +54,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event end time must be after start time');
 	}
 
-	return new CalendarEvent(title, description, color, calEvent.isAllDay, start, end, '', location);
+	return new CalendarEvent(title, description, color, calEvent.isAllDay, start, end, calEvent.id, location, calEvent.room);
 }
 
 /**
