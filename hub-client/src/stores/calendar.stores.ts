@@ -1,16 +1,18 @@
 // Packages
+import { useRooms } from './rooms';
 import { defineStore } from 'pinia';
+
+// Services
+import { useMatrix } from '@hub-client/composables/matrix.composable';
 
 // Composables
 
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
-// Models
 import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
-
-// Services
-import { useMatrixService } from '@hub-client/services/matrix.service';
+// Models
+import Room from '@hub-client/models/rooms/Room';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -31,7 +33,7 @@ const useCalendarStore = defineStore('calendar', {
 		 * @param calEvent
 		 */
 		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
-			const service = useMatrixService();
+			const { sendEvent } = useMatrix();
 
 			const content: TCalendarEventMessageContent = {
 				msgtype: PubHubsMgType.CalendarEvent,
@@ -44,11 +46,12 @@ const useCalendarStore = defineStore('calendar', {
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 			};
-			// @ts-ignore similar implementations in pubhubs ignore this error
-			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+
+			await sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
 		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
+			// (!) useMatrixService is not defined/imported, we should take a look at this
 			const service = useMatrixService();
 
 			const content: TCalendarEventMessageContent = {
@@ -57,7 +60,7 @@ const useCalendarStore = defineStore('calendar', {
 				title: calEvent.title,
 				description: calEvent.description,
 				color: calEvent.color,
-				location: calEvent.location,
+				location: calEvent.location ?? '',
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
@@ -73,36 +76,52 @@ const useCalendarStore = defineStore('calendar', {
 
 		/**
 		 * Deletes a calendar event.
-		 * Effectively an alias for deleteMessage, since I expect it to work the same.
 		 * @param roomId
 		 * @param eventId
 		 */
 		async delCalendarEvent(roomId: string, eventId: string): Promise<void> {
-			const pubhubs_store = usePubhubsStore();
-			await pubhubs_store.deleteMessage(roomId, eventId);
+			const { redactEvent } = useMatrix();
+			await redactEvent(roomId, eventId);
 		},
 
 		/**
-		 * Get all calendar events for a given room.
-		 *
-		 * @param roomId
-		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
+		 * Get all calendar events in a room. This also checks for replacements, thus
+		 * editing events if they still have pending changes.
+		 * @param roomId Room to fetch events for.
+		 * @returns List of calendar events, formatted to `CalendarEvent`
 		 */
-		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
-			const pubhubs_store = usePubhubsStore();
+		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
+			console.log('>> store#getCalendarEvents');
 
-			const room = pubhubs_store.getRoom(roomId);
-			if (!room) {
-				throw new Error('Room not found');
-			}
+			if (!useRooms().rooms[room.roomId]) throw 'Room not found';
 
-			const events = room.getLiveTimeline().getEvents();
+			const events = room.getLiveTimelineEvents();
+			// The `.filter` might be redundent?
 			const calendarEvents = events
 				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
 				.map((event) => {
+					console.log(`>> Found an event: ${event}`);
 					const content = event.getContent() as TCalendarEventMessageContent;
-					return new CalendarEvent(content.title, content.description, content.color, content.location, content.isAllDay, new Date(content.startTime), new Date(content.endTime));
+					return new CalendarEvent(
+						content.title,
+						content.description,
+						content.color,
+						content.isAllDay,
+						new Date(content.startTime),
+						new Date(content.endTime),
+						content.location,
+						'', // id???
+						// (!) calendarEvent only accepts 9 arguments not 10, someone should look at this
+						//content.room,
+					);
 				});
+
+			// In the previous iteration of this method, we also sorted and applied
+			// pending edits and what not... I've removed thsoe for MVP's sake. The
+			// function is already broken as-is for now anyway...
+
+			// In the future, if need be or preferred, we can add i.e. a sort statement
+			// to sort the events by their creation date or whatever!
 
 			return calendarEvents;
 		},

@@ -6,6 +6,7 @@
 import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 import { useCalendarStore } from '@hub-client/stores/calendar.stores';
+import { Room } from '@hub-client/stores/rooms';
 
 /* This file is the composable for calendar events.
  * This means that this file should handle use-case and UI-related logic.
@@ -30,16 +31,13 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	const title = calEvent.title.trim();
 	const description = calEvent.description.trim();
 	const color = calEvent.color.trim();
-	const location = calEvent.location.trim();
+	const location = calEvent.location?.trim();
 
-	if (!title) {
-		throw new Error('Calendar event title is required');
+	// Checks if color is a valid hexadecimal (e.g. #6789ab)
+	console.log(color);
+	if (!/#[0-9A-Fa-f]{6}/.test(color)) {
+		throw new Error('Color field is not a valid hexadecimal color string.');
 	}
-
-    // Checks if color is a valid hexadecimal (e.g. #6789ab)
-    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
-        throw new Error('Color field is not a valid hexadecimal color string.');
-    }
 
 	const start = new Date(calEvent.startTime);
 	const end = new Date(calEvent.endTime);
@@ -52,7 +50,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event end time must be after start time');
 	}
 
-	return new CalendarEvent(title, description, color, location, calEvent.isAllDay, start, end);
+	return new CalendarEvent(title, description, color, calEvent.isAllDay, start, end, calEvent.id, location, calEvent.room);
 }
 
 /**
@@ -71,9 +69,9 @@ export function useCalendarEvents() {
 	 * @param calEvent
 	 *
 	 * @example
-	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent`.
+	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent` interface.
 	 *  createCalendarEvent("a1b2c3", new CalendarEvent(
-	 *       "cool title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)
+	 *       "cool title", "desc", "#005a9e", new Date(), new Date(Date.now() + 60 * 60 * 1000)
 	 *  ));
 	 */
 	async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
@@ -95,9 +93,14 @@ export function useCalendarEvents() {
 		await calendar_store.editCalendarEvent(roomId, eventId, normalisedEvent);
 	}
 
+	async function getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
+		return await calendar_store.getCalendarEvents(room);
+	}
+
 	return {
 		createCalendarEvent,
 		removeCalendarEvent,
 		updateCalendarEvent,
+		getCalendarEvents,
 	};
 }
