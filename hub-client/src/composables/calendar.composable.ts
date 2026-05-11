@@ -33,10 +33,6 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	const color = calEvent.color.trim();
 	const location = calEvent.location?.trim();
 
-	if (!title) {
-		throw new Error('Calendar event title is required');
-	}
-
 	// Checks if color is a valid hexadecimal (e.g. #6789ab)
 	console.log(color);
 	if (!/#[0-9A-Fa-f]{6}/.test(color)) {
