@@ -42,11 +42,14 @@
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
+
+	//stores
+	import { useRooms } from '@hub-client/stores/rooms';
 	
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
@@ -337,8 +340,10 @@
 		return `${year}-${month}-${day}`;
 	}
 
-	function addEvent(newEvent) {
+	async function addEvent(newEvent) {
 		const textColor = getContrastTextColor(newEvent.color);
+		const rooms = useRooms();
+		const roomId = rooms.currentRoom?.roomId
 
 		const calendarEvent = new CalendarEvent(
 			newEvent.title,
@@ -352,7 +357,7 @@
 				: new Date(newEvent.end)
 		);
 
-		createCalendarEvent(newEvent.id, calendarEvent);
+		await createCalendarEvent(newEvent.id, calendarEvent);
 	}
 
 	function handleDateClick(info) {
@@ -408,7 +413,7 @@
 		showEventDetailsDialog.value = true;
 	}
 
-	function handleAddEvent(newEvent) {
+	async function handleAddEvent(newEvent) {
 		if (selectedEventForEdit.value) {
 			// Update existing event
 			const index = calendarEvents.value.findIndex((e) => e.id === selectedEventForEdit.value.id);
@@ -431,7 +436,7 @@
 			selectedEventForEdit.value = null;
 		} else {
 			// Create new event
-			addEvent(newEvent);
+			await addEvent(newEvent);
 		}
 		showEventCreationDialog.value = false;
 	}
