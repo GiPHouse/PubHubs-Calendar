@@ -9,11 +9,32 @@
 				{{ t('calendar.noEvents') || 'No events' }}
 			</p>
 
+            <button
+				v-if="!isMobile" class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer" 
+				@click="openCreateDialog"
+				aria-label="Create event"
+				>
+				<Icon type="plus" size="sm" />
+			</button>
+
+			<EventCreationDialog
+				v-if="showEventCreationDialog"
+				:start="selectedRange.startStr"
+				:end="selectedRange.endStr"
+				:allDay="selectedRange.allDay"
+				:event="selectedEventForEdit"
+				@close="
+					showEventCreationDialog = false;
+					selectedEventForEdit = null;
+				"
+				@submit="handleAddEvent"
+			/>
+
 			<!-- Date groups -->
 			<div v-for="group in groupedEvents" :key="group.dateKey" class="mb-4">
 				<!-- Date header -->
 				<div class="text-on-surface-dim mb-2 flex items-center gap-2">
-					<span class="flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold" :class="group.isToday ? 'bg-accent-blue text-on-button-blue' : 'text-on-surface'">
+					<span class="flex h-7 w-6 items-center justify-center rounded-full text-sm font-semibold" :class="group.isToday ? 'bg-accent-blue text-on-button-blue' : 'text-on-surface'">
 						{{ group.dayNumber }}
 					</span>
 					<span class="text-sm font-medium capitalize">{{ group.dayLabel }}</span>
@@ -25,7 +46,7 @@
 					:key="event.id"
 					class="mb-2 flex cursor-pointer items-center gap-3 rounded-lg p-3 transition hover:opacity-80"
 					:style="{ backgroundColor: event.backgroundColor + '22', borderLeft: `3px solid ${event.backgroundColor}` }"
-					@click="emit('eventSelected', event)"
+					@click="openEventDetails(event)"
 				>
 					<!-- Color dot -->
 					<span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" :style="{ backgroundColor: event.backgroundColor }" />
@@ -43,11 +64,12 @@
 			</div>
 		</div>
 	</div>
+    <EventDetailsDialog v-if="showEventDetailsDialog && selectedEvent" :event="selectedEvent" :can-edit="true" @close="showEventDetailsDialog = false" @edit="handleEditEvent" @delete="handleDeleteEvent" />
 </template>
 
 <script setup>
-	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
-	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
+	import EventCreationDialog from '../forms/EventCreationDialog.vue';
+	import EventDetailsDialog from '../forms/EventDetailsDialog.vue';
 	import Icon from '../elements/Icon.vue';
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -61,6 +83,15 @@
 
 	// Emits
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
+
+    // Event creation
+	const showEventCreationDialog = ref(false);
+	const selectedRange = ref({ startStr: '', endStr: '', allDay: false });
+
+	const showEventDetailsDialog = ref(false);
+	const selectedEventForEdit = ref(null);
+	const selectedEvent = ref(null);
+
 
 	// Calendar events data
 	const calendarEvents = ref([
@@ -138,6 +169,101 @@
 		},
 	]);
 
+    
+	function addOneDay(dateStr) {
+		const d = new Date(dateStr);
+		d.setDate(d.getDate() + 1);
+
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const day = String(d.getDate()).padStart(2, '0');
+
+		return `${year}-${month}-${day}`;
+	}
+
+	function addEvent(newEvent) {
+		// remove id once the backend returns a real one
+		const tempId = `local-${Date.now()}`;
+
+		calendarEvents.value.push({
+			id: tempId,
+			title: newEvent.title,
+			start: newEvent.start,
+			end: newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end,
+			allDay: newEvent.allDay,
+			backgroundColor: newEvent.color,
+			borderColor: newEvent.color,
+			extendedProps: {
+				location: newEvent.location,
+				room: newEvent.room,
+				description: newEvent.description,
+			},
+		});
+	}
+
+	function handleAddEvent(newEvent) {
+		if (selectedEventForEdit.value) {
+			// Update existing event
+			const index = calendarEvents.value.findIndex((e) => e.id === selectedEventForEdit.value.id);
+			if (index !== -1) {
+				calendarEvents.value[index] = {
+					...calendarEvents.value[index],
+					title: newEvent.title,
+					start: newEvent.start,
+					end: newEvent.end,
+					allDay: newEvent.allDay,
+					backgroundColor: newEvent.color,
+					borderColor: newEvent.color,
+					extendedProps: {
+						location: newEvent.location,
+						room: newEvent.room,
+						description: newEvent.description,
+					},
+				};
+			}
+			selectedEventForEdit.value = null;
+		} else {
+			// Create new event
+			addEvent(newEvent);
+		}
+		showEventCreationDialog.value = false;
+	}
+
+	function openEventDetails(event) {
+		selectedEvent.value = event;
+		showEventDetailsDialog.value = true;
+	}
+
+	function handleEditEvent(event) {
+		showEventDetailsDialog.value = false;
+		selectedEventForEdit.value = event;
+		selectedRange.value = {
+			startStr: event.start instanceof Date ? event.start.toISOString() : event.start,
+			endStr: event.end instanceof Date ? event.end.toISOString() : (event.end ?? event.start),
+			allDay: event.allDay,
+		};
+		showEventCreationDialog.value = true;
+	}
+
+	function handleDeleteEvent(eventId) {
+		calendarEvents.value = calendarEvents.value.filter((e) => e.id !== eventId);
+		showEventDetailsDialog.value = false;
+	}
+
+	function openCreateDialog() {
+		selectedEventForEdit.value = null;
+		const today = new Date();
+		today.setHours(12, 0, 0, 0);
+		const todayEnd = new Date(today);
+		todayEnd.setMinutes(30);
+		selectedRange.value = {
+			startStr: today.toISOString(),
+			endStr: todayEnd.toISOString(),
+			allDay: false,
+		};
+		showEventCreationDialog.value = true;
+	}
+
 	function formatTime(date) {
 		if (!date) return '';
 		const d = date instanceof Date ? date : new Date(date);
@@ -169,7 +295,7 @@
 				groups[key] = {
 					dateKey: key,
 					dayNumber: d.getDate(),
-					dayLabel: d.toLocaleDateString(locale.value, { weekday: 'long', month: 'long', day: 'numeric' }),
+					dayLabel: d.toLocaleDateString(locale.value, { weekday: 'long', month: 'long'}),
 					isToday: dayDate.getTime() === today.getTime(),
 					events: [],
 				};
@@ -179,6 +305,22 @@
 
 		return Object.values(groups);
 	});
+
+    	function handleEventClick(info) {
+		console.log('Event clicked:', info.event);
+
+		selectedEvent.value = {
+			id: info.event.id,
+			title: info.event.title,
+			start: info.event.start,
+			end: info.event.end,
+			allDay: info.event.allDay,
+			extendedProps: info.event.extendedProps,
+		};
+
+		showEventDetailsDialog.value = true;
+	}
+
 
 	function clearCalendar() {
 		searchTerm.value = '';

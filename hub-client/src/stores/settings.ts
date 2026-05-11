@@ -129,7 +129,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
-			events: false,
+			events: true,
 			phCard: false,
 		},
 		local: {
@@ -144,7 +144,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
-			events: false,
+			events: true,
 			phCard: true,
 		},
 	},

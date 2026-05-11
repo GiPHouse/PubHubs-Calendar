@@ -444,12 +444,23 @@
 		return `${year}-${month}-${day}`;
 	}
 
-	function addEvent(newEvent) {
+	async function addEvent(newEvent) {
 		const textColor = getContrastTextColor(newEvent.color);
+		const rooms = useRooms();
+		const roomId = rooms.currentRoom?.roomId;
+
+		let startDate = new Date(newEvent.start);
+		let endDate = new Date(newEvent.end);
+
+		if (newEvent.allDay) {
+			startDate.setHours(0,0,0,0);
+			endDate = new Date(newEvent.end);
+			endDate.setHours(0,0,0,0)
+		}
 
 		const calendarEvent = new CalendarEvent(newEvent.title, newEvent.description, newEvent.start, newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end);
 
-		createCalendarEvent(newEvent.id, calendarEvent);
+		await createCalendarEvent(newEvent.id, calendarEvent);
 	}
 
 	function handleDateClick(info) {
@@ -459,10 +470,12 @@
 
 		if (isAllDayClick) {
 			const date = new Date(info.date);
+			const nextDate = new Date(date);
+			nextDay.setDate(date.getDate() + 1);
 
 			selectedRange.value = {
 				startStr: date.toISOString(),
-				endStr: date.toISOString(), // SAME DAY
+				endStr: date.toISOString(),
 				allDay: true,
 			};
 		} else {
@@ -639,4 +652,5 @@
 		previousMonth,
 		changeView,
 	});
+	
 </script>

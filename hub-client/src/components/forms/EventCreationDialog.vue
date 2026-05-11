@@ -125,12 +125,15 @@
 <script setup lang="ts">
 	import { computed, reactive, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { RoomType } from '@hub-client/modules/rooms/TBaseRoom';
 
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const { t, locale } = useI18n();
+
+	const roomsStore = useRooms();
 
 	const showRoomDropdown = ref(false);
 
@@ -140,7 +143,12 @@
 
 	const settings = useSettings();
 
-	const rooms = ['Room A', 'Room B', 'Room C'];
+	const rooms = computed(() =>
+		roomsStore.loadedPublicRooms
+		.filter(r => r.name && r.name.trim() !== '')
+		.map(r => r.name)
+	);
+
 
 	const colors = [
 		{ class: 'accent-red', value: '#ae2e24' },
@@ -285,7 +293,6 @@
 		startStr = startStr.replace(/\b\w/g, (l) => l.toUpperCase());
 		endStr = endStr.replace(/\b\w/g, (l) => l.toUpperCase());
 
-		// ALL DAY EVENT
 		if (form.allDay) {
 			if (startStr === endStr) return startStr;
 			return `${startStr} – ${endStr}`;
