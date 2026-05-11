@@ -293,7 +293,6 @@
 		startStr = startStr.replace(/\b\w/g, (l) => l.toUpperCase());
 		endStr = endStr.replace(/\b\w/g, (l) => l.toUpperCase());
 
-		// ALL DAY EVENT
 		if (form.allDay) {
 			if (startStr === endStr) return startStr;
 			return `${startStr} – ${endStr}`;
