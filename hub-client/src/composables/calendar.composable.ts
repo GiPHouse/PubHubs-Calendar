@@ -28,23 +28,16 @@ import { Room } from '@hub-client/stores/rooms';
  * @todo Implement checking if the `roomId` is legitimate.
  */
 function validateEvent(calEvent: CalendarEvent): CalendarEvent {
-	// Tolerate non-string inputs for robustness — TypeScript will usually
-	// catch these, but the UI wires through user-supplied values and we want
-	// a clear error rather than a cryptic "undefined is not a function".
-	const rawTitle = typeof calEvent.title === 'string' ? calEvent.title : '';
-	const rawDescription = typeof calEvent.description === 'string' ? calEvent.description : '';
-	const rawColor = typeof calEvent.color === 'string' ? calEvent.color : '';
+	if (calEvent.title == '') {
+		throw new Error('Calendar event must have a non-empty title!');
+	}
 
-	const title = rawTitle.trim();
-	const description = rawDescription.trim();
-	const color = rawColor.trim();
-
-	if (!title) {
-		throw new Error('Calendar event title is required');
+	if (calEvent.color == '') {
+		throw new Error('Calendar event must have a non-empty color string!');
 	}
 
 	// Checks if color is a valid hexadecimal (e.g. #6789ab)
-	if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+	if (!/^#[0-9A-Fa-f]{6}$/.test(calEvent.color)) {
 		throw new Error('Color field is not a valid hexadecimal color string.');
 	}
 
@@ -62,17 +55,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	// Preserve `id`, `location`, and `room` — they're metadata that came in
 	// from the dialog / existing event, and dropping them silently breaks
 	// edit flows that need to hand the same object back to the store.
-	return new CalendarEvent(
-		title,
-		description,
-		color,
-		calEvent.isAllDay,
-		start,
-		end,
-		calEvent.id,
-		typeof calEvent.location === 'string' ? calEvent.location.trim() : calEvent.location,
-		typeof calEvent.room === 'string' ? calEvent.room.trim() : calEvent.room,
-	);
+	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
 }
 
 /**
