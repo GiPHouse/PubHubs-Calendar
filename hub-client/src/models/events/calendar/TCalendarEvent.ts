@@ -10,26 +10,32 @@ class CalendarEvent {
 	startTime: Date;
 	endTime: Date;
 	isAllDay: boolean;
-	location: string;
+	id?: string;
+	location?: string;
+	room?: string;
 
 	constructor(
 		// some default values are provided
-		title: string = 'Untitled',
+		title: string = 'New Calendar Event',
 		description: string = '',
-		color: string,
-		location: string,
+		color: string = '#3788d8',
 		isAllDay: boolean = false,
 		startTime: Date = new Date(), // if not provided, set to now
 		endTime?: Date,
+		id?: string,
+		location?: string,
+		room?: string,
 	) {
 		this.title = title;
 		this.description = description;
 		this.color = color;
-		this.location = location;
 		this.startTime = startTime;
 		// is endTime provided? if not, set to startime + 1h
 		this.endTime = endTime ?? new Date(startTime.getTime() + 60 * 60 * 1000);
 		this.isAllDay = isAllDay;
+		this.id = id;
+		this.location = location;
+		this.room = room;
 	}
 }
 
@@ -42,12 +48,16 @@ interface TCalendarEventMessageContent {
 	title: string;
 	description: string;
 	color: string;
-	location: string;
+	location?: string;
+	room?: string;
 	startTime: Date;
 	endTime: Date;
 	isAllDay: boolean;
-	'm.relates_to'?: undefined;
-	'm.new_content'?: undefined;
+	'm.relates_to'?: {
+		event_id: string;
+		rel_type: PubHubsMgType;
+	};
+	'm.new_content'?: TCalendarEventMessageContent;
 }
 
 export { CalendarEvent, TCalendarEventMessageContent };

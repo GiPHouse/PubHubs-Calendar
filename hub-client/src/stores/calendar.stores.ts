@@ -1,4 +1,6 @@
 // Packages
+import { useRooms } from './rooms';
+import { Room } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
 // Composables
@@ -58,7 +60,7 @@ const useCalendarStore = defineStore('calendar', {
 				title: calEvent.title,
 				description: calEvent.description,
 				color: calEvent.color,
-				location: calEvent.location,
+				location: calEvent.location ?? '',
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
@@ -70,6 +72,7 @@ const useCalendarStore = defineStore('calendar', {
 
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
+			await this.delCalendarEvent(roomId, eventId);
 		},
 
 		/**
@@ -84,26 +87,35 @@ const useCalendarStore = defineStore('calendar', {
 		},
 
 		/**
-		 * Get all calendar events for a given room.
-		 *
-		 * @param roomId
-		 * @todo Implement an alternative that gets the events hub-wide as opposed to room-wide?
+		 * Get all calendar events in a room. This also checks for replacements, thus
+		 * editing events if they still have pending changes.
+		 * @param roomId Room to fetch events for.
+		 * @returns List of calendar events, formatted to `CalendarEvent`
 		 */
-		async getCalendarEvents(roomId: string): Promise<CalendarEvent[]> {
-			const pubhubs_store = usePubhubsStore();
+		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
+			console.log('>> store#getCalendarEvents');
 
-			const room = pubhubs_store.getRoom(roomId);
 			if (!room) {
 				throw new Error('Room not found');
 			}
 
 			const events = room.getLiveTimeline().getEvents();
+			// The `.filter` might be redundent?
 			const calendarEvents = events
-				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
-				.map((event) => {
-					const content = event.getContent() as TCalendarEventMessageContent;
-					return new CalendarEvent(content.title, content.description, content.color, content.location, content.isAllDay, new Date(content.startTime), new Date(content.endTime));
+				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
+				.map((e) => {
+					console.log(`>> Found an event: ${e}`);
+					const content = e.getContent() as TCalendarEventMessageContent;
+					const eventId = e.getId?.() ?? e.event?.event_id ?? undefined;
+					return new CalendarEvent(content.title, content.description, content.color, content.isAllDay, new Date(content.startTime), new Date(content.endTime), eventId, content.location, content.room);
 				});
+
+			// In the previous iteration of this method, we also sorted and applied
+			// pending edits and what not... I've removed thsoe for MVP's sake. The
+			// function is already broken as-is for now anyway...
+
+			// In the future, if need be or preferred, we can add i.e. a sort statement
+			// to sort the events by their creation date or whatever!
 
 			return calendarEvents;
 		},
