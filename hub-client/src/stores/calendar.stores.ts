@@ -95,7 +95,7 @@ const useCalendarStore = defineStore('calendar', {
 
 			if (!useRooms().rooms[room.roomId]) throw 'Room not found';
 
-			const events = room.getLiveTimelineEvents();
+			const events = room.getLiveTimelineEventsCalendar();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
 				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)

@@ -138,14 +138,18 @@
 		// TODO: Use the events from here to map them into the calendar somehow
 		//			-> Probably talk through how this bit below works with the front-end team!
 
-		if (!rooms.currentRoomExists) {
-			calendarEvents.value = [];
-			return;
-		}
+		// I'm not sure if this works, as the events seem to be received regardless
+		// if (!rooms.currentRoomExists) {
+		// 	calendarEvents.value = [];
+		// 	return;
+		// }
 
 		try {
 			// const events = await getCalendarEvents(currentRoomId.value);
 			const events = await getCalendarEvents(calendarRoom);
+			// print events to log
+			console.log('[Calendar.vue] Calendar events array:');
+			console.log(events);
 			calendarEvents.value = events.map(mapCalendarEventToFullCalendarEvent);
 		} catch (err) {
 			console.error('Failed to load calendar events', err);
@@ -453,9 +457,9 @@
 		let endDate = new Date(newEvent.end);
 
 		if (newEvent.allDay) {
-			startDate.setHours(0,0,0,0);
+			startDate.setHours(0, 0, 0, 0);
 			endDate = new Date(newEvent.end);
-			endDate.setHours(0,0,0,0)
+			endDate.setHours(0, 0, 0, 0);
 		}
 
 		const calendarEvent = new CalendarEvent(newEvent.title, newEvent.description, newEvent.start, newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end);
@@ -652,5 +656,4 @@
 		previousMonth,
 		changeView,
 	});
-	
 </script>
