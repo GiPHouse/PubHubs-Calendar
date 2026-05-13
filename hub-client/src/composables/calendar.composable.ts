@@ -27,7 +27,7 @@ import { Room } from '@hub-client/stores/rooms';
  *
  * @todo Implement checking if the `roomId` is legitimate.
  */
-function validateEvent(calEvent: CalendarEvent): CalendarEvent {
+export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	if (calEvent.title == '') {
 		throw new Error('Calendar event must have a non-empty title!');
 	}
@@ -52,9 +52,6 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event end time must be after start time');
 	}
 
-	// Preserve `id`, `location`, and `room` — they're metadata that came in
-	// from the dialog / existing event, and dropping them silently breaks
-	// edit flows that need to hand the same object back to the store.
 	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
 }
 
