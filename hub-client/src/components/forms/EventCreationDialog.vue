@@ -1,21 +1,24 @@
 <template>
 	<!-- Outer wrapper -->
-	<div class="fixed top-0 right-0 z-50 h-full w-full">
+	<div class="fixed top-0 left-0 z-50 h-full w-full">
 		<!-- Whitening veil (EXACT same as Dialog.vue) -->
 		<div class="bg-surface-high absolute h-full w-full opacity-80" />
 
 		<!-- Dialog container -->
-		<div role="dialog" class="text-on-surface relative top-0 left-0 flex h-full w-full items-center justify-center" @click.self="$emit('close')">
-			<div class="flex w-full justify-center">
-				<div class="bg-surface-low shadow-surface-high flex max-h-full w-4/5 flex-col justify-between gap-1 rounded-md p-4 shadow-xl md:m-4 md:w-3/5 lg:w-2/5" @click.stop>
-					<!-- Header -->
+		<div role="dialog" 
+			class="text-on-surface relative top-0 left-0 flex h-full w-full items-center"
+			:class="isMobile ? 'justify-end px-3' : 'justify-center'"
+			@click.self="$emit('close')">
+			<div class="bg-surface-low shadow-surface-high flex max-h-[90dvh] flex-col gap-1 rounded-md p-4 shadow-xl md:m-4"
+				:class="isMobile ? 'w-[calc(47vw+40px)]' : 'w-4/5 md:w-3/5 lg:w-2/5'"
+				@click.stop>
 					<div class="flex w-full items-center justify-between">
 						<div></div>
 						<Icon type="x" size="md" class="cursor-pointer hover:opacity-75" @click="$emit('close')" />
 					</div>
 
 					<!-- Content -->
-					<div class="h-full overflow-y-auto py-1 pr-4 text-left">
+					<div class="flex-1 overflow-y-auto py-1 pr-4 text-left min-h-0">
 						<!-- YOUR FORM -->
 						<form @submit.prevent="submit" class="space-y-4">
 							<!-- Title -->
@@ -116,32 +119,33 @@
 							{{ t('calendar.save') }}
 						</button>
 					</div>
-				</div>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { computed, reactive, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { RoomType } from '@hub-client/modules/rooms/TBaseRoom';
 
 	import { useSettings } from '@hub-client/stores/settings';
+
+	import { computed, reactive, ref, watch } from 'vue';
+
+	const settings = useSettings();
 
 	const { t, locale } = useI18n();
 
 	const roomsStore = useRooms();
+
+	const isMobile = computed(() => settings.isMobileState);
 
 	const showRoomDropdown = ref(false);
 
 	const props = defineProps<{ start: string; end: string; allDay?: boolean; event?: any }>();
 
 	const emit = defineEmits(['submit', 'close']);
-
-	const settings = useSettings();
 
 	const rooms = computed(() =>
 		roomsStore.loadedPublicRooms
@@ -293,6 +297,7 @@
 		startStr = startStr.replace(/\b\w/g, (l) => l.toUpperCase());
 		endStr = endStr.replace(/\b\w/g, (l) => l.toUpperCase());
 
+		// ALL DAY EVENT
 		if (form.allDay) {
 			if (startStr === endStr) return startStr;
 			return `${startStr} – ${endStr}`;

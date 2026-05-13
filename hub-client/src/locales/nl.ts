@@ -562,6 +562,7 @@ const nl = {
 		reopen: 'Heropenen',
 		edit: 'Bewerk',
 		pick: 'Kies',
+		calendar: 'Toevoegen aan kalender',
 		sign: {
 			add_signature: 'Ondertekenen',
 			heading: 'Een bericht ondertekenen',

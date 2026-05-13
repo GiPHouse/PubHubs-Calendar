@@ -10,7 +10,7 @@
 		</template>
 
 		<!-- FullCalendar Component -->
-		<div class="calendar-wrapper p-4 md:p-6">
+		<div class="calendar-wrapper relative p-4 md:p-6" :class="showEventCreationDialog || showEventDetailsDialog ? 'overflow-hidden' : ''">
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
 		<EventCreationDialog
@@ -42,14 +42,15 @@
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
-
+	
 	//stores
 	import { useRooms } from '@hub-client/stores/rooms';
-	
+	import { useCalendarStore } from '@hub-client/stores/calendar.stores'
+	import { useSettings } from '@hub-client/stores/settings';
+
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useSettings } from '@hub-client/stores/settings';
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
@@ -71,14 +72,13 @@
 	const is24Hour = computed(() => settings.timeformat === 'format24');
 
 	// Mobile detection (adjust based on your setup)
-	const isMobile = computed(() => {
-		return window.innerWidth < 768;
-	});
+	const isMobile = computed(() => settings.isMobileState);
 
 	// Calendar ref
 	const fullCalendar = ref(null);
 
 	// Calendar events data
+
 	const calendarEvents = ref([
 		{
 			id: '1',
@@ -257,7 +257,6 @@
 		dayHeaderContent: function (arg) {
 			const viewType = arg.view.type;
 
-			// Month view -- keep default rendering
 			if (viewType === 'dayGridMonth') {
 				const weekdayShort = arg.date.toLocaleDateString(locale.value, { weekday: 'short' });
 				return { html: `<span class="month-day-name">${weekdayShort}</span>` };
@@ -266,9 +265,13 @@
 			const date = arg.date;
 			const weekday = date.toLocaleDateString(locale.value, { weekday: 'short' });
 			const day = date.getDate();
+			const flexDir = (isMobile.value && viewType === 'timeGridWeek') ? 'column' : 'row';
 
 			return {
-				html: `<span>${weekday}</span><span class="fc-day-number">${day}</span>`,
+				html: `<div style="display:flex;flex-direction:${flexDir};align-items:center;gap:2px">
+						<span>${weekday}</span>
+						<span class="fc-day-number">${day}</span>
+					</div>`,
 			};
 		},
 
@@ -379,7 +382,7 @@
 
 			selectedRange.value = {
 				startStr: date.toISOString(),
-				endStr: date.toISOString(),
+				endStr: date.toISOString(), // SAME DAY
 				allDay: true,
 			};
 		} else {
@@ -444,6 +447,7 @@
 			}
 			selectedEventForEdit.value = null;
 		} else {
+			// Create new event
 			await addEvent(newEvent);
 		}
 		showEventCreationDialog.value = false;
@@ -502,5 +506,4 @@
 		previousMonth,
 		changeView,
 	});
-	
 </script>

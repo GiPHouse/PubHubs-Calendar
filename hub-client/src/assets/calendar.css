@@ -178,12 +178,6 @@
    Today highlight (week/day view)
    ========================= */
 
-.calendar-wrapper .fc-timegrid .fc-day-today .fc-col-header-cell-cushion {
-	display: inline-flex;
-	align-items: center;
-	gap: 2px;
-}
-
 .calendar-wrapper .fc-timegrid .fc-day-today .fc-day-number {
 	display: inline-flex;
 	align-items: center;
@@ -195,6 +189,14 @@
 	border-radius: 50%;
 	font-weight: 600;
 	font-size: 13px;
+}
+
+.fc-day-number {
+    min-width: 8px;
+    min-height: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* spacing tweak */
@@ -215,6 +217,10 @@
 	.calendar-wrapper .fc-toolbar-title {
 		font-size: 1rem !important;
 	}
+
+	.calendar-wrapper .fc-daygrid-event-dot + .fc-event-time {
+        display: none;
+    }
 
 	.calendar-wrapper .fc-button {
 		padding: 0.25rem 0.5rem;

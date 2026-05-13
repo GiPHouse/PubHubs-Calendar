@@ -563,6 +563,7 @@ const en = {
 		reopen: 'Reopen',
 		edit: 'Edit',
 		pick: 'Pick',
+		calendar: 'Add to Calendar',
 		sign: {
 			add_signature: 'Sign',
 			heading: 'Signing a message',
