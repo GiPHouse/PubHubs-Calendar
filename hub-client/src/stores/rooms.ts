@@ -132,6 +132,20 @@ const useRooms = defineStore('rooms', {
 			return this.roomList.filter((room) => room.isHidden === false && room.roomType && CalendarRooms.includes(room.roomType as RoomType));
 		},
 
+		/**
+		 * Returns a list of rooms the user has already joined and that are not hidden.
+		 */
+		joinedRooms(): Room[] {
+			return this.roomsArray.filter((room) => !room.isHidden());
+		},
+
+		/**
+		 * Returns a list of public/secured rooms the user has NOT joined yet.
+		 */
+		joinableRooms(): TPublicRoom[] {
+			return this.publicRooms.filter((room) => !this.memberOfPublicRoom(room.room_id));
+		},
+
 		// TODO never used. Can be deleted?
 		// sortedRoomsArrayByJoinedTime(): Array<Room> {
 		// 	const user = useUser();

@@ -114,7 +114,33 @@ describe("Calendar Composable", () => {
 				new Date("2026-03-29T12:00:00.000Z"),
 				//@ts-ignore
 				"",
-				"someId",
+				"someId",export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
+	if (calEvent.title == '') {
+		throw new Error('Calendar event must have a non-empty title!');
+	}
+
+	if (calEvent.color == '') {
+		throw new Error('Calendar event must have a non-empty color string!');
+	}
+
+	// Checks if color is a valid hexadecimal (e.g. #6789ab)
+	if (!/^#[0-9A-Fa-f]{6}$/.test(calEvent.color)) {
+		throw new Error('Color field is not a valid hexadecimal color string.');
+	}
+
+	const start = new Date(calEvent.startTime);
+	const end = new Date(calEvent.endTime);
+
+	if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+		throw new Error('Calendar event must have valid start and end times');
+	}
+
+	if (end.getTime() <= start.getTime()) {
+		throw new Error('Calendar event end time must be after start time');
+	}
+
+	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
+}
 				"Some location",
 				"Some room"
 			);

@@ -43,7 +43,7 @@ interface TCalendarEventMessageContent {
 	/* This interface should be used to describe the event content when sending to Matrix
 	 * Use it after the CalendarEvent logic checks out to serialize the data into a base schema.
 	 */
-	msgtype: PubHubsMgType;
+	msgtype: PubHubsMgType.CalendarEvent;
 	body: string;
 	title: string;
 	description: string;

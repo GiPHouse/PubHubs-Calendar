@@ -37,7 +37,7 @@ export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	}
 
 	// Checks if color is a valid hexadecimal (e.g. #6789ab)
-	if (!/^#[0-9A-Fa-f]{6}$/.test(calEvent.color)) {
+	if (!/#[0-9A-Fa-f]{6}/.test(calEvent.color)) {
 		throw new Error('Color field is not a valid hexadecimal color string.');
 	}
 
@@ -71,9 +71,9 @@ export function useCalendarEvents() {
 	 * @param calEvent
 	 *
 	 * @example
-	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent`.
+	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent` interface.
 	 *  createCalendarEvent("a1b2c3", new CalendarEvent(
-	 *       "cool title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)
+	 *       "cool title", "desc", "#005a9e", new Date(), new Date(Date.now() + 60 * 60 * 1000)
 	 *  ));
 	 */
 	async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
