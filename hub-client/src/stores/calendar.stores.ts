@@ -9,7 +9,7 @@ import { defineStore } from 'pinia';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
-import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 // Services
 import { useMatrixService } from '@hub-client/services/matrix.service';
@@ -32,10 +32,10 @@ const useCalendarStore = defineStore('calendar', {
 		 * @param roomId RoomID to send the event in.
 		 * @param calEvent
 		 */
-		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
+		async addCalendarEvent(roomId: string, calEvent: TCalendarEvent) {
 			const service = useMatrixService();
 
-			const content: TCalendarEventMessageContent = {
+			const content: TCalendarEvent = {
 				msgtype: PubHubsMgType.CalendarEvent,
 				body: calEvent.title,
 				title: calEvent.title,
@@ -45,16 +45,15 @@ const useCalendarStore = defineStore('calendar', {
 				isAllDay: calEvent.isAllDay,
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
-				location: calEvent.location,
 			};
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
-		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
+		async editCalendarEvent(roomId: string, eventId: string, calEvent: TCalendarEvent) {
 			const service = useMatrixService();
 
-			const content: TCalendarEventMessageContent = {
+			const content = {
 				msgtype: PubHubsMgType.CalenderEventEdit,
 				body: calEvent.title,
 				title: calEvent.title,
@@ -90,9 +89,9 @@ const useCalendarStore = defineStore('calendar', {
 		 * Get all calendar events in a room. This also checks for replacements, thus
 		 * editing events if they still have pending changes.
 		 * @param roomId Room to fetch events for.
-		 * @returns List of calendar events, formatted to `CalendarEvent`
+		 * @returns List of calendar events, formatted to `TCalendarEvent & { id?: string }`
 		 */
-		async getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
+		async getCalendarEvents(room: Room): Promise<(TCalendarEvent & { id?: string })[]> {
 			console.log('>> store#getCalendarEvents');
 
 			if (!room) {
@@ -105,9 +104,14 @@ const useCalendarStore = defineStore('calendar', {
 				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
 				.map((e) => {
 					console.log(`>> Found an event: ${e}`);
-					const content = e.getContent() as TCalendarEventMessageContent;
+					const content = e.getContent() as TCalendarEvent;
 					const eventId = e.getId?.() ?? e.event?.event_id ?? undefined;
-					return new CalendarEvent(content.title, content.description, content.color, content.isAllDay, new Date(content.startTime), new Date(content.endTime), eventId, content.location, content.room);
+					return {
+						...content,
+						id: eventId,
+						startTime: new Date(content.startTime),
+						endTime: new Date(content.endTime),
+					};
 				});
 
 			// In the previous iteration of this method, we also sorted and applied
