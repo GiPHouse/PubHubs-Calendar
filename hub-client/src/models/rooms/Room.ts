@@ -546,7 +546,14 @@ export default class Room {
 
 	public getLiveTimelineEvents(): MatrixEvent[] {
 		return this.timelineManager.getEvents().map((x) => x.matrixEvent);
-		//return this.matrixRoom.getLiveTimeline().getEvents();
+		// return this.matrixRoom.getLiveTimeline().getEvents();
+	}
+
+	public getLiveTimelineEventsCalendar(): MatrixEvent[] {
+		// Currently problems with mapping matrix events when getting calendar events.
+		// This should be adapted to automatically filter for calendar event types.
+		// return this.timelineManager.getEvents().map((x) => x.matrixEvent);
+		return this.matrixRoom.getLiveTimeline().getEvents();
 	}
 
 	public getLiveTimelineNewestEvent(): Partial<TBaseEvent> | undefined {

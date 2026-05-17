@@ -37,6 +37,7 @@ export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	}
 
 	// Checks if color is a valid hexadecimal (e.g. #6789ab)
+	console.log(calEvent.color);
 	if (!/#[0-9A-Fa-f]{6}/.test(calEvent.color)) {
 		throw new Error('Color field is not a valid hexadecimal color string.');
 	}
@@ -48,9 +49,20 @@ export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event must have valid start and end times');
 	}
 
-	if (end.getTime() <= start.getTime()) {
+	if (calEvent.isAllDay) {
+		// if the event is allDay, we ignore the times passed down.
+		start.setHours(0, 0, 0);
+		end.setHours(23, 59, 59);
+	}
+
+	if (end.getTime() <= start.getTime() && calEvent.isAllDay) {
 		throw new Error('Calendar event end time must be after start time');
 	}
+
+	if (end.getTime() <= start.getTime() && !calEvent.isAllDay) {
+		throw new Error('Calendar event end date must be after start date');
+	}
+	console.log('Start time: ' + start.getTime() + ' End time: ' + end.getTime());
 
 	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
 }
