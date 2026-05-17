@@ -98,22 +98,12 @@ const useCalendarStore = defineStore('calendar', {
 			const events = room.getLiveTimelineEventsCalendar();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
-				.filter((event) => event.getType() === PubHubsMgType.CalendarEvent)
-				.map((event) => {
-					console.log(`>> Found an event: ${event}`);
-					const content = event.getContent() as TCalendarEventMessageContent;
-					return new CalendarEvent(
-						content.title,
-						content.description,
-						content.color,
-						content.isAllDay,
-						new Date(content.startTime),
-						new Date(content.endTime),
-						content.location,
-						'', // id???
-						// (!) calendarEvent only accepts 9 arguments not 10, someone should look at this
-						//content.room,
-					);
+				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
+				.map((e) => {
+					console.log(`>> Found an event: ${e}`);
+					const content = e.getContent() as TCalendarEventMessageContent;
+					const eventId = e.getId?.() ?? e.event?.event_id ?? undefined;
+					return new CalendarEvent(content.title, content.description, content.color, content.isAllDay, new Date(content.startTime), new Date(content.endTime), eventId, content.location, content.room);
 				});
 
 			// In the previous iteration of this method, we also sorted and applied

@@ -27,15 +27,18 @@ import { Room } from '@hub-client/stores/rooms';
  *
  * @todo Implement checking if the `roomId` is legitimate.
  */
-function validateEvent(calEvent: CalendarEvent): CalendarEvent {
-	const title = calEvent.title.trim();
-	const description = calEvent.description.trim();
-	const color = calEvent.color.trim();
-	const location = calEvent.location?.trim();
+export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
+	if (calEvent.title == '') {
+		throw new Error('Calendar event must have a non-empty title!');
+	}
+
+	if (calEvent.color == '') {
+		throw new Error('Calendar event must have a non-empty color string!');
+	}
 
 	// Checks if color is a valid hexadecimal (e.g. #6789ab)
-	console.log(color);
-	if (!/#[0-9A-Fa-f]{6}/.test(color)) {
+	console.log(calEvent.color);
+	if (!/#[0-9A-Fa-f]{6}/.test(calEvent.color)) {
 		throw new Error('Color field is not a valid hexadecimal color string.');
 	}
 
@@ -61,7 +64,7 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	}
 	console.log('Start time: ' + start.getTime() + ' End time: ' + end.getTime());
 
-	return new CalendarEvent(title, description, color, calEvent.isAllDay, start, end, calEvent.id, location, calEvent.room);
+	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
 }
 
 /**

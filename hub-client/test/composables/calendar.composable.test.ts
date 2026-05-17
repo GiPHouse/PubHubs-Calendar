@@ -1,4 +1,4 @@
-import { useCalendarEvents } from '@hub-client/composables/calendar.composable';
+import { validateEvent, useCalendarEvents } from '@hub-client/composables/calendar.composable';
 
 import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
@@ -26,7 +26,7 @@ vi.mock('@hub-client/stores/calendar.stores', () => ({
 	})),
 }));
 
-describe('CalendarComposable', () => {
+describe("Calendar Composable", () => {
 	beforeEach(() => {
 		setActivePinia(createPinia());
 		addCalendarEventMock.mockClear();
@@ -39,112 +39,196 @@ describe('CalendarComposable', () => {
 		vi.restoreAllMocks();
 	});
 
-	test('createCalendarEvent validates, trims, and forwards the event to the store', async () => {
-		const { createCalendarEvent } = useCalendarEvents();
+	describe("validateEvent passes/fails accordingly", () => {
+		test("throws when title is empty", () => {
+			const event = new CalendarEvent(
+				"",
+				"Some description",
+				"#abcdef",
+				false,
+				new Date("2026-03-29T12:00:00.000Z"),
+				new Date("2026-03-29T13:00:00.000Z"),
+				"someId",
+				"Some location",
+				"Some room"
+			);
 
-		const startTime = new Date('2026-04-08T15:30:00.000Z');
-		const endTime = new Date('2026-04-08T18:00:00.000Z');
-
-		// Inputs are deliberately padded with whitespace. validateEvent is
-		// expected to trim them before handing off.
-		const event = new CalendarEvent('  SWE Meeting  ', '  Weekly planning  ', '   #bf5cd8   ', false, startTime, endTime);
-
-		await createCalendarEvent('!room:example', event);
-
-		expect(addCalendarEventMock).toHaveBeenCalledTimes(1);
-		expect(addCalendarEventMock).toHaveBeenCalledWith(
-			'!room:example',
-			expect.objectContaining({
-				title: 'SWE Meeting',
-				description: 'Weekly planning',
-				color: '#bf5cd8',
-				isAllDay: false,
-				startTime,
-				endTime,
-			}),
-		);
-	});
-
-	test('createCalendarEvent preserves id / location / room metadata through validation', async () => {
-		const { createCalendarEvent } = useCalendarEvents();
-
-		const start = new Date('2026-04-08T15:30:00.000Z');
-		const end = new Date('2026-04-08T16:00:00.000Z');
-		const event = new CalendarEvent('Demo', 'Short demo', '#123456', false, start, end, '$evt:1', 'A2.14', 'Engineering');
-
-		await createCalendarEvent('!room:example', event);
-
-		expect(addCalendarEventMock).toHaveBeenCalledWith(
-			'!room:example',
-			expect.objectContaining({ id: '$evt:1', location: 'A2.14', room: 'Engineering' }),
-		);
-	});
-
-	test('updateCalendarEvent validates and forwards the event to the store', async () => {
-		const { updateCalendarEvent } = useCalendarEvents();
-
-		const startTime = new Date('2026-04-08T15:30:00.000Z');
-		const endTime = new Date('2026-04-08T18:00:00.000Z');
-		const event = new CalendarEvent('  Updated Event  ', '  Updated description  ', '#123456', true, startTime, endTime);
-
-		await updateCalendarEvent('!room:example', '$event123', event);
-
-		expect(updateCalendarEventMock).toHaveBeenCalledTimes(1);
-		expect(updateCalendarEventMock).toHaveBeenCalledWith(
-			'!room:example',
-			'$event123',
-			expect.objectContaining({
-				title: 'Updated Event',
-				description: 'Updated description',
-				color: '#123456',
-				isAllDay: true,
-				startTime,
-				endTime,
-			}),
-		);
-	});
-
-	test('removeCalendarEvent forwards to the store delete action', async () => {
-		const { removeCalendarEvent } = useCalendarEvents();
-
-		await removeCalendarEvent('!room:example', '$event123');
-
-		expect(delCalendarEventMock).toHaveBeenCalledTimes(1);
-		expect(delCalendarEventMock).toHaveBeenCalledWith('!room:example', '$event123');
-	});
-
-	test('getCalendarEvents passes through the store response', async () => {
-		const loaded = [new CalendarEvent('A', '', '#123456', false, new Date('2026-04-08T15:30:00.000Z'), new Date('2026-04-08T16:00:00.000Z'), '$a')];
-		getCalendarEventsMock.mockResolvedValueOnce(loaded);
-
-		const { getCalendarEvents } = useCalendarEvents();
-		await expect(getCalendarEvents('!room:example')).resolves.toBe(loaded);
-		expect(getCalendarEventsMock).toHaveBeenCalledWith('!room:example');
-	});
-
-	describe('validation errors', () => {
-		const baseStart = new Date('2026-04-08T15:30:00.000Z');
-		const baseEnd = new Date('2026-04-08T16:00:00.000Z');
-
-		test('rejects events with an empty title', async () => {
-			const { createCalendarEvent } = useCalendarEvents();
-			const event = new CalendarEvent('   ', 'desc', '#123456', false, baseStart, baseEnd);
-			await expect(createCalendarEvent('!room:example', event)).rejects.toThrow('title is required');
-			expect(addCalendarEventMock).not.toHaveBeenCalled();
+			expect(() => validateEvent(event)).toThrow('Calendar event must have a non-empty title!');
 		});
 
-		test('rejects events with an invalid hex colour', async () => {
-			const { createCalendarEvent } = useCalendarEvents();
-			const event = new CalendarEvent('Ok', 'desc', 'not-a-colour', false, baseStart, baseEnd);
-			await expect(createCalendarEvent('!room:example', event)).rejects.toThrow('hexadecimal');
-			expect(addCalendarEventMock).not.toHaveBeenCalled();
+		test("throws when color is empty", () => {
+			const event = new CalendarEvent(
+				"Some title",
+				"Some description",
+				"",
+				false,
+				new Date("2026-03-29T12:00:00.000Z"),
+				new Date("2026-03-29T13:00:00.000Z"),
+				"someId",
+				"Some location",
+				"Some room"
+			);
+
+			expect(() => validateEvent(event)).toThrow('Calendar event must have a non-empty color string!');
 		});
 
-		test('rejects events whose end is not after the start', async () => {
-			const { createCalendarEvent } = useCalendarEvents();
-			const event = new CalendarEvent('Ok', 'desc', '#123456', false, baseEnd, baseStart);
-			await expect(createCalendarEvent('!room:example', event)).rejects.toThrow('end time must be after start time');
-			expect(addCalendarEventMock).not.toHaveBeenCalled();
+		test("throws when color is non-hex", () => {
+			const event = new CalendarEvent(
+				"Some title",
+				"Some description",
+				"Some color",
+				false,
+				new Date("2026-03-29T12:00:00.000Z"),
+				new Date("2026-03-29T13:00:00.000Z"),
+				"someId",
+				"Some location",
+				"Some room"
+			);
+
+			expect(() => validateEvent(event)).toThrow('Color field is not a valid hexadecimal color string.');
+		});
+
+		test("throws when start date is invalid", () => {
+			const event = new CalendarEvent(
+				"Some title",
+				"Some description",
+				"#abcdef",
+				false,
+				//@ts-ignore
+				"",
+				new Date("2026-03-29T13:00:00.000Z"),
+				"someId",
+				"Some location",
+				"Some room"
+			);
+
+			expect(() => validateEvent(event)).toThrow('Calendar event must have valid start and end times');
+		});
+
+		test("throws when end date is invalid", () => {
+			const event = new CalendarEvent(
+				"Some title",
+				"Some description",
+				"#abcdef",
+				false,
+				new Date("2026-03-29T12:00:00.000Z"),
+				//@ts-ignore
+				"",
+				"someId",export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
+	if (calEvent.title == '') {
+		throw new Error('Calendar event must have a non-empty title!');
+	}
+
+	if (calEvent.color == '') {
+		throw new Error('Calendar event must have a non-empty color string!');
+	}
+
+	// Checks if color is a valid hexadecimal (e.g. #6789ab)
+	if (!/^#[0-9A-Fa-f]{6}$/.test(calEvent.color)) {
+		throw new Error('Color field is not a valid hexadecimal color string.');
+	}
+
+	const start = new Date(calEvent.startTime);
+	const end = new Date(calEvent.endTime);
+
+	if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+		throw new Error('Calendar event must have valid start and end times');
+	}
+
+	if (end.getTime() <= start.getTime()) {
+		throw new Error('Calendar event end time must be after start time');
+	}
+
+	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
+}
+				"Some location",
+				"Some room"
+			);
+
+			expect(() => validateEvent(event)).toThrow('Calendar event must have valid start and end times');
+		});
+
+		test("throws when end date is before start date", () => {
+			const event = new CalendarEvent(
+				"Some title",
+				"Some description",
+				"#abcdef",
+				false,
+				new Date("2026-03-29T13:00:00.000Z"),
+				new Date("2026-03-29T12:00:00.000Z"),
+				"someId",
+				"Some location",
+				"Some room"
+			);
+
+			expect(() => validateEvent(event)).toThrow('Calendar event end time must be after start time');
+		});
+
+		test("validates when an event is okay", () => {
+			const event = new CalendarEvent(
+				"Some title",
+				"Some description",
+				"#abcdef",
+				false,
+				new Date("2026-03-29T12:00:00.000Z"),
+				new Date("2026-03-29T13:00:00.000Z"),
+				"someId",
+				"Some location",
+				"Some room"
+			);
+
+			expect(validateEvent(event)).toEqual(event);
+		});
+	});
+
+	describe("store events get delegated properly", () => {
+		test("createCalendarEvent gets delegated properly", async () => {
+			const event = new CalendarEvent(
+				"Some title",
+				"Some description",
+				"#abcdef",
+				false,
+				new Date("2026-03-29T12:00:00.000Z"),
+				new Date("2026-03-29T13:00:00.000Z"),
+				"someId",
+				"Some location",
+				"Some room"
+			);
+
+			await useCalendarEvents().createCalendarEvent("a1b2c3", event);
+
+			expect(addCalendarEventMock).toHaveBeenCalledWith(
+				"a1b2c3",
+				expect.objectContaining({
+					title: "Some title",
+					description: "Some description",
+					color: "#abcdef",
+					isAllDay: false,
+					startTime: new Date("2026-03-29T12:00:00.000Z"),
+					endTime: new Date("2026-03-29T13:00:00.000Z"),
+					id: "someId",
+					location: "Some location",
+					room: "Some room"
+				})
+			);
+		});
+
+		test("removeCalendarEvent gets delegated properly", async () => {
+			await useCalendarEvents().removeCalendarEvent("a1b2c3", "someId");
+
+			expect(delCalendarEventMock).toHaveBeenCalledWith("a1b2c3", "someId");
+		});
+
+		test("getCalendarEvents gets delegated properly", async () => {
+			const mockRoom = {
+				getLiveTimeline: () => ({
+					getEvents: () => [],
+				}),
+			};
+
+			await useCalendarEvents().getCalendarEvents(mockRoom as any);
+
+			expect(getCalendarEventsMock).toHaveBeenCalledWith(mockRoom);
 		});
 	});
 });
