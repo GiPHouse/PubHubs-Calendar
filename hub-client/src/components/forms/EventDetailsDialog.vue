@@ -1,69 +1,61 @@
 <template>
-	<Dialog :title="event.title" :buttons="dialogButtons" @close="$emit('close')">
-		<form @submit.prevent class="space-y-4">
-			<!-- Date row -->
-			<div class="flex flex-col md:flex-row">
-				<div class="md:w-4/6">
-					<div class="text-body text-on-surface rounded-xs border-0 p-1">
-						{{ formattedDate }}
-					</div>
-					<div v-if="!event.allDay" class="text-body text-on-surface/60 p-1">
-						{{ formattedTime }}
-					</div>
+	<CustomDialog :title="event.title" :show-delete="canEdit" :show-edit="canEdit" @close="$emit('close')" @edit="onEdit" @delete="onDelete">
+		<form class="space-y-4">
+			<!-- Date -->
+			<div>
+				<div class="text-body text-on-surface">
+					{{ formattedDate }}
+				</div>
+				<div v-if="!event.allDay" class="text-body text-on-surface/60">
+					{{ formattedTime }}
 				</div>
 			</div>
 
 			<!-- Location -->
-			<div v-if="event.extendedProps?.location" class="flex flex-col md:flex-row">
-				<label class="text-on-surface/70 w-full font-semibold md:w-2/6">
+			<div v-if="event.extendedProps?.location">
+				<label class="text-on-surface/70 font-semibold">
 					{{ $t('calendar.location') }}
 				</label>
-				<div class="text-body text-on-surface rounded-xs border-0 p-1 md:w-4/6">
+				<div class="text-body text-on-surface">
 					{{ event.extendedProps.location }}
 				</div>
 			</div>
 
 			<!-- Rooms -->
-			<div v-if="event.extendedProps?.room?.length" class="flex flex-col md:flex-row">
-				<label class="text-on-surface/70 w-full font-semibold md:w-2/6">
+			<div v-if="event.extendedProps?.room?.length">
+				<label class="text-on-surface/70 font-semibold">
 					{{ $t('calendar.room') }}
 				</label>
-				<div class="text-body text-on-surface rounded-xs border-0 p-1 md:w-4/6">
+				<div class="text-body text-on-surface">
 					{{ Array.isArray(event.extendedProps.room) ? event.extendedProps.room.join(', ') : event.extendedProps.room }}
 				</div>
 			</div>
 
-			<!-- Description/Comments -->
-			<div v-if="event.extendedProps?.description" class="flex flex-col md:flex-row">
-				<label class="text-on-surface/70 w-full font-semibold md:w-2/6">
+			<!-- Description -->
+			<div v-if="event.extendedProps?.description">
+				<label class="text-on-surface/70 font-semibold">
 					{{ $t('calendar.description') }}
 				</label>
-				<div class="text-body text-on-surface rounded-xs border-0 p-1 whitespace-pre-wrap md:w-4/6">
+				<div class="text-body text-on-surface whitespace-pre-wrap">
 					{{ event.extendedProps.description }}
 				</div>
 			</div>
 		</form>
-
-		<!-- Footer content - this will be passed to Dialog's footer slot -->
-		<template #footer>
-			<button @click="$emit('close')" class="border-primary bg-accent-blue hover:bg-accent-blue/90 text-primary hover:text-on-primary cursor-pointer rounded-md border px-5 py-2 text-sm font-medium shadow-sm transition">
-				{{ $t('notifications.info') }}
-			</button>
-		</template>
-
-		<ValidationErrors v-if="validationErrors.length" :errors="validationErrors" />
-	</Dialog>
+	</CustomDialog>
 </template>
 
 <script setup lang="ts">
-	import { computed, ref } from 'vue';
+	import CustomDialog from '../ui/CustomDialog.vue';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
 	const { t, locale } = useI18n();
+	const { formatDate } = useTimeFormat();
 
 	interface Props {
 		event: any;
@@ -75,20 +67,6 @@
 	});
 
 	const emit = defineEmits(['close', 'edit', 'delete']);
-
-	// Dialog buttons configuration matching SettingsDialog pattern
-	const dialogButtons = computed(() => {
-		return [
-			{
-				label: t('close'),
-				action: () => emit('close'),
-				enabled: true,
-			},
-		];
-	});
-
-	// Validation errors (if needed)
-	const validationErrors = ref<string[]>([]);
 
 	const formattedDate = computed(() => {
 		const start = new Date(props.event.start);
@@ -102,6 +80,7 @@
 		};
 
 		let dateString;
+
 		if (props.event.allDay) {
 			if (end && end > start) {
 				dateString = `${start.toLocaleDateString(locale.value || 'en', options)} – ${end.toLocaleDateString(locale.value || 'en', options)}`;
@@ -112,7 +91,6 @@
 			dateString = start.toLocaleDateString(locale.value || 'en', options);
 		}
 
-		// Capitalize each word for Dutch locale
 		if (locale.value === 'nl' || locale.value === 'nl-NL') {
 			dateString = dateString.replace(/\b\w/g, (l) => l.toUpperCase());
 		}
@@ -126,25 +104,17 @@
 		const start = new Date(props.event.start);
 		const end = props.event.end ? new Date(props.event.end) : null;
 
-		const timeOptions: Intl.DateTimeFormatOptions = {
-			hour: 'numeric',
-			minute: '2-digit',
-			hour12: true,
-		};
-
 		if (end) {
-			return `${start.toLocaleTimeString(locale.value || 'en', timeOptions)} – ${end.toLocaleTimeString(locale.value || 'en', timeOptions)}`;
+			return `${formatDate(start)} – ${formatDate(end)}`;
 		}
-		return start.toLocaleTimeString(locale.value || 'en', timeOptions);
+		return formatDate(start);
 	});
 
-	function editEvent() {
+	function onEdit() {
 		emit('edit', props.event);
 	}
 
-	function deleteEvent() {
-		if (confirm(t('calendar.confirm_delete'))) {
-			emit('delete', props.event);
-		}
+	function onDelete() {
+		emit('delete', props.event.id);
 	}
 </script>

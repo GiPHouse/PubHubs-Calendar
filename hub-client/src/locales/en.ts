@@ -11,10 +11,11 @@ const en = {
 	calendar: {
 		title: 'Title',
 		description: 'Description',
+		room: 'Room',
 		location: 'Location',
 		selectRooms: 'Select room(s)',
-		room: 'Room(s)',
 		save: 'Save',
+		isAllDay: 'Full day',
 	},
 	state: {
 		button_request: 'Request access',
@@ -28,6 +29,8 @@ const en = {
 		ok: 'Ok',
 		cancel: 'Cancel',
 		close: 'Close',
+		delete: 'Delete',
+		edit: 'Edit',
 		yes: 'Yes',
 		no: 'No',
 		hub_unpin_title: 'Unpin hub',

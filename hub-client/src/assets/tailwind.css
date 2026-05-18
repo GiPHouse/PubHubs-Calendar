@@ -1,4 +1,5 @@
 @import 'tailwindcss' source('../../../');
+@import './calendar.css';
 
 @variant dark (&:where(.dark, .dark *));
 
@@ -112,11 +113,10 @@
 	--on-accent-button-blue: #5CBFF1;
 	--on-blue: #0086e2;
 	--calendar-grid: #e5e7eb;
-
-	--logo-dark-blue: #011242;
 	--logo-blue: #138DE8;
 	--logo-mid-blue: #084F95;
 	--day-numbers: #E4E5E8;
+	--today-button: #005a9e;
 }
 
 .dark {
@@ -155,6 +155,10 @@
 	--on-surface-bright: #ffffff;
 	--on-surface-variant: #cccccc;
 	--on-surface-disabled: #555555;
+  
+	/*Calendar colors*/
+	--calendar-grid: #737477;
+	--today-button: #3dadff;
 
 	/* Accents */
 	--accent-blue: #84b8ff;

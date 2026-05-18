@@ -43,7 +43,8 @@ export interface TBaseMessageEventContent {
 		| PubHubsMgType.VotingWidgetClose
 		| PubHubsMgType.VotingWidgetOpen
 		| PubHubsMgType.VotingWidgetPickOption
-		| PubHubsMgType.VotingWidgetAddVoteOption;
+		| PubHubsMgType.VotingWidgetAddVoteOption
+		| PubHubsMgType.CalendarEvent;
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
@@ -95,6 +96,33 @@ export interface TAnnouncementMessageEventContent extends TPrivilegedMessageEven
 	msgtype: PubHubsMgType.AnnouncementMessage;
 }
 
+export interface TCalendarEventMessageContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.CalendarEvent;
+	title: string;
+	description: string;
+	color: string;
+	location?: string;
+	room?: string;
+	startTime: Date;
+	endTime: Date;
+	isAllDay: boolean;
+	'm.relates_to'?: {
+		event_id: string;
+		rel_type: PubHubsMgType;
+	};
+	'm.new_content'?: TCalendarEventMessageContent;
+}
+
+export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
+
+export type TMessageEventContent =
+	| TTextMessageEventContent
+	| TImageMessageEventContent
+	| TFileMessageEventContent
+	| TSignedMessageEventContent
+	| TAnnouncementMessageEventContent
+	| TVotingWidgetMessageEventContent
+	| TCalendarEventMessageContent;
 export interface TWhisperMessageEventContent extends TPrivilegedMessageEventContent {
 	msgtype: PubHubsMgType.WhisperMessage;
 	whisper_to: string;

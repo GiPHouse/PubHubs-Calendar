@@ -133,7 +133,7 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
-			events: false,
+			events: true,
 			phCard: false,
 			whisper: false,
 		},

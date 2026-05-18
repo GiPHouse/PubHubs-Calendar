@@ -12,6 +12,7 @@ import {
 // Logic
 import { createLogger } from '@hub-client/logic/logging/Logger';
 import { MainRoomSubscription, RoomLists, makeMainRoomSubscriptionName } from '@hub-client/logic/matrix.logic.js';
+import { PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
 import { MatrixType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
@@ -323,6 +324,21 @@ class MatrixService {
 		}
 	};
 
+	public sendEvent = (roomId: string, msgType: PubHubsMgType, content: any) => {
+		try {
+			this.client.sendEvent(roomId, msgType, content);
+		} catch (err) {
+			LOGGER.error(SMI.ROOM, 'sendEvent to Matrix API failed', { roomId, msgType, err });
+		}
+	}
+
+	public redactEvent = (roomId: string, eventId: string) => {
+		try {
+			this.client.redactEvent(roomId, eventId);
+		} catch (err) {
+			LOGGER.error(SMI.ROOM, 'redactEvent to Matrix API failed', { roomId, err });
+		}
+	}
 	// TODO Remove when unread notifications are better handled by sliding sync
 	/**
 	 * When all events are written a RoomEvent.TimelineEvent is send. This is the time to fetch the unread notifications
