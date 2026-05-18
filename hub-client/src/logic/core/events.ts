@@ -35,7 +35,6 @@ enum PubHubsMsgType {
 	CalenderEventDelete = 'pubhubs.calendar_event.delete', /// deleting events
 	CalenderEventRsvp = 'pubhubs.calendar_event.rsvp', // sending RSVP to an event
 	CalenderEventCancel = 'pubhubs.calendar_event.cancel', // setting an event to cancelled
-	CalenderEventModify = 'pubhubs.calendar_event.modify', // editing event informatino
 }
 
 enum PubHubsInvisibleMsgType {
