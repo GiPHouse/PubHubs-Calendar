@@ -33,21 +33,15 @@
 	//components
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
-
 	//composables
-	import {useCalendarEvents} from '../composables/calendar.composable.ts';
-
+	import { useCalendarEvents } from '../composables/calendar.composable.ts';
 	//fullCalendar
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
-	
-	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
-	import { useCalendarEvents } from '@hub-client/composables/calendar.composable';
 
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
@@ -59,8 +53,6 @@
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
-
-	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent } = useCalendarEvents();
 
 	// Event creation
 	const showEventCreationDialog = ref(false);
@@ -123,23 +115,41 @@
 	}
 
 	async function loadCalendarEvents() {
-		const calendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
-		if (!calendarRoom) {
-			console.error('[Calendar] No calendar room exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
+		// This method finds the calendar room interface
+		await rooms.waitForInitialRoomsLoaded();
+
+		const calendarRoomData = rooms.roomList.find((room) => room.name === 'Calendar Room');
+		if (!calendarRoomData) {
+			console.error('[Calendar] No calendar room data exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
 			return;
+		}
+		// We use the roomId from the room interface to find the Room class.
+		// Note that this is PubHub's Room model, NOT matrix-sdk's Room object!
+		if (!rooms.rooms[calendarRoomData.roomId]) {
+			await rooms.joinRoomListRoom(calendarRoomData.roomId);
+		}
+		const calendarRoom = rooms.rooms[calendarRoomData.roomId];
+		console.log('[Calendar] No. of Rooms:' + Object.keys(rooms.rooms).length);
+		if (!calendarRoom) {
+			console.error('[Calendar] Calendar room does not exist!');
 		}
 
 		const events = await getCalendarEvents(calendarRoom);
 		// TODO: Use the events from here to map them into the calendar somehow
 		//			-> Probably talk through how this bit below works with the front-end team!
 
-		if (!rooms.currentRoomExists) {
-			calendarEvents.value = [];
-			return;
-		}
+		// I'm not sure if this works, as the events seem to be received regardless
+		// if (!rooms.currentRoomExists) {
+		// 	calendarEvents.value = [];
+		// 	return;
+		// }
 
 		try {
-			const events = await getCalendarEvents(currentRoomId.value);
+			// const events = await getCalendarEvents(currentRoomId.value);
+			const events = await getCalendarEvents(calendarRoom);
+			// print events to log
+			console.log('[Calendar.vue] Calendar events array:');
+			console.log(events);
 			calendarEvents.value = events.map(mapCalendarEventToFullCalendarEvent);
 		} catch (err) {
 			console.error('Failed to load calendar events', err);
@@ -311,8 +321,8 @@
 
 		fixedWeekCount: false,
 
-		slotMinTime: "00:00:00",
-		slotMaxTime: "24:00:00",
+		slotMinTime: '00:00:00',
+		slotMaxTime: '24:00:00',
 		expandRows: true,
 
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
@@ -388,8 +398,8 @@
 		eventColor: '#3788d8',
 
 		// Responsive settings
-		height: "auto",
-		contentHeight: "auto",
+		height: 'auto',
+		contentHeight: 'auto',
 
 		// Locale (adjust based on your needs)
 		locales: [getCalendarLocale()], // Add this
@@ -438,19 +448,23 @@
 		return `${year}-${month}-${day}`;
 	}
 
-	function addEvent(newEvent) {
+	async function addEvent(newEvent) {
 		const textColor = getContrastTextColor(newEvent.color);
+		const rooms = useRooms();
+		const roomId = rooms.currentRoom?.roomId;
 
-		const calendarEvent = new CalendarEvent(
-			newEvent.title,
-			newEvent.description,
-			newEvent.start,
-        	newEvent.allDay
-            ? addOneDay(newEvent.end)
-            : newEvent.end
-		);
+		let startDate = new Date(newEvent.start);
+		let endDate = new Date(newEvent.end);
 
-		createCalendarEvent(newEvent.id, calendarEvent);
+		if (newEvent.allDay) {
+			startDate.setHours(0, 0, 0, 0);
+			endDate = new Date(newEvent.end);
+			endDate.setHours(0, 0, 0, 0);
+		}
+
+		const calendarEvent = new CalendarEvent(newEvent.title, newEvent.description, newEvent.start, newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end);
+
+		await createCalendarEvent(newEvent.id, calendarEvent);
 	}
 
 	function handleDateClick(info) {
@@ -460,10 +474,12 @@
 
 		if (isAllDayClick) {
 			const date = new Date(info.date);
+			const nextDate = new Date(date);
+			nextDay.setDate(date.getDate() + 1);
 
 			selectedRange.value = {
 				startStr: date.toISOString(),
-				endStr: date.toISOString(), // SAME DAY
+				endStr: date.toISOString(),
 				allDay: true,
 			};
 		} else {
@@ -532,12 +548,12 @@
 
 		try {
 			if (selectedEventForEdit.value) {
-				await updateCalendarEvent(roomId.value, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
+				await updateCalendarEvent(roomId, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
 				selectedEventForEdit.value = null;
 				console.log('>> Edited event with ID:', selectedEventForEdit.value.id);
 			} else {
-				await createCalendarEvent(roomId.value, createCalendarEventObject(newEvent));
-				console.log('>> Created new event in room ID:', roomId.value);
+				await createCalendarEvent(roomId, createCalendarEventObject(newEvent));
+				console.log('>> Created new event in room ID:', roomId);
 			}
 			await loadCalendarEvents();
 		} catch (err) {

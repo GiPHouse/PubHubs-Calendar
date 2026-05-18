@@ -1,13 +1,17 @@
 // Packages
 import { useRooms } from './rooms';
-import { Room } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
+
+// Services
+import { useMatrix } from '@hub-client/composables/matrix.composable';
 
 // Composables
 
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
+// Models
+import Room from '@hub-client/models/rooms/Room';
 // Models
 import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
@@ -32,8 +36,8 @@ const useCalendarStore = defineStore('calendar', {
 		 * @param roomId RoomID to send the event in.
 		 * @param calEvent
 		 */
-		async addCalendarEvent(roomId: string, calEvent: TCalendarEvent) {
-			const service = useMatrixService();
+		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
+			const { sendEvent } = useMatrix();
 
 			const content: TCalendarEvent = {
 				msgtype: PubHubsMgType.CalendarEvent,
@@ -46,11 +50,12 @@ const useCalendarStore = defineStore('calendar', {
 				startTime: calEvent.startTime,
 				endTime: calEvent.endTime,
 			};
-			// @ts-ignore similar implementations in pubhubs ignore this error
-			await service.sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+
+			await sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
-		async editCalendarEvent(roomId: string, eventId: string, calEvent: TCalendarEvent) {
+		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
+			// (!) useMatrixService is not defined/imported, we should take a look at this
 			const service = useMatrixService();
 
 			const content = {
@@ -71,18 +76,16 @@ const useCalendarStore = defineStore('calendar', {
 
 			// @ts-ignore similar implementations in pubhubs ignore this error
 			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
-			await this.delCalendarEvent(roomId, eventId);
 		},
 
 		/**
 		 * Deletes a calendar event.
-		 * Effectively an alias for deleteMessage, since I expect it to work the same.
 		 * @param roomId
 		 * @param eventId
 		 */
 		async delCalendarEvent(roomId: string, eventId: string): Promise<void> {
-			const pubhubs_store = usePubhubsStore();
-			await pubhubs_store.deleteMessage(roomId, eventId);
+			const { redactEvent } = useMatrix();
+			await redactEvent(roomId, eventId);
 		},
 
 		/**
@@ -94,11 +97,9 @@ const useCalendarStore = defineStore('calendar', {
 		async getCalendarEvents(room: Room): Promise<(TCalendarEvent & { id?: string })[]> {
 			console.log('>> store#getCalendarEvents');
 
-			if (!room) {
-				throw new Error('Room not found');
-			}
+			if (!useRooms().rooms[room.roomId]) throw 'Room not found';
 
-			const events = room.getLiveTimeline().getEvents();
+			const events = room.getLiveTimelineEventsCalendar();
 			// The `.filter` might be redundent?
 			const calendarEvents = events
 				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
