@@ -1,6 +1,6 @@
 import { validateEvent, useCalendarEvents } from '@hub-client/composables/calendar.composable';
 
-import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
@@ -14,7 +14,7 @@ const { addCalendarEventMock, delCalendarEventMock, updateCalendarEventMock, get
 	addCalendarEventMock: vi.fn(async () => undefined),
 	delCalendarEventMock: vi.fn(async () => undefined),
 	updateCalendarEventMock: vi.fn(async () => undefined),
-	getCalendarEventsMock: vi.fn(async () => [] as CalendarEvent[]),
+	getCalendarEventsMock: vi.fn(async () => [] as TCalendarEvent[]),
 }));
 
 vi.mock('@hub-client/stores/calendar.stores', () => ({
@@ -41,141 +41,111 @@ describe("Calendar Composable", () => {
 
 	describe("validateEvent passes/fails accordingly", () => {
 		test("throws when title is empty", () => {
-			const event = new CalendarEvent(
-				"",
-				"Some description",
-				"#abcdef",
-				false,
-				new Date("2026-03-29T12:00:00.000Z"),
-				new Date("2026-03-29T13:00:00.000Z"),
-				"someId",
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title:"",
+				description: "Some description",
+				color: "#abcdef",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T12:00:00.000Z"),
+				endTime: new Date("2026-03-29T13:00:00.000Z"),
+				id: "someId",
+				location: "Some location",
+				room: "Some room"
+			} as unknown as TCalendarEvent;
 
 			expect(() => validateEvent(event)).toThrow('Calendar event must have a non-empty title!');
 		});
 
 		test("throws when color is empty", () => {
-			const event = new CalendarEvent(
-				"Some title",
-				"Some description",
-				"",
-				false,
-				new Date("2026-03-29T12:00:00.000Z"),
-				new Date("2026-03-29T13:00:00.000Z"),
-				"someId",
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title: "Some title",
+				description: "some description",
+				color: "",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T12:00:00.000Z"),
+				endTime: new Date("2026-03-29T13:00:00.000Z"),
+				location: "Some location",
+				room: "Some room",
+			} as unknown as TCalendarEvent;
+
 
 			expect(() => validateEvent(event)).toThrow('Calendar event must have a non-empty color string!');
 		});
 
 		test("throws when color is non-hex", () => {
-			const event = new CalendarEvent(
-				"Some title",
-				"Some description",
-				"Some color",
-				false,
-				new Date("2026-03-29T12:00:00.000Z"),
-				new Date("2026-03-29T13:00:00.000Z"),
-				"someId",
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title: "Some title",
+				description: "some description",
+				color: "Some color",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T12:00:00.000Z"),
+				endTime: new Date("2026-03-29T13:00:00.000Z"),
+				id: "someId",
+				location: "Some location",
+				room: "Some room"
+			} as unknown as TCalendarEvent;
 
 			expect(() => validateEvent(event)).toThrow('Color field is not a valid hexadecimal color string.');
 		});
 
 		test("throws when start date is invalid", () => {
-			const event = new CalendarEvent(
-				"Some title",
-				"Some description",
-				"#abcdef",
-				false,
-				//@ts-ignore
-				"",
-				new Date("2026-03-29T13:00:00.000Z"),
-				"someId",
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title: "Some title",
+				description: "Some description",
+				color: "#abcdef",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T12:00:00.000Z"),
+				endTime: new Date("2026-03-29T13:00:00.000Z"),
+				id: "someId",
+				location: "Some location",
+				room: "Some room"
+			} as unknown as TCalendarEvent;
 
 			expect(() => validateEvent(event)).toThrow('Calendar event must have valid start and end times');
 		});
 
 		test("throws when end date is invalid", () => {
-			const event = new CalendarEvent(
-				"Some title",
-				"Some description",
-				"#abcdef",
-				false,
-				new Date("2026-03-29T12:00:00.000Z"),
-				//@ts-ignore
-				"",
-				"someId",export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
-	if (calEvent.title == '') {
-		throw new Error('Calendar event must have a non-empty title!');
-	}
-
-	if (calEvent.color == '') {
-		throw new Error('Calendar event must have a non-empty color string!');
-	}
-
-	// Checks if color is a valid hexadecimal (e.g. #6789ab)
-	if (!/^#[0-9A-Fa-f]{6}$/.test(calEvent.color)) {
-		throw new Error('Color field is not a valid hexadecimal color string.');
-	}
-
-	const start = new Date(calEvent.startTime);
-	const end = new Date(calEvent.endTime);
-
-	if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-		throw new Error('Calendar event must have valid start and end times');
-	}
-
-	if (end.getTime() <= start.getTime()) {
-		throw new Error('Calendar event end time must be after start time');
-	}
-
-	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
-}
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title: "Some title",
+				description: "Some description",
+				color: "#abcdef",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T12:00:00.000Z"),
+				location: "Some location",
+				room: "Some room"
+			} as unknown as TCalendarEvent;
 
 			expect(() => validateEvent(event)).toThrow('Calendar event must have valid start and end times');
 		});
 
 		test("throws when end date is before start date", () => {
-			const event = new CalendarEvent(
-				"Some title",
-				"Some description",
-				"#abcdef",
-				false,
-				new Date("2026-03-29T13:00:00.000Z"),
-				new Date("2026-03-29T12:00:00.000Z"),
-				"someId",
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title: "Some title",
+				description: "Some description",
+				color: "#abcdef",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T13:00:00.000Z"),
+				endTime: new Date("2026-03-29T12:00:00.000Z"),
+				id: "someId",
+				location: "Some location",
+				room: "Some room"
+			} as unknown as TCalendarEvent;
 
 			expect(() => validateEvent(event)).toThrow('Calendar event end time must be after start time');
 		});
 
 		test("validates when an event is okay", () => {
-			const event = new CalendarEvent(
-				"Some title",
-				"Some description",
-				"#abcdef",
-				false,
-				new Date("2026-03-29T12:00:00.000Z"),
-				new Date("2026-03-29T13:00:00.000Z"),
-				"someId",
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title: "Some title",
+				description: "Some description",
+				color: "#abcdef",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T12:00:00.000Z"),
+				endTime: new Date("2026-03-29T13:00:00.000Z"),
+				id: "someId",
+				location: "Some location",
+				room: "Some room"
+			} as unknown as TCalendarEvent;
 
 			expect(validateEvent(event)).toEqual(event);
 		});
@@ -183,17 +153,17 @@ describe("Calendar Composable", () => {
 
 	describe("store events get delegated properly", () => {
 		test("createCalendarEvent gets delegated properly", async () => {
-			const event = new CalendarEvent(
-				"Some title",
-				"Some description",
-				"#abcdef",
-				false,
-				new Date("2026-03-29T12:00:00.000Z"),
-				new Date("2026-03-29T13:00:00.000Z"),
-				"someId",
-				"Some location",
-				"Some room"
-			);
+			const event = {
+				title:"Some title",
+				description: "Some description",
+				color: "#abcdef",
+				isAllDay: false,
+				startTime: new Date("2026-03-29T12:00:00.000Z"),
+				endTime: new Date("2026-03-29T13:00:00.000Z"),
+				id: "someId",
+				location: "Some location",
+				room: "Some room"
+			} as unknown as TCalendarEvent;
 
 			await useCalendarEvents().createCalendarEvent("a1b2c3", event);
 

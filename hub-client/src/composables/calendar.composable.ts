@@ -3,7 +3,7 @@
 // Logic
 // Stores
 // Models
-import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 import { useCalendarStore } from '@hub-client/stores/calendar.stores';
 import { Room } from '@hub-client/stores/rooms';
@@ -27,7 +27,7 @@ import { Room } from '@hub-client/stores/rooms';
  *
  * @todo Implement checking if the `roomId` is legitimate.
  */
-export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
+export function validateEvent(calEvent: TCalendarEvent): TCalendarEvent {
 	if (calEvent.title == '') {
 		throw new Error('Calendar event must have a non-empty title!');
 	}
@@ -64,7 +64,18 @@ export function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 	}
 	console.log('Start time: ' + start.getTime() + ' End time: ' + end.getTime());
 
-	return new CalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
+	return {
+		title: calEvent.title,
+		description: calEvent.description,
+		color: calEvent.color,
+		isAllDay: calEvent.isAllDay,
+		startTime: start,
+		endTime: end,
+		location: calEvent.location,
+		room: calEvent.room,
+		msgtype: calEvent.msgtype,
+	};
+	// return new TCalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
 }
 
 /**
@@ -88,7 +99,7 @@ export function useCalendarEvents() {
 	 *       "cool title", "desc", "#005a9e", new Date(), new Date(Date.now() + 60 * 60 * 1000)
 	 *  ));
 	 */
-	async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
+	async function createCalendarEvent(roomId: string, calEvent: TCalendarEvent): Promise<void> {
 		const normalisedEvent = validateEvent(calEvent);
 		await calendar_store.addCalendarEvent(roomId, normalisedEvent);
 	}
@@ -102,12 +113,12 @@ export function useCalendarEvents() {
 		await calendar_store.delCalendarEvent(roomId, eventId);
 	}
 
-	async function updateCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent): Promise<void> {
+	async function updateCalendarEvent(roomId: string, eventId: string, calEvent: TCalendarEvent): Promise<void> {
 		const normalisedEvent = validateEvent(calEvent);
 		await calendar_store.editCalendarEvent(roomId, eventId, normalisedEvent);
 	}
 
-	async function getCalendarEvents(room: Room): Promise<CalendarEvent[]> {
+	async function getCalendarEvents(room: Room): Promise<TCalendarEvent[]> {
 		return await calendar_store.getCalendarEvents(room);
 	}
 
