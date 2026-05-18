@@ -1,23 +1,39 @@
 <template>
-	<div id="layout-root" class="bg-background font-body text-on-surface text-body flex h-[100svh] w-screen min-w-[32rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth">
+	<div
+		id="layout-root"
+		class="bg-background font-body text-on-surface text-body no-scrollbar flex h-svh w-screen min-w-lg overflow-x-auto overflow-y-hidden overscroll-none scroll-smooth"
+		:class="isIOS ? '' : 'snap-x snap-mandatory'"
+	>
 		<MobileMenu v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" />
 		<GlobalBar v-if="!(route.name === 'onboarding' || route.name === 'login')" />
 
 		<router-view
 			class="flex h-full shrink-0 overflow-y-auto"
-			:class="isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login' || route.name === 'error') ? '!w-[calc(200vw_-_80px)]' : '!w-[calc(100vw_-_80px)] flex-1'"
+			:class="
+				isMobile && !(route.name === 'onboarding' || route.name === 'home' || route.name === 'login' || route.name === 'error')
+					? 'w-[calc(200vw-80px)]!'
+					: 'w-[calc(100vw-80px)]! flex-1'
+			"
 		/>
 
 		<!-- 0-width element for snapping -->
-		<div v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')" class="w-0 shrink-0 snap-end" :class="!isMobile && 'hidden'" />
+		<div
+			v-if="!(route.name === 'onboarding' || route.name === 'login' || route.name === 'error')"
+			class="w-0 shrink-0 snap-end"
+			:class="!isMobile && 'hidden'"
+		/>
 	</div>
 
-	<Dialog v-if="dialog.visible" :type="dialog.properties.type" @close="dialog.close" />
+	<Dialog
+		v-if="dialog.visible"
+		:type="dialog.properties.type"
+		@close="dialog.close"
+	/>
 
-	<ContextMenu />
+	<ContextMenu v-if="isMobile" />
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, onMounted, onUnmounted, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -33,9 +49,8 @@
 	import useRootScroll from '@global-client/composables/useRootScroll';
 
 	// Logic
-	import { CONFIG } from '@hub-client/logic/logging/Config';
-	import { Logger } from '@hub-client/logic/logging/Logger';
-	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import device from '@hub-client/logic/core/device';
+	import { createLogger } from '@hub-client/logic/logging/Logger';
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
@@ -50,24 +65,25 @@
 	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
 	const isMobile = computed(() => settings.isMobileState);
-	const LOGGER = new Logger('GC', CONFIG);
+	const isIOS = device.getMobileOS() === 'iOS';
+	const logger = createLogger('App');
 	const { locale, availableLocales } = useI18n();
-	const { scrollToEnd, scrollToStart, setupSnapEnforcement, cleanupSnapEnforcement } = useRootScroll();
+	const { scrollToEnd, scrollToStart } = useRootScroll();
 	const messagebox = useMessageBox();
 	const settings = useSettings();
 	const dialog = useDialog();
 	const global = useGlobal();
 	const installPromptStore = useInstallPromptStore();
-	const hubs = useHubs();
 	const route = useRoute();
 	const router = useRouter();
+	const _hubs = useHubs();
 
 	// Wrapping the getter inside a computed to trigger the watch function to save any changes in global settings
 	const computedGlobalSettings = computed(() => global.getGlobalSettings);
 
 	// Function to initialize settings and language
 	async function initializeSettings() {
-		LOGGER.log(SMI.STARTUP, 'App.vue onMounted...');
+		logger.info('App.vue onMounted...');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		dialog.asGlobal();
@@ -138,9 +154,7 @@
 			});
 		}
 
-		setupSnapEnforcement();
-
-		LOGGER.log(SMI.STARTUP, 'App.vue onMounted done', { language: settings.getActiveLanguage });
+		logger.info('App.vue onMounted done', { language: settings.getActiveLanguage });
 	}
 
 	// Function to add hubs
@@ -150,17 +164,23 @@
 		} catch (error) {
 			global.setLoadingHubs(false);
 			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
-			LOGGER.error(SMI.ERROR, 'Error adding hubs', { error });
+			logger.error('Error adding hubs', { error });
 		}
 	}
 
 	function setTheme(theme: string) {
 		const html = document.documentElement;
-		if (theme === 'dark') {
-			html.classList.add('dark');
-		} else {
-			html.classList.remove('dark');
+		const isDark = theme === 'dark';
+		html.classList.toggle('dark', isDark);
+
+		const themeColor = isDark ? '#464545' : '#ffffff';
+		let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+		if (!meta) {
+			meta = document.createElement('meta');
+			meta.name = 'theme-color';
+			document.head.appendChild(meta);
 		}
+		meta.content = themeColor;
 	}
 
 	// Lifecycle hook
@@ -168,6 +188,5 @@
 
 	onUnmounted(() => {
 		settings.stopListeningMobile();
-		cleanupSnapEnforcement();
 	});
 </script>

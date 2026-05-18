@@ -1,8 +1,7 @@
 // Packages
-import { usePubhubsStore } from './pubhubs';
 import { assert } from 'chai';
-import { EventType, MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
-import { MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
+import { EventType, type MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
+import { type MSC3575RoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Composables
@@ -13,13 +12,13 @@ import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { api_synapse } from '@hub-client/logic/core/api';
 import filters from '@hub-client/logic/core/filters';
 import { router } from '@hub-client/logic/core/router';
-import { ConsentJSONParser } from '@hub-client/logic/json-utility';
-import { LOGGER } from '@hub-client/logic/logging/Logger';
-import { SMI } from '@hub-client/logic/logging/StatusMessage';
+import { type ConsentJSONParser } from '@hub-client/logic/json-utility';
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { MatrixType, OnboardingType } from '@hub-client/models/constants';
 import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
+import { UserRole } from '@hub-client/models/users/TUser';
 
 // Stores
 import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -51,11 +50,13 @@ type State = {
 	usersProfile: Map<string, UserProfile>; // Key-value pairs of users. Key=UserId.
 	administrator: Administrator | null;
 	isAdministrator: boolean;
+	adminStatusLoaded: boolean;
 	needsOnboarding: boolean;
 	needsConsent: boolean;
+	yellowCards: string[];
 };
 
-const logger = LOGGER;
+const logger = createLogger('User');
 
 const useUser = defineStore('user', {
 	state: (): State => ({
@@ -66,15 +67,18 @@ const useUser = defineStore('user', {
 		administrator: null,
 		usersProfile: new Map<string, UserProfile>(),
 		isAdministrator: false,
+		adminStatusLoaded: false,
 		needsOnboarding: false,
 		needsConsent: false,
+		yellowCards: [],
 	}),
 
 	getters: {
 		user({ userId }): MatrixUser | User {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
 			try {
-				const clientUser = this.client.getUser(userId!);
+				if (!userId) return defaultUser;
+				const clientUser = this.client.getUser(userId);
 				return clientUser ?? defaultUser;
 			} catch {
 				return defaultUser;
@@ -99,7 +103,7 @@ const useUser = defineStore('user', {
 
 		pseudonym({ userId }): string {
 			if (!userId) {
-				logger.warn(SMI.USER, 'Missing userId when getting pseudonym, showing pseudonym as "xxx-xxx"');
+				logger.warn('Missing userId when getting pseudonym, showing pseudonym as "xxx-xxx"');
 				return 'xxx-xxx';
 			}
 
@@ -119,6 +123,9 @@ const useUser = defineStore('user', {
 				return state.usersProfile.get(userId)?.avatarUrl;
 			};
 		},
+		getYellowCards: (state) => {
+			return state.yellowCards;
+		},
 	},
 	actions: {
 		// #region Setter method
@@ -128,7 +135,12 @@ const useUser = defineStore('user', {
 
 		async loadFromSlidingSync(roomData: MSC3575RoomData): Promise<boolean> {
 			// profile data of members is in the join content of roommember events, need only update when there is new content
-			const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
+			const membersOnlyProfileUpdate = roomData.required_state?.filter(
+				(x) =>
+					x.type === EventType.RoomMember &&
+					x.content?.membership === MatrixType.Join &&
+					JSON.stringify(x.content) !== JSON.stringify(x.prev_content),
+			);
 			if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
 
 			const { getAuthorizedMediaUrl } = useMatrixFiles();
@@ -142,7 +154,15 @@ const useUser = defineStore('user', {
 				}
 
 				// only update the member if not available yet in userProfile, or if displayname/avatarurl has changed
-				if (!memberToUpdate || memberToUpdate?.displayName !== member.content.displayname || memberToUpdate?.contentAvatarUrl !== member.content.avatar_url) {
+				if (
+					!memberToUpdate ||
+					memberToUpdate?.displayName !== member.content.displayname ||
+					memberToUpdate?.contentAvatarUrl !== member.content.avatar_url
+				) {
+					// Revoke old avatar blob URL before replacing
+					if (memberToUpdate?.avatarUrl?.startsWith('blob:')) {
+						URL.revokeObjectURL(memberToUpdate.avatarUrl);
+					}
 					const avatarUrl = member.content.avatar_url ? await getAuthorizedMediaUrl(member.content.avatar_url) : '';
 					const profile: UserProfile = {
 						displayName: member.content.displayname ?? undefined,
@@ -161,6 +181,13 @@ const useUser = defineStore('user', {
 			this.userId = userId;
 		},
 
+		addYellowCard(roomId: string) {
+			this.yellowCards.push(roomId);
+		},
+		removeYellowCard(roomId: string) {
+			this.yellowCards = this.yellowCards.filter((id) => id !== roomId);
+		},
+
 		async setDisplayName(name: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
 			this._displayName = name;
@@ -170,6 +197,11 @@ const useUser = defineStore('user', {
 		async setAvatarUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
 
+			// Revoke old avatar blob URL before replacing
+			if (this._avatarUrl?.startsWith('blob:')) {
+				URL.revokeObjectURL(this._avatarUrl);
+			}
+
 			const { getAuthorizedMediaUrl } = useMatrixFiles();
 			this._avatarUrl = await getAuthorizedMediaUrl(avatarUrl);
 			this.client.setAvatarUrl(avatarUrl);
@@ -177,7 +209,7 @@ const useUser = defineStore('user', {
 
 		// Profile setter method for me.
 		// This method is used during login of me.
-		setProfile(profile: any) {
+		setProfile(profile: { avatar_url?: string; displayname?: string }) {
 			if (profile.avatar_url !== undefined) this.setAvatarUrl(profile.avatar_url);
 			if (profile.displayname !== undefined) this.setDisplayName(profile.displayname);
 		},
@@ -197,13 +229,14 @@ const useUser = defineStore('user', {
 				this.needsConsent = false;
 				this.needsOnboarding = false;
 			} catch (error) {
-				console.log(error);
+				logger.error(error);
 			}
 		},
 		// #endregion
 
 		// #region Fetchermethod //
 		async fetchIsAdministrator(client: MatrixClient) {
+			this.adminStatusLoaded = false;
 			try {
 				// API call returns true when succesful and isAdministrator, but throws an error when false
 				// still we need to check the returnvalue for when it might be succesfully returned as false
@@ -216,6 +249,14 @@ const useUser = defineStore('user', {
 				}
 			} catch {
 				this.isAdministrator = false;
+			} finally {
+				this.adminStatusLoaded = true;
+				const currentRoute = router.currentRoute.value;
+				const accessFor = currentRoute.meta?.accessFor as Array<UserRole> | undefined;
+				const isAdminOnlyRoute = accessFor?.length === 1 && accessFor[0] === UserRole.Admin;
+				if (isAdminOnlyRoute && !this.isAdministrator) {
+					router.push({ name: 'home' });
+				}
 			}
 		},
 
@@ -229,7 +270,7 @@ const useUser = defineStore('user', {
 					this.needsOnboarding = response.needs_onboarding;
 				}
 			} catch (error) {
-				console.error('Could not check if user needs consent, ', error);
+				logger.error('Could not check if user needs consent, ', error);
 				router.push({ name: 'error-page' });
 				this.needsConsent = true;
 			}
