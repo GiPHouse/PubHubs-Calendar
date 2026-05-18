@@ -29,8 +29,7 @@
 	</HeaderFooter>
 </template>
 
-<script setup>
-	// matrix sdk
+<script setup lang="ts">
 	//components
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
@@ -45,7 +44,7 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+	import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -108,17 +107,17 @@
 	}
 
 	function createCalendarEventObject(eventPayload, eventId) {
-		return new CalendarEvent(
-			eventPayload.title,
-			eventPayload.description ?? '',
-			eventPayload.color ?? '#3788d8',
-			eventPayload.allDay ?? false,
-			new Date(eventPayload.start),
-			new Date(eventPayload.end ?? eventPayload.start),
-			eventId,
-			eventPayload.location ?? '',
-			eventPayload.room ?? '',
-		);
+		return {
+			title: eventPayload.title,
+			description: eventPayload.description ?? '',
+			color: eventPayload.color ?? '#3788d8',
+			isAllDay: eventPayload.allDay ?? false,
+			startTime: new Date(eventPayload.start),
+			endTime: new Date(eventPayload.end ?? eventPayload.start),
+			id: eventId,
+			location: eventPayload.location ?? '',
+			room: eventPayload.room ?? '',
+		} as unknown as TCalendarEvent;
 	}
 
 	async function findAndJoinCalendarRoom() {
@@ -417,7 +416,6 @@
 
 		weekends: true,
 		editable: true,
-		selectable: true,
 		selectMirror: true,
 		dayMaxEvents: true,
 		events: calendarEvents,
@@ -497,8 +495,12 @@
 			endDate.setHours(0, 0, 0, 0);
 		}
 
-		const calendarEvent = new CalendarEvent(newEvent.title, newEvent.description, newEvent.start, newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end);
-
+		const calendarEvent = {
+			title: newEvent.title,
+			description: newEvent.description,
+			startTime: new Date(newEvent.start),
+			endTime: newEvent.allDay ? addOneDay(newEvent.end) : new Date(newEvent.end),
+		} as unknown as TCalendarEvent;
 		await createCalendarEvent(newEvent.id, calendarEvent);
 	}
 
