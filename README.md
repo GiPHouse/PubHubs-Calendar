@@ -38,9 +38,6 @@ This project is **in active development** and moving through test phases. The re
 | [pubhubs](./pubhubs/)             |  dir | PubHubs Central (Rust)                                             | Central login & identity platform.                       |
 | [pubhubs_hub](./pubhubs_hub/)     |  dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration.               |
 
-> [!Warning] Placement note
-> Do not place this repository inside a folder managed by home-manager’s impermanence feature — that can cause permission problems for test hub data and local services.
-
 ---
 
 ## Developer quickstart
@@ -58,9 +55,6 @@ With Nix installed, use the following command to enter a development shell:
 ```sh
 # If using Nix:
 nix develop
-
-# Or, with direnv enabled:
-direnv allow
 ```
 
 ### 3. Development commands
@@ -144,6 +138,18 @@ UPDATE users SET admin = 1; # Note that this will make all the existing users ad
 
 # Afterwards, quit with ctrl + d, or:
 quit;
+```
+
+If the hub is using PostgreSQL instead of SQLite3, use the following instead:
+
+```sh
+docker exec pubhubs-testhub0 sudo -u postgres psql hub
+
+-- Inside psql
+UPDATE users SET admin = 1; -- Note that this will make all the existing users admin, use 'WHERE' to specify
+
+-- Afterwards, quit with:
+\q
 ```
 
 After doing this, restart the hub server, or close `mask run all` and run it again.

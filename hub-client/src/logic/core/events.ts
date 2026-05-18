@@ -1,11 +1,12 @@
 // Packages
-import { EventType, MatrixClient, MatrixEvent, MsgType, RoomMember } from 'matrix-js-sdk';
+import { EventType, type MatrixClient, type MatrixEvent, MsgType, type RoomMember } from 'matrix-js-sdk';
 
-// Logic
 import { EventTimeLineHandler } from '@hub-client/logic/core/eventTimeLineHandler';
+// Logic
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
-import { TEvent } from '@hub-client/models/events/TEvent';
+import { type TEvent } from '@hub-client/models/events/TEvent';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -17,6 +18,7 @@ enum PubHubsMsgType {
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
 	DisclosedMessage = 'pubhubs.disclosed_message',
 	AnnouncementMessage = 'pubhubs.announcement_message',
+	WhisperMessage = 'pubhubs.whisper_message',
 	VotingWidget = 'pubhubs.voting_widget.widget',
 	VotingWidgetEdit = 'pubhubs.voting_widget.edit',
 	VotingWidgetVote = 'pubhubs.voting_widget.vote',
@@ -48,6 +50,8 @@ enum PubHubsInvisibleMsgType {
 	VotingWidgetModify = 'pubhubs.voting_widget.modify',
 }
 
+const logger = createLogger('Events');
+
 class Events {
 	//private readonly client: MatrixClient;
 	private readonly eventTimeLineHandler = new EventTimeLineHandler();
@@ -56,7 +60,7 @@ class Events {
 	 * Matrix Events
 	 */
 
-	eventRoomTimeline(event: MatrixEvent, toStartOfTimeline: boolean | undefined) {
+	eventRoomTimeline(event: MatrixEvent, _toStartOfTimeline: boolean | undefined) {
 		if (event.event.type === EventType.RoomMessage && event.event.content?.msgtype === MsgType.Text) {
 			event.event = this.eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
@@ -64,7 +68,10 @@ class Events {
 		if (event.event.type === EventType.RoomMessage && event.event.content?.msgtype === MsgType.Notice) {
 			const rooms = useRooms();
 			//Messages are only in rooms.
-			rooms.addProfileNotice(event.getRoomId()!, event.getContent().body);
+			const roomId = event.getRoomId();
+			if (roomId) {
+				rooms.addProfileNotice(roomId, event.getContent().body);
+			}
 		}
 
 		// if (!toStartOfTimeline) {
@@ -90,11 +97,11 @@ class Events {
 					const pubhubs = usePubhubsStore();
 					pubhubs
 						.joinRoom(member.roomId)
-						.catch((e) => console.debug(e.toString()))
+						.catch((e) => logger.debug(e.toString()))
 						//This sometimes gives an error when the room cannot be found, maybe it's an old experiment or
 						// deleted. Reflects the state, so we just show some debug info.
 						.then(function () {
-							console.log('joined DM');
+							logger.debug('joined DM');
 						});
 				}
 				// This case is needed to force the rooms store to update in the miniclient when a user joins a room.

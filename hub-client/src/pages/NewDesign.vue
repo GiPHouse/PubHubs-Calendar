@@ -6,70 +6,286 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Buttons</h2>
 				<div class="gap-050 flex flex-col">
-					<Button icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">Primary<template v-slot:sr-label>Hi!</template></Button>
-					<Button icon="check-circle" @click="clicked()">Primary</Button>
-					<Button icon="check-circle" variant="secondary" @click="clicked()">Secondary</Button>
-					<Button secondary-icon="smiley" variant="tertiary" @click="clicked()">Tertiary</Button>
-					<Button icon="warning" secondary-icon="warning" variant="error" @click="clicked()">Error</Button>
-					<Button icon="circle" secondary-icon="circle" :disabled="true" @click="clicked()">Disabled</Button>
-					<Button icon="circle" secondary-icon="circle" :loading="true" @click="clicked()">Loading</Button>
-					<Button icon="warning" secondary-icon="smiley" @click="clicked()">Extreem lange tekst in deze button die moet worden afgekapt maar wel in de title</Button>
+					<Button
+						icon="check-circle"
+						variant="primary"
+						title="this is a tooltip"
+						@click="clicked()"
+						>Primary</Button
+					>
+					<Button
+						icon="check-circle"
+						variant="secondary"
+						@click="clicked()"
+						>Secondary</Button
+					>
+					<Button
+						secondary-icon="smiley"
+						variant="tertiary"
+						@click="clicked()"
+						>Tertiary</Button
+					>
+					<Button
+						icon="warning"
+						secondary-icon="warning"
+						variant="error"
+						@click="clicked()"
+						>Error</Button
+					>
+					<Button
+						icon="circle"
+						secondary-icon="circle"
+						:disabled="true"
+						@click="clicked()"
+						>Disabled</Button
+					>
+					<Button
+						icon="circle"
+						secondary-icon="circle"
+						:loading="true"
+						@click="clicked()"
+						>Loading</Button
+					>
+					<Button
+						icon="warning"
+						secondary-icon="smiley"
+						@click="clicked()"
+						>Extreem lange tekst in deze button die moet worden afgekapt maar wel in de title</Button
+					>
 					<div class="flex items-center gap-100">
-						<Button icon="pencil-simple" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="folder-simple" variant="secondary" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="folder-simple" variant="tertiary" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="warning" variant="error" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="warning" variant="error" @click="clicked()" :loading="true" :disabled="true" title="Handig deze title"></Button>
+						<Button
+							icon="pencil-simple"
+							title="Handig deze title"
+							@click="clicked()"
+						></Button>
+						<Button
+							icon="folder-simple"
+							variant="secondary"
+							title="Handig deze title"
+							@click="clicked()"
+						></Button>
+						<Button
+							icon="folder-simple"
+							variant="tertiary"
+							title="Handig deze title"
+							@click="clicked()"
+						></Button>
+						<Button
+							icon="warning"
+							variant="error"
+							title="Handig deze title"
+							@click="clicked()"
+						></Button>
+						<Button
+							icon="warning"
+							variant="error"
+							:loading="true"
+							:disabled="true"
+							title="Handig deze title"
+							@click="clicked()"
+						></Button>
 					</div>
 				</div>
 
 				<h2 class="my-200">ButtonGroup</h2>
 				<ButtonGroup>
-					<Button type="reset" variant="secondary">Cancel</Button>
+					<Button
+						type="reset"
+						variant="secondary"
+						>Cancel</Button
+					>
 					<Button type="submit">Submit</Button>
 				</ButtonGroup>
 
 				<h2 class="my-200">IconButton</h2>
 				<div class="gap-050 flex flex-col">
-					<IconButton icon="check-circle" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
-					<IconButton icon="check-circle" size="sm" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
-					<IconButton icon="smiley" variant="secondary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
-					<IconButton icon="smiley" size="sm" variant="secondary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
-					<IconButton icon="warning" variant="secondary" :disabled="true" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
-					<IconButton icon="warning" size="sm" variant="secondary" :disabled="true" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
+					<IconButton
+						icon="check-circle"
+						aria-label="Label voor screenreaders"
+						title="Handig deze title"
+						@click="clicked()"
+					></IconButton>
+					<IconButton
+						icon="check-circle"
+						size="sm"
+						aria-label="Label voor screenreaders"
+						title="Handig deze title"
+						@click="clicked()"
+					></IconButton>
+					<IconButton
+						icon="smiley"
+						variant="secondary"
+						aria-label="Label voor screenreaders"
+						title="Handig deze title"
+						@click="clicked()"
+					></IconButton>
+					<IconButton
+						icon="smiley"
+						size="sm"
+						variant="secondary"
+						aria-label="Label voor screenreaders"
+						title="Handig deze title"
+						@click="clicked()"
+					></IconButton>
+					<IconButton
+						icon="warning"
+						variant="secondary"
+						:disabled="true"
+						aria-label="Label voor screenreaders"
+						title="Handig deze title"
+						@click="clicked()"
+					></IconButton>
+					<IconButton
+						icon="warning"
+						size="sm"
+						variant="secondary"
+						:disabled="true"
+						aria-label="Label voor screenreaders"
+						title="Handig deze title"
+						@click="clicked()"
+					></IconButton>
 				</div>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Radio</h2>
-
-				<Radio v-model="formValues.radio" value="first">Eerste</Radio>
-				<Radio v-model="formValues.radio" value="second">Tweede</Radio>
-				<Radio v-model="formValues.radio" value="third">Derde</Radio>
+				<RadioGroup class="radiogroup1">
+					<Radio
+						v-model="radioModel"
+						value="first"
+						>Eerste</Radio
+					>
+					<Radio
+						v-model="radioModel"
+						value="second"
+						>Tweede</Radio
+					>
+					<Radio
+						v-model="radioModel"
+						value="third"
+						>Derde</Radio
+					>
+					<Radio
+						v-model="radioModel"
+						value="fourth"
+						>Vierde</Radio
+					>
+				</RadioGroup>
 
 				<h2 class="my-200">Checkbox</h2>
 				<Checkbox>Checkbox 0</Checkbox>
 				<Checkbox :model-value="true">Checkbox 1</Checkbox>
 				<Checkbox :disabled="true">Disabled</Checkbox>
-				<Checkbox :disabled="true" :model-value="true">Disabled</Checkbox>
+				<Checkbox
+					:disabled="true"
+					:model-value="true"
+					>Disabled</Checkbox
+				>
 
 				<h2 class="my-200">Toggle</h2>
 				<Toggle>Toggle 0</Toggle>
 				<Toggle :model-value="true">Toggle 1</Toggle>
 				<Toggle :disabled="true">Disabled</Toggle>
-				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
+				<Toggle
+					:disabled="true"
+					:model-value="true"
+					>Disabled</Toggle
+				>
+
+				<h2 class="my-200">DropDown</h2>
+				<DropDown
+					v-model="dropDownValues.simple"
+					:options="options"
+					placeholder="Kies hier iets"
+					:validation="{ required: true }"
+					help="Maak een keuze"
+					>Eenvoudig</DropDown
+				>
+				<DropDown
+					v-model="dropDownValues.multiple"
+					:options="options"
+					placeholder="Kies hier iets"
+					:multiple="true"
+					:validation="{ required: true }"
+					help="Maak een keuze"
+					>Eenvoudig Multiple</DropDown
+				>
+				<DropDown
+					v-model="dropDownValues.simpleIcon"
+					:options="iconOptions"
+					placeholder="Kies hier iets"
+					:validation="{ required: true }"
+					help="Maak een keuze"
+					>Met Ikonen en Labels</DropDown
+				>
+				<DropDown
+					v-model="dropDownValues.multipleIcons"
+					:options="iconOptions"
+					placeholder="Kies hier iets"
+					:multiple="true"
+					:validation="{ required: true }"
+					help="Maak een keuze"
+					>Multiple Ikonen en Labels</DropDown
+				>
+				<DropDown
+					:options="userOptions"
+					:transformer="dropDownData.transformUser"
+					placeholder="Selecteer een user"
+					:filtered="true"
+					:validation="{ required: true }"
+					help="Users"
+					>Userlist</DropDown
+				>
+				<DropDown
+					:options="roomOptions"
+					:transformer="dropDownData.transformRoom"
+					placeholder="Selecteer een Kamer"
+					:filtered="true"
+					help="Rooms"
+					>RoomList</DropDown
+				>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Inputs</h2>
 				<TextField placeholder="Type voornaam">Voornaam</TextField>
-				<TextField placeholder="Type achternaam" :validation="{ required: true, maxLength: 10 }" :show-length="true" help="Hier dus je achternaam">Achternaam</TextField>
-				<TextField placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField>
+				<TextField
+					placeholder="Type achternaam"
+					:validation="{ required: true, maxLength: 10 }"
+					help="Hier dus je achternaam"
+					>Achternaam</TextField
+				>
+				<TextField
+					placeholder="Geef getal"
+					:validation="{ isNumber: true, minValue: 2 }"
+					help="Hoe oud ben je?"
+					>Leeftijd</TextField
+				>
 
 				<h2 class="my-200">TextArea</h2>
-				<TextArea placeholder="Typ opmerking" :validation="{ required: true, minLength: 10, maxLength: 100 }" :show-length="true">Opmerking</TextArea>
-				<TextArea placeholder="Type veel" help="Echt lange tekst kan hier">Lange tekst</TextArea>
-				<TextArea placeholder="Extra" :show-length="true">Nog meer</TextArea>
+				<TextArea
+					placeholder="Typ opmerking"
+					:validation="{ required: true, minLength: 10, maxLength: 100 }"
+					:show-length="true"
+					>Opmerking</TextArea
+				>
+				<TextArea
+					placeholder="Type veel"
+					help="Echt lange tekst kan hier"
+					>Lange tekst</TextArea
+				>
+				<TextArea
+					placeholder="Extra"
+					:show-length="true"
+					>Nog meer</TextArea
+				>
+
+				<h2 class="my-200">Autocomplete</h2>
+				<TextFieldAutoComplete
+					placeholder="start typen"
+					:options="options"
+					>Autocomplete simple</TextFieldAutoComplete
+				>
 			</div>
 
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -77,25 +293,42 @@
 
 				<div class="flex flex-col gap-100">
 					<Button
-						icon="check-circle"
-						title="this is a tooltip"
-						variant="primary"
-						@click="clicked()"
 						v-context-menu="
 							(evt: any) =>
 								openMenu(evt, [
 									{ label: 'Open1', icon: 'smiley', onClick: () => console.error(myProp) },
 									{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
-									{ label: 'Delete1', isDelicate: true, onClick: () => clicked() },
+									{ label: 'Delete1', variant: ContextVariant.delicate, onClick: () => clicked() },
 								])
 						"
+						icon="check-circle"
+						title="this is a tooltip"
+						variant="primary"
+						@click="clicked()"
 					>
 						Right click menu test
 					</Button>
-					<Button icon="check-circle" @click="clicked()" v-context-menu="(evt: any) => openMenu(evt, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
+					<Button
+						v-context-menu="(evt: any) => openMenu(evt, items2)"
+						icon="check-circle"
+						variant="primary"
+						title="this is a tooltip"
+						@click="clicked()"
+						>Right click menu test</Button
+					>
 
-					<TextField placeholder="Korte tekst" :validation="{ maxLength: 10 }" help="Hier dus een korte tekst">Korte</TextField>
-					<TextArea placeholder="Lange tekst" :validation="{ required: true, minLength: 10 }" help="Lang">Lang</TextArea>
+					<TextField
+						placeholder="Korte tekst"
+						:validation="{ maxLength: 10 }"
+						help="Hier dus een korte tekst"
+						>Korte</TextField
+					>
+					<TextArea
+						placeholder="Lange tekst"
+						:validation="{ required: true, minLength: 10 }"
+						help="Lang"
+						>Lang</TextArea
+					>
 				</div>
 			</div>
 		</div>
@@ -104,16 +337,62 @@
 			<h2 class="mb-200">Form Test with valdation attributes</h2>
 
 			<ValidatedForm v-slot="{ isValidated }">
-				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
-				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, maxLength: 20 }" help="Hier dus je achternaam">{{ $t('roomlibrary.info.name') }}</TextField>
-				<TextField v-model="formValues.age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
-
-				<TextArea placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
+				<TextField
+					v-model="formValues.firstname"
+					placeholder="Type voornaam"
+					>Voornaam</TextField
+				>
+				<TextField
+					v-model="formValues.lastname"
+					placeholder="Type achternaam"
+					:validation="{ required: true, maxLength: 20 }"
+					help="Hier dus je achternaam"
+					>Achternaam</TextField
+				>
+				<TextField
+					v-model="formValues.age"
+					placeholder="Geef getal"
+					:validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }"
+					help="Hoe oud ben je?"
+					>Leeftijd</TextField
+				>
+				<TextField
+					v-model="formValues.specific"
+					placeholder="Type Yes or No"
+					:validation="{ custom: mustBeYesOrNo() }"
+					>Yes or No</TextField
+				>
+				<TextArea
+					v-model="formValues.text"
+					placeholder="Type veel"
+					:validation="{ required: true }"
+					help="Echt lange tekst kan hier"
+					>Lange tekst</TextArea
+				>
 
 				<div class="mb-200">
-					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
-					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
-					<Radio v-model="formValues.radio" value="third">Derde</Radio>
+					<RadioGroup
+						v-model="formValues.radio"
+						:validation="{ required: true, custom: customRadioValidation() }"
+						class="radiogroup-in-form"
+					>
+						<Label>Keuze:</Label>
+						<Radio
+							v-model="formValues.radio"
+							value="first"
+							>Eerste</Radio
+						>
+						<Radio
+							v-model="formValues.radio"
+							value="second"
+							>Tweede</Radio
+						>
+						<Radio
+							v-model="formValues.radio"
+							value="third"
+							>Derde</Radio
+						>
+					</RadioGroup>
 				</div>
 
 				<div class="flex gap-12">
@@ -128,7 +407,12 @@
 				</div>
 
 				<ButtonGroup>
-					<Button type="submit" :disabled="!isValidated" @click.stop.prevent="clicked()">Submit</Button>
+					<Button
+						type="submit"
+						:disabled="!isValidated"
+						@click.stop.prevent="clicked()"
+						>Submit</Button
+					>
 				</ButtonGroup>
 			</ValidatedForm>
 		</div>
@@ -137,36 +421,107 @@
 
 <script setup lang="ts">
 	// Packages
-	import { onMounted, reactive } from 'vue';
+	import { onMounted, reactive, ref } from 'vue';
+
+	// Models
+	import { type TUserAccount } from '@hub-client/models/users/TUser';
+	import { type InputType, type MultipleInputType } from '@hub-client/models/validation/TFormOption';
+	import { type FieldOptions } from '@hub-client/models/validation/TFormOption';
+	import { type ValidationRule } from '@hub-client/models/validation/TValidate';
+
+	import { type TPublicRoom } from '@hub-client/stores/rooms';
 
 	// New design
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
+	import DropDown from '@hub-client/new-design/components/forms/DropDown.vue';
+	import Label from '@hub-client/new-design/components/forms/Label.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
+	import RadioGroup from '@hub-client/new-design/components/forms/RadioGroup.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
+	import TextFieldAutoComplete from '@hub-client/new-design/components/forms/TextFieldAutoComplete.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+	// Composables
+	import { useDropDownData } from '@hub-client/new-design/composables/DropDownData.composable';
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
-	import { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
+	import { ContextVariant, type MenuItem } from '@hub-client/new-design/models/contextMenu.models';
+
+	/**
+	 *
+	 * IMPORTANT: Leave all constants and fields (validations) as they are, some of them are used by the e2e test!
+	 *
+	 */
+
+	const dropDownData = useDropDownData();
 
 	// Types
 	type formType = {
 		firstname: string;
 		lastname: string;
-		age: number;
+		age: number | undefined;
+		specific: string;
+		text: string;
 		radio: string;
 		option1: boolean;
 		option2: boolean;
 	};
 
+	const radioModel = defineModel<string>('');
+
 	const formValues = reactive({
+		firstname: '',
+		lastname: '',
+		age: undefined,
+		specific: '',
+		text: '',
 		radio: '',
 		option1: false,
 		option2: true,
 	} as formType);
+
+	const myProp = 'Hi';
+
+	const items2: MenuItem[] = [
+		{ label: 'Open1', icon: 'smiley', payload: { myProp } },
+		{ label: 'Rename2', disabled: true },
+		{ label: 'Delete2', variant: ContextVariant.delicate },
+	];
+
+	const options = ['Optie 1', 'Mogelijkheid 2', 'Derde kans', 'Quattro', 'Meer dan vijf is niet nodig'] as FieldOptions;
+	const iconOptions = [
+		{ icon: 'basketball', value: 'een', label: 'Optie 1' },
+		{ icon: 'dog', value: 'twee', label: 'Mogelijkheid 2' },
+		{ icon: 'globe', value: 'drie', label: 'Derde kans' },
+		{ icon: 'key', value: 'vier', label: 'Quattro' },
+		{ icon: 'shield', value: 'vijf', label: 'Meer dan vijf is niet nodig' },
+	] as FieldOptions;
+	const userOptions = ref<TUserAccount[]>([]);
+	const roomOptions = ref<TPublicRoom[]>([]);
+	const dropDownValues = reactive({
+		simple: options[0] as InputType,
+		multiple: [options[0], options[1], options[2]] as MultipleInputType,
+		simpleIcon: iconOptions[0] as InputType,
+		multipleIcons: [iconOptions[0], iconOptions[4]] as MultipleInputType,
+	});
+
+	onMounted(() => {
+		document.addEventListener('context-menu-select', ((e: CustomEvent) => {
+			const item = e.detail.item;
+			if (item.label === 'Open1') {
+				// eslint-disable-next-line no-console -- debug logging for design page
+				console.log('Message:', myProp);
+			}
+		}) as unknown as (e: Event) => void);
+	});
+
+	onMounted(async () => {
+		userOptions.value = await dropDownData.userList();
+		roomOptions.value = await dropDownData.publicRoomList();
+	});
 
 	const clicked = () => {
 		alert('clicked!');
@@ -175,20 +530,42 @@
 	// Context menu
 	const { openMenu } = useContextMenu();
 
-	const myProp = 'Hi';
-
-	const items2: MenuItem[] = [
-		{ label: 'Open1', icon: 'smiley', payload: { myProp } },
-		{ label: 'Rename2', disabled: true },
-		{ label: 'Delete2', isDelicate: true },
-	];
-
-	onMounted(() => {
-		document.addEventListener('context-menu-select', (e: any) => {
-			const item = e.detail.item;
-			if (item.label === 'Open1') {
-				console.log('Message:', myProp);
+	// Custom validator Example
+	function mustBeYesOrNoFn() {
+		return (value: unknown) => {
+			if (!value) {
+				return false;
 			}
-		});
-	});
+			const low = (value as string).toLocaleLowerCase();
+			const result = (low === 'yes' || low === 'no') as boolean;
+			return result;
+		};
+	}
+
+	function mustBeYesOrNo() {
+		let rule = {
+			validator: mustBeYesOrNoFn(),
+			args: [] as unknown[],
+			message: {
+				translationKey: 'Must be YES or NO',
+				parameters: [],
+			},
+		} as ValidationRule;
+		return rule;
+	}
+
+	function customRadioValidation() {
+		let rule = {
+			validator: (value: unknown) => {
+				if (value === 'second') return true;
+				return false;
+			},
+			args: [] as unknown[],
+			message: {
+				translationKey: 'Must be second option',
+				parameters: [],
+			},
+		} as ValidationRule;
+		return rule;
+	}
 </script>

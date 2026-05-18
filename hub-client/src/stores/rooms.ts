@@ -1,15 +1,16 @@
 // Packages
-import { EventType, IStateEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
-import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
+import { Direction, EventType, type IStateEvent, type Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { type MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 import { defineStore } from 'pinia';
 
 // Composables
 import { useDirectMessage } from '@hub-client/composables/useDirectMessage';
 
-// Logic
 import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 import { propCompare } from '@hub-client/logic/core/extensions';
 import { isVisiblePrivateRoom } from '@hub-client/logic/core/privateRoomNames';
+// Logic
+import { createLogger } from '@hub-client/logic/logging/Logger';
 
 // Models
 import { ScrollPosition } from '@hub-client/models/constants';
@@ -52,6 +53,8 @@ type Unsigned = {
 	age: number;
 };
 
+const logger = createLogger('Rooms');
+
 function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
 	// Note that it is allowed to have no attribute values for an attribute type.
 	// So that that the attribute is required but all values are allowed.
@@ -74,7 +77,7 @@ const useRooms = defineStore('rooms', {
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
-			securedRoom: {} as TSecuredRoom,
+			securedRoom: undefined as TSecuredRoom | undefined,
 			initialRoomsLoaded: false,
 			timestamps: [] as Array<Array<number | string>>,
 			scrollPositions: {} as { [room_id: string]: string },
@@ -103,11 +106,11 @@ const useRooms = defineStore('rooms', {
 		/** Private rooms (DMs, group DMs, admin/steward contact) from the room list. */
 		loadedPrivateRooms(): RoomListRoom[] {
 			const user = useUser();
-			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			return this.roomList.filter((room) => {
 				if (room.isHidden === false && room.roomType && DirectRooms.includes(room.roomType as RoomType)) {
-					if (hiddenNameRoomTypes.includes(room.roomType as RoomType)) {
-						return isVisiblePrivateRoom(room.name, user.user!);
+					// Group DMs have user-chosen names and don't use name-encoding to track visibility, so always show them.
+					if (room.roomType === RoomType.PH_MESSAGES_DM) {
+						return isVisiblePrivateRoom(room.name, user.user.userId);
 					}
 					return true;
 				}
@@ -213,6 +216,12 @@ const useRooms = defineStore('rooms', {
 			return Object.keys(state.publicRooms).length > 0;
 		},
 
+		getPublicRoom: (state) => {
+			return (roomId: string): TPublicRoom | undefined => {
+				return state.publicRooms.find((room) => room.room_id === roomId);
+			};
+		},
+
 		nonSecuredPublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
 				return room.room_type === undefined || (room.room_type !== RoomType.PH_MESSAGES_RESTRICTED && room.room_type !== RoomType.PH_MESSAGES_CALENDAR);
@@ -240,17 +249,18 @@ const useRooms = defineStore('rooms', {
 			return state.securedRooms.sort(propCompare('room_name'));
 		},
 
-		totalUnreadMessages(): number {
-			// Read unreadCountVersion to trigger reactive updates when Matrix SDK counts change
-			void this.unreadCountVersion;
-			let total = 0;
-			this.roomsArray.forEach((room) => {
-				if (!room.isHidden()) {
-					total += room.getUnreadNotificationCount(NotificationCountType.Total);
+		securedRoomById: (state) => {
+			return (roomId: string): TSecuredRoom | undefined => {
+				const index = state.securedRooms.findIndex((r) => r.room_id === roomId);
+				if (index >= 0) {
+					return state.securedRooms[index];
+				} else if (state.securedRoom && roomId === state.securedRoom.room_id) {
+					return state.securedRoom;
 				}
-			});
-			return total;
+				return undefined;
+			};
 		},
+
 		roomtimestamps(state): Array<Array<number | string>> {
 			return state.timestamps;
 		},
@@ -259,6 +269,22 @@ const useRooms = defineStore('rooms', {
 	//#endregion getters
 
 	actions: {
+		// Fetch the total of unread notifications of all rooms in the hub
+		async fetchTotalUnreadCounts(): Promise<number> {
+			await this.waitForInitialRoomsLoaded();
+
+			const pubhubs = usePubhubsStore();
+			const rooms = pubhubs.client.getRooms();
+			let unread = 0;
+			for (const roomListRoom of this.roomList) {
+				const room = rooms.find((x) => x.roomId === roomListRoom.roomId);
+				if (room) {
+					unread += room.getRoomUnreadNotificationCount(NotificationCountType.Total);
+				}
+			}
+			return unread;
+		},
+
 		async waitForInitialRoomsLoaded(): Promise<void> {
 			while (!this.initialRoomsLoaded) {
 				await new Promise((resolve) => setTimeout(resolve, 50)); // poll every 50 ms
@@ -313,10 +339,16 @@ const useRooms = defineStore('rooms', {
 				room.setStateEvents(this.roomList.find((x) => x.roomId === roomId)?.stateEvents);
 			}
 
-			const lastMessageId = this.roomList.find((x) => x.roomId === roomId)?.lastMessageId;
-			if (lastMessageId && room) {
+			const user = useUser();
+			let lastReadMessageId = user.userId ? room?.getEventReadUpTo(user.userId, true) : undefined; // keep ignoreSynthesized true: it filters out non message readupto's that are generated by the js sdk
+			if (!lastReadMessageId) {
+				const pubhubs = usePubhubsStore();
+				lastReadMessageId = (await pubhubs.client.createMessagesRequest(roomId, null, 1, Direction.Backward, this.rooms[roomId].getMessagesFilter()))
+					.chunk[0]?.event_id;
+			}
+			if (lastReadMessageId && room) {
 				await room.loadToEvent({
-					eventId: lastMessageId,
+					eventId: lastReadMessageId,
 					position: ScrollPosition.Start,
 				});
 			}
@@ -329,9 +361,8 @@ const useRooms = defineStore('rooms', {
 			const existing = this.roomList.find((room) => room.roomId === roomListRoom.roomId);
 			if (existing) {
 				existing.roomType = roomListRoom.roomType;
-				existing.name = roomListRoom.name;
+				if (roomListRoom.name) existing.name = roomListRoom.name;
 				if (roomListRoom.stateEvents.length > 0) existing.stateEvents = roomListRoom.stateEvents;
-				if (roomListRoom.lastMessageId) existing.lastMessageId = roomListRoom.lastMessageId;
 			} else {
 				this.roomList.push(roomListRoom);
 			}
@@ -408,21 +439,6 @@ const useRooms = defineStore('rooms', {
 			});
 		},
 
-		sendUnreadMessageCounter() {
-			const messagebox = useMessageBox();
-			messagebox.sendMessage(new Message(MessageType.UnreadMessages, this.totalUnreadMessages));
-		},
-
-		unreadMessageNotification(): number {
-			if (!this.currentRoom) return 0;
-			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Total);
-		},
-
-		unreadMentionNotification(): number {
-			if (!this.currentRoom) return 0;
-			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Highlight);
-		},
-
 		async fetchPublicRooms(force: boolean = false) {
 			const pubhubs = usePubhubsStore();
 			const rooms = await pubhubs.getAllPublicRooms(force);
@@ -438,7 +454,7 @@ const useRooms = defineStore('rooms', {
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 			// visibility is based on a prefix on room names when the room is joined or left.
 			if (type === RoomType.PH_MESSAGES_DM) {
-				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user.user));
+				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user.user.userId));
 			}
 			return rooms.filter((room) => room.getType() === type);
 		},
@@ -454,7 +470,7 @@ const useRooms = defineStore('rooms', {
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			let result = rooms.filter((room) => !room.isHidden() && room.getType() !== undefined && types.includes(room.getType() as RoomType));
-			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.getType() as RoomType) || isVisiblePrivateRoom(room.name, user.user!));
+			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.getType() as RoomType) || isVisiblePrivateRoom(room.name, user.user.userId));
 			return result;
 		},
 
@@ -466,7 +482,7 @@ const useRooms = defineStore('rooms', {
 			const user = useUser();
 			const hiddenNameRoomTypes = [RoomType.PH_MESSAGES_DM, RoomType.PH_MESSAGES_GROUP];
 			let result = this.roomList.filter((room) => room.isHidden === false && room.roomType !== undefined && types.includes(room.roomType as RoomType));
-			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.roomType as RoomType) || isVisiblePrivateRoom(room.name, user.user!));
+			result = result.filter((room) => !hiddenNameRoomTypes.includes(room.roomType as RoomType) || isVisiblePrivateRoom(room.name, user.user.userId));
 			return result;
 		},
 
@@ -490,13 +506,8 @@ const useRooms = defineStore('rooms', {
 		//? Some documentation would be helpful here.
 		async storeRoomNotice(roomId: string) {
 			const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
-			const creatingAdminUser = this.currentRoom?.getCreator();
 			if (!this.roomNotices[roomId]) {
 				this.roomNotices[roomId] = {};
-			}
-
-			if (creatingAdminUser) {
-				this.roomNotices[roomId][creatingAdminUser] = ['admin.title_administrator'];
 			}
 
 			const limit = 100000;
@@ -570,7 +581,7 @@ const useRooms = defineStore('rooms', {
 			if (!validSecuredRoomAttributes(room)) {
 				throw new Error('errors.no_valid_attribute');
 			}
-			const response = await api_synapse.apiPUT<any>(api_synapse.apiURLS.securedRooms, room);
+			const response = await api_synapse.apiPUT<{ modified: string }>(api_synapse.apiURLS.securedRooms, room);
 			const modified_id = response.modified;
 			const pidx = this.securedRooms.findIndex((room) => room.room_id === modified_id);
 			if (pidx >= 0) {
@@ -588,25 +599,25 @@ const useRooms = defineStore('rooms', {
 			const body = { block: true, purge: true };
 
 			const response = await api_synapse.apiDELETE(api_synapse.apiURLS.roomsAPIV2 + room_id, body);
-			// @ts-expect-error
+			// @ts-expect-error -- response type from synapse admin API is untyped
 			const deleted_id = response.delete_id;
 
 			this.room(room_id)?.setHidden(true);
 			this.setRoomListHidden(room_id, true);
 
-			this.publicRooms = this.publicRooms.filter((r: any) => r.room_id !== room_id);
+			this.publicRooms = this.publicRooms.filter((r: TPublicRoom) => r.room_id !== room_id);
 
 			return deleted_id;
 		},
 
 		async removeSecuredRoom(room: TSecuredRoom) {
 			const response = await api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms + '?room_id=' + room.room_id);
-			// @ts-expect-error
+			// @ts-expect-error -- response type from secured rooms API is untyped
 			const deleted_id = response.deleted;
 
 			// replace securedRooms and publicRooms with new arrays
 			this.securedRooms = this.securedRooms.filter((r) => r.room_id !== deleted_id);
-			this.publicRooms = this.publicRooms.filter((r: any) => r.room_id !== deleted_id);
+			this.publicRooms = this.publicRooms.filter((r: TPublicRoom) => r.room_id !== deleted_id);
 			this.room(deleted_id)?.setHidden(true);
 			this.setRoomListHidden(deleted_id, true);
 			return deleted_id;
@@ -622,22 +633,22 @@ const useRooms = defineStore('rooms', {
 				return this.securedRoom;
 			} else {
 				// We need to get information from TPublicRoom instead of room.
-				return this.getTPublicRoom(this.currentRoomId)!;
+				return this.getTPublicRoom(this.currentRoomId);
 			}
 		},
 		getTPublicRoom(roomId: string): TPublicRoom | undefined {
 			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
-			const pubhubs = usePubhubsStore();
-			const totalPrivateRooms = this.loadedPrivateRooms.map((x) => pubhubs.client.getRoom(x.roomId));
-			return totalPrivateRooms.reduce((total, room) => total + (room!.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
+			return this.privateRooms
+				.filter((room) => room.hasMessages())
+				.reduce((total, room) => total + room.getUnreadNotificationCount(NotificationCountType.Total), 0);
 		},
 		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
 			try {
 				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`, { room_id: roomId });
 			} catch (error) {
-				console.error(`Could not kick all users from ${roomId}`, error);
+				logger.error(`Could not kick all users from ${roomId}`, error);
 			}
 		},
 		// Steward room logic //
@@ -658,11 +669,10 @@ const useRooms = defineStore('rooms', {
 		 * @param roomId - The ID of the room to create or modify.
 		 * @param members - An array of RoomMember objects representing the members of the room.
 		 */
-		async createStewardRoomOrModify(roomId: string, members: Array<RoomMember>): Promise<void> {
+		async createStewardRoomOrModify(roomId: string, stewardIds: Array<string>): Promise<void> {
 			const user = useUser();
 			const pubhubs = usePubhubsStore();
 			const dm = useDirectMessage();
-			const stewardIds = members.map((member) => member.userId);
 			const stewardRoom: Room | undefined = this.currentStewardRoom(roomId);
 
 			if (stewardRoom) {
@@ -687,7 +697,7 @@ const useRooms = defineStore('rooms', {
 				});
 				dm.goToRoom(stewardRoom);
 			} else {
-				await dm.goToStewardRoom(roomId, members);
+				await dm.goToStewardRoom(roomId, stewardIds);
 			}
 		},
 	},
