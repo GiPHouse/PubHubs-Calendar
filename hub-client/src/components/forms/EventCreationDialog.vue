@@ -35,7 +35,7 @@
 										@click="form.color = color.value"
 										class="h-6 w-6 cursor-pointer rounded-sm border-2 transition hover:scale-110"
 										:style="{ backgroundColor: `var(--${color.class})` }"
-										:class="form.color === getComputedColor(color.class) ? 'border-on-surface scale-110' : 'border-transparent'"
+										:class="form.color === color.value ? 'border-on-surface scale-110' : 'border-transparent'"
 									/>
 								</div>
 							</div>
@@ -173,7 +173,8 @@
 		location: '',
 		room: [] as string[],
 		description: '',
-		color: 'bg-blue-500', // default color
+		// color: 'bg-blue-500', // default color
+		color: '#3b8df6',
 
 		allDay: props.allDay ?? false,
 

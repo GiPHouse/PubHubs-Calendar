@@ -17,8 +17,10 @@ You can see all available commands by running `mask help` or `mask <command> hel
 
 This requires [tmux](https://github.com/tmux/tmux) to be installed.
 
+> Windows users should run the lines in `scripts/run-all.sh` separately, as TMUX is not available on Windows.
+
 ```sh
-sh run-all.sh
+sh scripts/run-all.sh
 ```
 
 #### cleanup
@@ -26,7 +28,7 @@ sh run-all.sh
 > Kills everything in the TMUX session.
 
 ```sh
-sh run-all-cleanup.sh
+sh scripts/run-all-cleanup.sh
 ```
 
 ### init
@@ -131,9 +133,25 @@ echo "\033[1;32mfinished setting up garage\033[0m"
 
 ```sh
 echo "Running global servers..."
-
 cd pubhubs
-cargo run serve
+cleanup() {
+    if cargo sweep --version >/dev/null 2>&1; then
+      echo "Sweeping pubhubs/target directory ..."
+      cargo sweep --time 30
+    else
+      echo "TIP: to have us automatically clean up the pubhubs/target directory:"
+      echo
+      echo "     cargo install cargo-sweep"
+      echo
+    fi
+    if test -n "$(jobs -p)"; then
+      echo "cargo run serve is still running; killing after one second ..."
+      sleep 1; kill 0
+    fi
+}
+trap 'cleanup' EXIT
+cargo run serve &
+wait # wait exits on SIGINT, while cargo run serve might not
 ```
 
 ### client
@@ -145,6 +163,40 @@ echo "Running pubhubs client..."
 
 cd global-client
 npx vite --host -l info --port=8080
+```
+
+### android
+
+> Commands for Android development
+
+To develop on an Android device:
+
+1. Run `mask run all` to start the local environment.
+2. Activate developer mode on your phone (tap Build number 10 times in Settings > About phone).
+3. Enable USB debugging in Developer options.
+4. Connect your phone via USB and allow USB debugging in the pop-up prompt.
+5. Run `mask run android ports` to forward all required ports.
+6. Open `localhost:8080` in your phone's browser.
+7. To read the console: use `about:debugging` in Firefox or `chrome://inspect` in Chrome.
+
+#### ports
+
+> Forwards all required ports to a connected Android device via ADB
+
+```sh
+PORTS=(3900 5050 6060 7070 8001 8002 8003 8004 8008 8009 8010 8011 8012 8080 8088 8089 8188 8189)
+
+adb devices
+
+echo "Forwarding ports: ${PORTS[*]}"
+echo "Press Ctrl+C to stop."
+
+while true; do
+  for port in "${PORTS[@]}"; do
+    adb reverse tcp:$port tcp:$port 2>/dev/null
+  done
+  sleep 10
+done
 ```
 
 ### hub
@@ -245,16 +297,48 @@ cd pubhubs_hub
 docker build -t pubhubs-hub .
 ```
 
+## lint
+
+> Format and lint source code (applies fixes)
+
+```sh
+npm run lint
+```
+
 ## check
 
-> Commands for checking your local PubHubs development environment
+> Check source code without modifying it
 
 ### all
 
-> Run all checkss
+> Run all checks (format, lint, types) and environment versions
 
 ```sh
-mask check versions
+npm run check && mask check versions
+```
+
+### format
+
+> Check formatting with Prettier
+
+```sh
+npm run check:format
+```
+
+### lint
+
+> Check linting with ESLint
+
+```sh
+npm run check:lint
+```
+
+### types
+
+> Check types with TypeScript
+
+```sh
+npm run check:types
 ```
 
 ### versions
@@ -270,6 +354,6 @@ then
     exit 1
 fi
 
-python3 check-python3-version.py
-python3 check-versions.py
+python3 scripts/check-python3-version.py
+python3 scripts/check-versions.py
 ```

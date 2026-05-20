@@ -3,22 +3,19 @@
 		<SchedulerOptionItem
 			v-for="option in sortedOptions"
 			:key="option.id"
+			:closed="closed"
+			:event-id="eventId"
+			:is-creator="isCreator"
 			:option="option"
 			:scheduler="scheduler"
 			:votes="votesOfOption(option.id)"
 			:uservote="voteOfUserOnOption(option.id)"
-			:eventId="eventId"
-			:closed="closed"
-			:pickedOptionId="pickedOptionId"
-			:isCreator="isCreator"
-			:showVotesBeforeVoting="showVotesBeforeVoting"
-			:showVotes="showVotes"
-			role="listitem"
+			:votes="votesOfOption(option.id)"
 		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed } from 'vue';
 
@@ -26,7 +23,7 @@
 	import SchedulerOptionItem from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionItem.vue';
 
 	// Models
-	import { SchedulerOption, votesForOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { type SchedulerOption, type votesForOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	// Users
 	import { useUser } from '@hub-client/stores/user';
@@ -71,6 +68,6 @@
 
 	const voteOfUserOnOption = (optionId: number) => {
 		const user = useUser();
-		return votesOfOption(optionId).find((vote) => vote.userIds.includes(user.userId))?.choice ?? '';
+		return votesOfOption(optionId).find((vote) => vote.userIds.includes(user.userId ?? ''))?.choice ?? '';
 	};
 </script>

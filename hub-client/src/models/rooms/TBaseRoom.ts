@@ -1,5 +1,5 @@
 // Packages
-import { IStateEvent } from 'matrix-js-sdk';
+import { type IStateEvent } from 'matrix-js-sdk';
 
 // Types
 enum RoomType {
@@ -54,7 +54,6 @@ type RoomListRoom = {
 	roomType: string;
 	name: string;
 	stateEvents: IStateEvent[];
-	lastMessageId: string | undefined; // id of the newest message, used as base for the roomtimeline (this paginates forward to catch the newly added events)
 	isHidden: boolean; // keep track of rooms that are removed from the list but are not synced yet
 };
 

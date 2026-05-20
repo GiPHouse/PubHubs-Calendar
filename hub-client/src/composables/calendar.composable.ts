@@ -3,9 +3,10 @@
 // Logic
 // Stores
 // Models
-import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { type TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 import { useCalendarStore } from '@hub-client/stores/calendar.stores';
+import { type Room } from '@hub-client/stores/rooms';
 
 /* This file is the composable for calendar events.
  * This means that this file should handle use-case and UI-related logic.
@@ -26,20 +27,20 @@ import { useCalendarStore } from '@hub-client/stores/calendar.stores';
  *
  * @todo Implement checking if the `roomId` is legitimate.
  */
-function validateEvent(calEvent: CalendarEvent): CalendarEvent {
-	const title = calEvent.title.trim();
-	const description = calEvent.description.trim();
-	const color = calEvent.color.trim();
-	const location = calEvent.location.trim();
-
-	if (!title) {
-		throw new Error('Calendar event title is required');
+export function validateEvent(calEvent: TCalendarEvent): TCalendarEvent {
+	if (calEvent.title === '') {
+		throw new Error('Calendar event must have a non-empty title!');
 	}
 
-    // Checks if color is a valid hexadecimal (e.g. #6789ab)
-    if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
-        throw new Error('Color field is not a valid hexadecimal color string.');
-    }
+	if (calEvent.color === '') {
+		throw new Error('Calendar event must have a non-empty color string!');
+	}
+
+	// Checks if color is a valid hexadecimal (e.g. #6789ab)
+	console.log(calEvent.color);
+	if (!/#[0-9A-Fa-f]{6}/.test(calEvent.color)) {
+		throw new Error('Color field is not a valid hexadecimal color string.');
+	}
 
 	const start = new Date(calEvent.startTime);
 	const end = new Date(calEvent.endTime);
@@ -48,11 +49,32 @@ function validateEvent(calEvent: CalendarEvent): CalendarEvent {
 		throw new Error('Calendar event must have valid start and end times');
 	}
 
-	if (end.getTime() <= start.getTime()) {
+	if (calEvent.isAllDay) {
+		// if the event is allDay, we ignore the times passed down.
+		start.setHours(0, 0, 0);
+		end.setHours(23, 59, 59);
+	}
+
+	if (end.getTime() <= start.getTime() && calEvent.isAllDay) {
 		throw new Error('Calendar event end time must be after start time');
 	}
 
-	return new CalendarEvent(title, description, color, location, calEvent.isAllDay, start, end);
+	if (end.getTime() <= start.getTime() && !calEvent.isAllDay) {
+		throw new Error('Calendar event end date must be after start date');
+	}
+	console.log('Start time: ' + start.getTime() + ' End time: ' + end.getTime());
+
+	return {
+		title: calEvent.title,
+		description: calEvent.description,
+		color: calEvent.color,
+		isAllDay: calEvent.isAllDay,
+		startTime: start,
+		endTime: end,
+		location: calEvent.location,
+		room: calEvent.room,
+		msgtype: calEvent.msgtype,
+	};
 }
 
 /**
@@ -71,12 +93,12 @@ export function useCalendarEvents() {
 	 * @param calEvent
 	 *
 	 * @example
-	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent`.
+	 *  // Creates a calendar event in room `a1b2c3`, with the given `CalendarEvent` interface.
 	 *  createCalendarEvent("a1b2c3", new CalendarEvent(
-	 *       "cool title", "desc", new Date(), new Date(Date.now() + 60 * 60 * 1000)
+	 *       "cool title", "desc", "#005a9e", new Date(), new Date(Date.now() + 60 * 60 * 1000)
 	 *  ));
 	 */
-	async function createCalendarEvent(roomId: string, calEvent: CalendarEvent): Promise<void> {
+	async function createCalendarEvent(roomId: string, calEvent: TCalendarEvent): Promise<void> {
 		const normalisedEvent = validateEvent(calEvent);
 		await calendar_store.addCalendarEvent(roomId, normalisedEvent);
 	}
@@ -90,14 +112,19 @@ export function useCalendarEvents() {
 		await calendar_store.delCalendarEvent(roomId, eventId);
 	}
 
-	async function updateCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent): Promise<void> {
+	async function updateCalendarEvent(roomId: string, eventId: string, calEvent: TCalendarEvent): Promise<void> {
 		const normalisedEvent = validateEvent(calEvent);
 		await calendar_store.editCalendarEvent(roomId, eventId, normalisedEvent);
+	}
+
+	async function getCalendarEvents(room: Room): Promise<TCalendarEvent[]> {
+		return await calendar_store.getCalendarEvents(room);
 	}
 
 	return {
 		createCalendarEvent,
 		removeCalendarEvent,
 		updateCalendarEvent,
+		getCalendarEvents,
 	};
 }

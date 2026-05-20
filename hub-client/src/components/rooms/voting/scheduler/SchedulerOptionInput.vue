@@ -1,12 +1,31 @@
 <template>
-	<button v-if="option.status === 'empty'" class="bg-background hover:bg-surface-high relative mb-1 flex h-[42px] w-full rounded-lg border text-left">
+	<button
+		v-if="option.status === 'empty'"
+		class="bg-background hover:bg-surface-high relative mb-1 flex h-[42px] w-full rounded-lg border text-left"
+	>
 		<div class="mx-2 flex w-full items-center">
-			<VueDatePicker id="schedulerDatePickerInput" class="" offset="20" v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" @update:model-value="updateDateOption">
+			<VueDatePicker
+				id="schedulerDatePickerInput"
+				v-model="date"
+				class=""
+				dark
+				:is-24="is24HourFormat"
+				:locale="locale"
+				:min-date="new Date()"
+				offset="20"
+				range
+				:six-weeks="'fair'"
+				@update:model-value="updateDateOption"
+			>
 				<template #trigger>
-					<p class="text-label flex-1">{{ $t('message.voting.add_option') }}</p>
+					<p class="text-label flex-1">
+						{{ $t('message.voting.add_option') }}
+					</p>
 				</template>
 				<template #action-preview="{ value }">
-					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+					<div class="text-left text-balance">
+						{{ filters.getDateStr(value, is24HourFormat, d, true) }}
+					</div>
 				</template>
 			</VueDatePicker>
 		</div>
@@ -34,16 +53,35 @@
 					</div>
 				</template>
 				<template #action-preview="{ value }">
-					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+					<div class="text-left text-balance">
+						{{ filters.getDateStr(value, is24HourFormat, d, true) }}
+					</div>
 				</template>
 				<!-- Only inject time picker overlay when NOT full day -->
 				<template v-if="!fullDay" #time-picker-overlay>
 					<div class="time-picker-overlay">
 						<div v-if="isRangeComplete">
-							<VueDatePicker v-model="time" auto-apply inline dark :range="rangeOptions" :time-picker="true" :time="time" @update:modelValue="updateTime" />
+							<VueDatePicker
+								v-model="time"
+								auto-apply
+								dark
+								inline
+								:range="rangeOptions"
+								:time="time"
+								:time-picker="true"
+								@update:model-value="updateTime"
+							/>
 						</div>
 						<div v-else>
-							<VueDatePicker v-model="time" auto-apply inline dark :time-picker="true" :time="time" @update:modelValue="updateTime" />
+							<VueDatePicker
+								v-model="time"
+								auto-apply
+								dark
+								inline
+								:time="time"
+								:time-picker="true"
+								@update:model-value="updateTime"
+							/>
 						</div>
 					</div>
 				</template>
@@ -88,6 +126,9 @@
 	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 	import { languageLocale } from '@hub-client/i18n';
 
+	const props = defineProps<{
+		option: SchedulerOption;
+	}>();
 	const emit = defineEmits(['updateOption', 'removeOption']);
 	const settings = useSettings();
 	const { d, locale: i18nLocale } = useI18n();
@@ -160,7 +201,7 @@
 		if (dates && dates.length === 1) {
 			dateBeforeSaved.value = [dates[0], null];
 		} else if (dates) {
-			dateBeforeSaved.value = dates;
+			dateBeforeSaved.value = [dates[0] ?? null, dates[1] ?? null];
 			time.value = [getTime(dates[0]), getTime(dates[1])];
 			if (equalDayMonthYear(dates[0], dates[1])) {
 				rangeOptions.value = { disableTimeRangeValidation: false };

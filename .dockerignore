@@ -1,6 +1,9 @@
-# To build the PHC image we need the global client, which depends on some code from the hub client.
-# We don't need other files however.
-*
-!pubhubs/
-!hub-client/
-!global-client/
+node_modules
+hub-client/node_modules
+global-client/node_modules
+hub-client/dist
+global-client/dist
+hub-client/stories
+hub-client/test
+global-client/test
+.git

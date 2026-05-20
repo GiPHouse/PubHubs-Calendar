@@ -1,14 +1,16 @@
 // Packages
-import { EventType, MsgType } from 'matrix-js-sdk';
+import { type EventType, type MsgType } from 'matrix-js-sdk';
+// Types from Matrix SDK
+import { type EncryptedFile, type FileInfo, type ImageInfo } from 'matrix-js-sdk/lib/@types/media';
 
 // Logic
-import { PubHubsMgType } from '@hub-client/logic/core/events';
+import { type PubHubsMgType } from '@hub-client/logic/core/events';
 
 // Models
-import { SignedMessage } from '@hub-client/models/components/signedMessages';
-import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
-import { TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { WithRequired } from '@hub-client/models/utility/utility';
+import { type SignedMessage } from '@hub-client/models/components/signedMessages';
+import { type TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+import { type TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
+import { type WithRequired } from '@hub-client/models/utility/utility';
 
 /**
  * Event used for sending messages in a room. Not limited to text.
@@ -22,22 +24,27 @@ export interface TMessageEvent<C extends TMessageEventContent = TMessageEventCon
 
 // In future Matrix spec some refacturing is needed: https://github.com/matrix-org/matrix-spec-proposals/blob/main/proposals/1767-extensible-events.md
 export interface TBaseMessageEventContent {
+	[key: string]: unknown;
 	body?: string;
 	// Custom body type, which has all the processed body or formatted body content, for use in our components
 	ph_body?: string;
+	userPL?: number;
+	whisper_to?: string;
 	msgtype:
 		| MsgType.Text
 		| MsgType.Image
 		| MsgType.File
 		| PubHubsMgType.SignedMessage
 		| PubHubsMgType.AnnouncementMessage
+		| PubHubsMgType.WhisperMessage
 		| PubHubsMgType.VotingWidget
 		| PubHubsMgType.VotingWidgetEdit
 		| PubHubsMgType.VotingWidgetVote
 		| PubHubsMgType.VotingWidgetClose
 		| PubHubsMgType.VotingWidgetOpen
 		| PubHubsMgType.VotingWidgetPickOption
-		| PubHubsMgType.VotingWidgetAddVoteOption;
+		| PubHubsMgType.VotingWidgetAddVoteOption
+		| PubHubsMgType.CalendarEvent;
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
@@ -80,16 +87,53 @@ export interface TSignedMessageEventContent extends TBaseMessageEventContent {
 	signed_message: SignedMessage;
 }
 
-export interface TAnnouncementMessageEventContent extends TBaseMessageEventContent {
+interface TPrivilegedMessageEventContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.AnnouncementMessage | PubHubsMgType.WhisperMessage;
+	userPL: number;
+}
+
+export interface TAnnouncementMessageEventContent extends TPrivilegedMessageEventContent {
 	msgtype: PubHubsMgType.AnnouncementMessage;
-	sender: string;
+}
+
+export interface TCalendarEventMessageContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.CalendarEvent;
+	title: string;
+	description: string;
+	color: string;
+	location?: string;
+	room?: string;
+	startTime: Date;
+	endTime: Date;
+	isAllDay: boolean;
+	'm.relates_to'?: {
+		event_id: string;
+		rel_type: PubHubsMgType;
+	};
+	'm.new_content'?: TCalendarEventMessageContent;
 }
 
 export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
 
-export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent | TAnnouncementMessageEventContent | TVotingWidgetMessageEventContent;
+export type TMessageEventContent =
+	| TTextMessageEventContent
+	| TImageMessageEventContent
+	| TFileMessageEventContent
+	| TSignedMessageEventContent
+	| TAnnouncementMessageEventContent
+	| TVotingWidgetMessageEventContent
+	| TCalendarEventMessageContent;
+export interface TWhisperMessageEventContent extends TPrivilegedMessageEventContent {
+	msgtype: PubHubsMgType.WhisperMessage;
+	whisper_to: string;
+}
 
-// To be implemented
-type EncryptedFile = any;
-type ImageInfo = any;
-type FileInfo = any;
+export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
+
+export type TMessageEventContent =
+	| TTextMessageEventContent
+	| TImageMessageEventContent
+	| TFileMessageEventContent
+	| TSignedMessageEventContent
+	| TPrivilegedMessageEventContent
+	| TVotingWidgetMessageEventContent;

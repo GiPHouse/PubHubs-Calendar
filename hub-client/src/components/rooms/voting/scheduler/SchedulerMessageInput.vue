@@ -1,5 +1,6 @@
 <template>
 	<div class="rounded-md">
+<<<<<<< HEAD
 		<div class="mb-2 flex items-center border-b p-2">
 			<Icon type="calendar" size="base" class="mx-2 flex-none" />
 			
@@ -13,6 +14,24 @@
 					size="sm"
 					@click="emit('closeScheduler')"
 					class="ml-2"
+=======
+		<div class="mb-2 flex border-b p-2">
+			<Icon
+				class="mx-2 mt-1 flex-none"
+				size="base"
+				type="calendar"
+			/>
+			<H2 class="grow">
+				{{ $t('message.scheduler') }}
+			</H2>
+			<div class="mt-1 flex flex-none">
+				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
+				<IconButton
+					class="ml-2"
+					size="sm"
+					type="x"
+					@click="emit('closeScheduler')"
+>>>>>>> origin/main
 				/>
 			</div>
 		</div>
@@ -21,34 +40,59 @@
 				<div class="flex w-full flex-row">
 					<input
 						v-model="scheduler.title"
-						type="text"
 						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-md p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-						:placeholder="$t('message.voting.enter_title')"
 						maxlength="100"
+						:placeholder="$t('message.voting.enter_title')"
+						type="text"
 						@input="updateScheduler"
 					/>
 				</div>
 				<div class="relative flex w-full">
 					<input
 						v-model="scheduler.location"
-						type="text"
 						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-md p-100 pl-7 pl-400 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						:placeholder="$t('message.voting.enter_location')"
+						type="text"
 					/>
-					<Icon type="map-pin" class="absolute top-1 left-0 ml-1"></Icon>
+					<Icon
+						class="absolute top-1 left-0 ml-1"
+						type="map-pin"
+					/>
 				</div>
 				<div class="-mb-1 flex w-full flex-row justify-stretch">
-					<div class="scrollbar-emojipicker mr-2 w-9/12" id="optionsContainer">
-						<div v-for="option in sortedOptions" :key="option.id">
-							<SchedulerOptionInput :key="option.id" :option="option" @removeOption="removeOption(option.id)" @updateOption="updateDateOption(option.id, $event)" />
+					<div
+						id="optionsContainer"
+						class="scrollbar-emojipicker mr-2 w-9/12"
+					>
+						<div
+							v-for="option in sortedOptions"
+							:key="option.id"
+						>
+							<SchedulerOptionInput
+								:key="option.id"
+								:option="option"
+								@remove-option="removeOption(option.id)"
+								@update-option="updateDateOption(option.id, $event)"
+							/>
 						</div>
-						<div v-if="scheduler.options.length < 2" class="bg-background mb-1 h-[42px] w-full rounded-lg border"></div>
-						<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
+						<div
+							v-if="scheduler.options.length < 2"
+							class="bg-background mb-1 h-[42px] w-full rounded-lg border"
+						/>
+						<Checkbox
+							v-model="scheduler.showVotesBeforeVoting"
+							:label="$t('message.voting.show_votes_before_voting')"
+							@input="updateScheduler"
+						/>
 					</div>
 					<div class="bg-hub-background mb-1 max-h-full w-3/12 rounded-lg border">
 						<div v-if="settingsMenu">
 							<div class="mt-3 ml-3">
-								<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
+								<Checkbox
+									v-model="scheduler.showVotesBeforeVoting"
+									:label="$t('message.voting.show_votes_before_voting')"
+									@input="updateScheduler"
+								/>
 							</div>
 						</div>
 						<textarea
@@ -58,16 +102,21 @@
 							maxlength="500"
 							:placeholder="$t('message.voting.enter_description')"
 							@input="updateScheduler"
-						></textarea>
+						/>
 					</div>
 				</div>
 			</div>
 		</div>
-		<VotingWidgetSubmitButton :disabled="!scheduler.canSend()" :isEdit="isEdit" @send="emit('sendScheduler')" @edit="emit('editScheduler')"></VotingWidgetSubmitButton>
+		<VotingWidgetSubmitButton
+			:disabled="!scheduler.canSend()"
+			:is-edit="isEdit"
+			@edit="emit('editScheduler')"
+			@send="emit('sendScheduler')"
+		/>
 	</div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 	// Packages
 	import { computed, nextTick, ref, watch } from 'vue';
 
@@ -77,7 +126,7 @@
 	import SchedulerOptionInput from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionInput.vue';
 
 	// Models
-	import { Scheduler, SchedulerOption, SchedulerOptionStatus } from '@hub-client/models/events/voting/VotingTypes';
+	import { Scheduler, type SchedulerOption, SchedulerOptionStatus } from '@hub-client/models/events/voting/VotingTypes';
 
 	const props = defineProps({
 		schedulerObject: {
@@ -130,7 +179,7 @@
 		emit('createScheduler', scheduler.value, scheduler.value.canSend());
 	};
 
-	function updateDateOption(optionId: Number, date: Date[]) {
+	function updateDateOption(optionId: number, date: Date[]) {
 		const option = scheduler.value.options.find((option) => option.id === optionId);
 		if (option) {
 			option.date = date;
