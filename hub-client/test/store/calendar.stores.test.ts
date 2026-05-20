@@ -83,7 +83,7 @@ describe("Calendar Store", () => {
 		await calendarStore.editCalendarEvent('!room:example', '$event123', event);
 
 		expect(sendEventMock).toHaveBeenCalledTimes(1);
-		expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalenderEventModify, {
+		expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalendarEvent, {
 			msgtype: PubHubsMgType.CalenderEventEdit,
 			body: 'Some Event',
 			title: 'Some Event',

@@ -3,7 +3,7 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { vol, createFsFromVolume, Volume } from 'memfs';
-import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 import { generateIcsFromEvent } from '@hub-client/logic/calendar.logic';
 vi.mock('fs', () => {
   const mockFs = {
@@ -52,15 +52,15 @@ describe('generateIcsFromEvent', () => {
 	test('should generate ICS file with required fields', async () => {
 		vi.resetModules();
 		const { generateIcsFromEvent } = await import('@hub-client/logic/calendar.logic');
-		const event = new CalendarEvent(
-			'Test Event',
-			'Test Description',
-			'#FF0000',
-			'Test Location',
-			false,
-			new Date('2023-10-01T10:00:00Z'),
-			new Date('2023-10-01T11:00:00Z')
-		);
+		const event = {
+			title: 'Test Event',
+			description: 'Test Description',
+			color: '#FF0000',
+			location: 'Test Location',
+			isAllDay: false,
+			startTime: new Date('2023-10-01T10:00:00Z'),
+			endTime: new Date('2023-10-01T11:00:00Z')
+		} as unknown as TCalendarEvent;
 
 		const filePath = generateIcsFromEvent(event);
 
@@ -77,34 +77,42 @@ describe('generateIcsFromEvent', () => {
 
 	test('should throw error if title is missing', async() => {
 		const { generateIcsFromEvent } = await import('@hub-client/logic/calendar.logic');
-		const event = new CalendarEvent(
-			'',
-			'Test Description',
-			'#FF0000',
-			'Test Location',
-			false,
-			new Date('2023-10-01T10:00:00Z'),
-			new Date('2023-10-01T11:00:00Z')
-		);
+		const event = {
+			title: '',
+			description: 'Test Description',
+			color: '#FF0000',
+			location: 'Test Location',
+			isAllDay: false,
+			startTime: new Date('2023-10-01T10:00:00Z'),
+			endTime: new Date('2023-10-01T11:00:00Z')
+		} as unknown as TCalendarEvent;
 
 		expect(() => generateIcsFromEvent(event)).toThrow('event.title is required');
 	});
 
 	test('should throw error if startTime is missing', async() => {
 		const { generateIcsFromEvent } = await import('@hub-client/logic/calendar.logic');
-		const event = new CalendarEvent(
-			'Test Event',
-			'Test Description',
-			'#FF0000',
-			'Test Location',
-			false,
-			new Date(''), // Invalid date
-			new Date('2023-10-01T11:00:00Z')
-		);
+		const event = {
+			title: 'Test Event',
+			description: 'Test Description',
+			color: '#FF0000',
+			location: 'Test Location',
+			isAllDay: false,
+			startTime: new Date(''), // Invalid date
+			endTime: new Date('2023-10-01T11:00:00Z')
+		} as unknown as TCalendarEvent;
 
-        const event2 = new CalendarEvent('Test', '', '#FF0000');
-		// @ts-ignore
-		event2.startTime = null;
+		const event2 = {
+			title: "test",
+			description: "",
+			color: "#FF0000",
+			location: "",
+			isAllDay: false,
+			startTime: new Date('2023-10-01T11:00:00Z'),
+			// @ts-ignore
+			endTime: null,
+		} as unknown as TCalendarEvent;
+
 
 		expect(() => generateIcsFromEvent(event2)).toThrow('event.startTime is required');
 	});
@@ -112,9 +120,16 @@ describe('generateIcsFromEvent', () => {
 	test('should throw error if endTime is missing', async () => {
 		vi.resetModules();
 		const { generateIcsFromEvent } = await import('@hub-client/logic/calendar.logic');
-		const event = new CalendarEvent('Test', '', '#FF0000');
-		// @ts-ignore
-		event.endTime = null;
+		const event = {
+			title: "Test",
+			description: "",
+			color: "#FF0000",
+			location: "",
+			isAllDay: false,
+			startTime: new Date('2023-10-01T10:00:00Z'),
+			// @ts-ignore
+			endTime: null,
+		} as unknown as TCalendarEvent;
 
 		expect(() => generateIcsFromEvent(event)).toThrow('event.endTime is required');
 	});
@@ -122,15 +137,15 @@ describe('generateIcsFromEvent', () => {
 	test('should include description and location if provided', async () => {
 		vi.resetModules();
 		const { generateIcsFromEvent } = await import('@hub-client/logic/calendar.logic');
-		const event = new CalendarEvent(
-			'Event with Details',
-			'Detailed Description',
-			'#00FF00',
-			'Specific Location',
-			false,
-			new Date('2023-10-02T14:00:00Z'),
-			new Date('2023-10-02T15:30:00Z')
-		);
+		const event = {
+			title: 'Event with Details',
+			description: 'Detailed Description',
+			color: '#00FF00',
+			location: 'Specific Location',
+			isAllDay: false,
+			startTime: new Date('2023-10-02T14:00:00Z'),
+			endTime: new Date('2023-10-02T15:30:00Z')
+		} as unknown as TCalendarEvent;
 
 		const filePath = generateIcsFromEvent(event);
 

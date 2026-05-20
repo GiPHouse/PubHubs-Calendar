@@ -3,9 +3,9 @@ import ical from 'ical-generator';
 import os from 'os';
 import path from 'path';
 
-import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
-export function generateIcsFromEvent(event: CalendarEvent): string {
+export function generateIcsFromEvent(event: TCalendarEvent): string {
 	const title = event.title;
 	const description = event.description;
 	const start = event.startTime;
