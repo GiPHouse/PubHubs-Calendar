@@ -3,10 +3,10 @@
 // Logic
 // Stores
 // Models
-import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { type TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 import { useCalendarStore } from '@hub-client/stores/calendar.stores';
-import { Room } from '@hub-client/stores/rooms';
+import { type Room } from '@hub-client/stores/rooms';
 
 /* This file is the composable for calendar events.
  * This means that this file should handle use-case and UI-related logic.
@@ -28,11 +28,11 @@ import { Room } from '@hub-client/stores/rooms';
  * @todo Implement checking if the `roomId` is legitimate.
  */
 export function validateEvent(calEvent: TCalendarEvent): TCalendarEvent {
-	if (calEvent.title == '') {
+	if (calEvent.title === '') {
 		throw new Error('Calendar event must have a non-empty title!');
 	}
 
-	if (calEvent.color == '') {
+	if (calEvent.color === '') {
 		throw new Error('Calendar event must have a non-empty color string!');
 	}
 
@@ -75,7 +75,6 @@ export function validateEvent(calEvent: TCalendarEvent): TCalendarEvent {
 		room: calEvent.room,
 		msgtype: calEvent.msgtype,
 	};
-	// return new TCalendarEvent(calEvent.title, calEvent.description, calEvent.color, calEvent.isAllDay, start, end, calEvent.id, calEvent.location, calEvent.room);
 }
 
 /**

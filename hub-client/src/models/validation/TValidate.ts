@@ -1,19 +1,21 @@
-type ValidatorFn = (value: any, ...args: any[]) => boolean;
+type ValidatorFn = (value: unknown, ...args: unknown[]) => boolean;
 
 type ValidationMessage = {
 	translationKey: string;
-	parameters: any[];
+	parameters: unknown[];
 };
 
-type ValidationMessageFn = ValidationMessage | ((value: any, ...args: any[]) => ValidationMessage);
+type ValidationMessageFn = ValidationMessage | ((value: unknown, ...args: unknown[]) => ValidationMessage);
 
 type ValidationRule = {
 	validator: ValidatorFn;
-	args?: any[];
-	// message can both be a  ValidationMessage or fuction that returns a ValidationMessage
-	message: ValidationMessageFn;
+	args?: unknown[];
+	// message can be a ValidationMessage or fuction that returns a ValidationMessage
+	message?: ValidationMessageFn;
 };
 
 type ValidationSchema = Record<string, ValidationRule[]>;
 
-export { ValidationRule, ValidationSchema, ValidationMessage, ValidationMessageFn, ValidatorFn };
+type FieldValidations = Record<string, unknown>;
+
+export { ValidationRule, ValidationSchema, ValidationMessage, ValidationMessageFn, ValidatorFn, FieldValidations };

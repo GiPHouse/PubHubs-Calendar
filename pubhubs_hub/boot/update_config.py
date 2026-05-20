@@ -91,13 +91,14 @@ class UpdateConfig:
     }
 
     def __init__(self, config_env: str, hub_client_url, hub_server_url, hub_server_url_for_yivi, global_client_url,
-                 replace_sqlite3_by_postgres):
+                 replace_sqlite3_by_postgres, server_name):
         self._hub_client_url = hub_client_url
         self._hub_server_url = hub_server_url
         self._hub_server_url_for_yivi = hub_server_url_for_yivi
         self._global_client_url = global_client_url
         self._replace_sqlite3_by_postgres = replace_sqlite3_by_postgres
-        self._rsbp_sqlite3_path = None
+        self._server_name = server_name
+        self._sqlite3_path = None
 
         match config_env:
             case "production":
@@ -149,6 +150,10 @@ class UpdateConfig:
                     continue
                 module['config']['global_client_url'] = self._global_client_url
 
+        db = homeserver.get('database', {})
+        if db.get('name') == 'sqlite3':
+            self._sqlite3_path = db.get('args', {}).get('database')
+
         if self._replace_sqlite3_by_postgres:
             if 'database' not in homeserver:
                 raise ConfigError("❌  no 'database' configured in homeserver.yaml")
@@ -160,10 +165,10 @@ class UpdateConfig:
             if 'args' not in db:
                 raise ConfigError("❌  no 'database.args' configured in homeserver.yaml")
             dbargs = db['args']
-            dbpath = dbargs.get('database')
-            if dbpath == None:
-                raise ConfigError("❌  no 'database.args.database' configured in homeserver.yaml")
-            self._rsbp_sqlite3_path = dbpath
+
+            if self._sqlite3_path == None:
+                raise ConfigError("❌  for --replace-sqlite3-by-postgres, "
+                                  f"database.args.database must be configured, but it isn't")
 
             db['name'] = 'psycopg2'
             to_remove = set()
@@ -174,8 +179,7 @@ class UpdateConfig:
                 del dbargs[key]
             dbargs['user'] = 'synapse'
             dbargs['dbname'] = 'hub'
-            dbargs['host'] = 'localhost'
-            dbargs['port'] = 5432
+            dbargs['host'] = '/var/run/postgresql'
             logger.info(f" - ✅ replaced sqlite3 with postgres configuration")
 
         homeserver_live = self._update_and_check_dont_change_config(homeserver)
@@ -313,13 +317,16 @@ class UpdateConfig:
         for key, value in homeserver_live.items():
             match key:
                 case "macaroon_secret_key":
-                    with self._try_check(key, to_be_checked_config,check_type_log_info):
+                    with self._try_check(key, to_be_checked_config, check_type_log_info):
                         self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
                 case "server_name":
-                    with self._try_check(key, to_be_checked_config,check_type_log_info):
-                        self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
+                    with self._try_check(key, to_be_checked_config, check_type_log_info):
+                        if self._server_name is None:
+                            self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
+                        else:
+                            homeserver_live['server_name'] = self._server_name
                 case "public_baseurl":
-                    with self._try_check(key, to_be_checked_config,check_type_log_info):
+                    with self._try_check(key, to_be_checked_config, check_type_log_info):
                         self._check_did_start_change(key, value, "http://")
         if to_be_checked_config:
             raise ConfigError(
@@ -548,7 +555,7 @@ def main():
 
 def run(input_file, output_file, environment, 
         hub_client_url=None, hub_server_url=None, hub_server_url_for_yivi=None, global_client_url=None,
-        replace_sqlite3_by_postgres=None):
+        replace_sqlite3_by_postgres=None, server_name=None):
 
     homeserver_file_path = input_file
     homeserver_live_file_path = output_file
@@ -560,7 +567,8 @@ def run(input_file, output_file, environment,
                                         hub_server_url=hub_server_url, 
                                         hub_server_url_for_yivi=hub_server_url_for_yivi, 
                                         global_client_url=global_client_url,
-                                        replace_sqlite3_by_postgres=replace_sqlite3_by_postgres)
+                                        replace_sqlite3_by_postgres=replace_sqlite3_by_postgres,
+                                        server_name=server_name)
     homeserver_live = update_config_module.load_and_update_config(homeserver_file_path)
 
     # Write updated config homeser.live to config path

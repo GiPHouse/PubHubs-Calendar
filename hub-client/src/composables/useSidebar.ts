@@ -1,8 +1,8 @@
 // Packages
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 
 // Stores
-import { Room } from '@hub-client/stores/rooms';
+import { type Room } from '@hub-client/stores/rooms';
 import { useSettings } from '@hub-client/stores/settings';
 
 export enum SidebarTab {
