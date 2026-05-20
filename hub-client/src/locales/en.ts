@@ -360,6 +360,7 @@ const en = {
 		memberlist: 'Member list',
 		administrator: 'administrator',
 		votes: 'votes',
+		addToCalendar:'Do you want to add this event to your calendar?',
 	},
 	settings: {
 		profile_title: 'Your profile in this hub',

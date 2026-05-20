@@ -359,6 +359,7 @@ const nl = {
 		memberlist: 'Leden',
 		administrator: 'beheerder',
 		votes: 'stemmen',
+		addToCalendar:'Wil je dit evenement aan je kalender toevoegen?',
 	},
 	settings: {
 		profile_title: 'Jouw profiel in deze hub',

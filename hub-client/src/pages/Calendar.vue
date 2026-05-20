@@ -52,7 +52,6 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
 
 	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent } = useCalendarEvents();
@@ -77,7 +76,8 @@
 	// Calendar ref
 	const fullCalendar = ref(null);
 
-	// Calendar events data
+
+	//const calendarEvents1 = getCalendarEvents();
 
 	const calendarEvents = ref([
 		{

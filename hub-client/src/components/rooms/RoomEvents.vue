@@ -1,21 +1,22 @@
 <template>
 	<div class="flex h-full flex-col p-4">
-		<SidebarHeader :title="$t('menu.calendar')" />
+		<SidebarHeader :title="$t('menu.calendar')">
+			<template #action>
+				<button
+					class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
+					@click="openCreateDialog"
+				>
+					<Icon type="plus-circle" size="md" />
+				</button>
+			</template>
+		</SidebarHeader>
 
 		<!-- Scrollable event list -->
-		<div class="flex-1 overflow-y-auto px-4 pb-4">
+		<div class="flex-1 overflow-y-auto px-4 pb-16">
 			<!-- No events -->
 			<p v-if="groupedEvents.length === 0" class="text-on-surface-dim mt-4 text-sm">
 				{{ t('calendar.noEvents') || 'No events' }}
 			</p>
-
-            <button
-				v-if="!isMobile" class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer" 
-				@click="openCreateDialog"
-				aria-label="Create event"
-				>
-				<Icon type="plus" size="sm" />
-			</button>
 
 			<EventCreationDialog
 				v-if="showEventCreationDialog"
@@ -23,10 +24,8 @@
 				:end="selectedRange.endStr"
 				:allDay="selectedRange.allDay"
 				:event="selectedEventForEdit"
-				@close="
-					showEventCreationDialog = false;
-					selectedEventForEdit = null;
-				"
+				:lockedRoom="roomsStore.currentRoom?.name ?? undefined"
+				@close="showEventCreationDialog = false; selectedEventForEdit = null;"
 				@submit="handleAddEvent"
 			/>
 
@@ -45,7 +44,12 @@
 					v-for="event in group.events"
 					:key="event.id"
 					class="mb-2 flex cursor-pointer items-center gap-3 rounded-lg p-3 transition hover:opacity-80"
-					:style="{ backgroundColor: event.backgroundColor + '22', borderLeft: `3px solid ${event.backgroundColor}` }"
+					:style="{ 
+						backgroundColor: event.backgroundColor?.startsWith('#') 
+							? event.backgroundColor + '22' 
+							: event.backgroundColor + '33',
+						borderLeft: `3px solid ${event.backgroundColor}` 
+					}"
 					@click="openEventDetails(event)"
 				>
 					<!-- Color dot -->
@@ -75,6 +79,12 @@
 	import { useI18n } from 'vue-i18n';
 
 	import { useSettings } from '@hub-client/stores/settings';
+	import { useSidebar } from '@hub-client/composables/useSidebar';
+	import { useRooms } from '@hub-client/stores/rooms';
+
+	const roomsStore = useRooms();
+	
+	const sidebar = useSidebar();
 
 	const { t, locale } = useI18n();
 	const settings = useSettings();
@@ -292,10 +302,12 @@
 			const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 			if (!groups[key]) {
 				const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+				const weekday = d.toLocaleDateString(locale.value, { weekday: 'long' });
+				const month = d.toLocaleDateString(locale.value, { month: 'long' });
 				groups[key] = {
 					dateKey: key,
 					dayNumber: d.getDate(),
-					dayLabel: d.toLocaleDateString(locale.value, { weekday: 'long', month: 'long'}),
+					dayLabel: `${weekday}, ${month}`,
 					isToday: dayDate.getTime() === today.getTime(),
 					events: [],
 				};

@@ -37,6 +37,13 @@
 			<Icon type="trash" :as-button="true" size="sm" :icon-color="'text-accent-red'" @click="emit('removeOption')" class="m-auto mr-2"></Icon>
 		</div>
 	</button>
+	<AddToCalendarDialog
+		v-if="showAddToCalendarDialog"
+		:isMobile="false"
+		:scheduler="scheduler"
+		:option="option"
+		@close="showAddToCalendarDialog = false"
+	/>
 </template>
 
 <script setup lang="ts">
@@ -65,14 +72,11 @@
 	// Get the locale of the current language
 	const locale = languageLocale[i18nLocale.value];
 
-	const props = defineProps<{
-		option: SchedulerOption;
-	}>();
-
 	const date = ref<[Date | null, Date | null]>([null, null]);
 	const dateBeforeSaved = ref();
 	const time = ref();
 	const rangeOptions = ref({ disableTimeRangeValidation: false });
+	const showAddToCalendarDialog = ref(false);
 
 	const is24HourFormat = computed(() => {
 		return settings.timeformat === TimeFormat.format24;
@@ -82,6 +86,11 @@
 		return dateBeforeSaved.value[1] !== null;
 	});
 
+	const props = defineProps<{
+		option: SchedulerOption;
+	}>();
+
+	
 	function getTime(date: Date) {
 		return {
 			hours: date.getHours(),

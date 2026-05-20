@@ -1,7 +1,7 @@
 <template>
+	<Teleport to="body">
 	<!-- Outer wrapper -->
-	<div class="fixed top-0 left-0 z-50 h-full w-full">
-		<!-- Whitening veil (EXACT same as Dialog.vue) -->
+	<div class="fixed inset-0 z-[999999]">
 		<div class="bg-surface-high absolute h-full w-full opacity-80" />
 
 		<!-- Dialog container -->
@@ -24,7 +24,7 @@
 							<!-- Title -->
 							<input v-model="form.title" type="text" required class="mt-1 w-full rounded border p-3 text-[22px] leading-tight font-bold" :placeholder="t('calendar.title')" />
 
-							<!-- Event Color  //  other option (round: class="w-5 h-5 rounded-full border-2 transition") -->
+							<!-- Event Color  //  old color format: @click="form.color = getComputedColor(color.class)" -->
 							<div class="flex items-center gap-2">
 								<Icon type="smiley" />
 								<div class="ml-1 flex flex-wrap gap-3">
@@ -32,7 +32,7 @@
 										v-for="color in colors"
 										:key="color.value"
 										type="button"
-										@click="form.color = getComputedColor(color.class)"
+										@click="form.color = color.value"
 										class="h-6 w-6 cursor-pointer rounded-sm border-2 transition hover:scale-110"
 										:style="{ backgroundColor: `var(--${color.class})` }"
 										:class="form.color === getComputedColor(color.class) ? 'border-on-surface scale-110' : 'border-transparent'"
@@ -80,22 +80,23 @@
 							<!-- Room Multi-Select Dropdown -->
 							<div class="flex items-center gap-2">
 								<Icon type="users" class="text-gray-600" />
-								<div class="relative w-full">
-									<!-- Dropdown button -->
+								
+								<!-- Locked room (read-only) -->
+								<div v-if="props.lockedRoom" class="w-full rounded border p-2 bg-gray-50 text-gray-600">
+									{{ props.lockedRoom }}
+								</div>
+
+								<!-- Editable dropdown (only when no locked room) -->
+								<div v-else class="relative w-full">
 									<div @click="showRoomDropdown = !showRoomDropdown" class="flex cursor-pointer items-center justify-between rounded border p-2">
 										<span v-if="form.room.length === 0" class="text-gray-400">
 											{{ t('calendar.selectRooms') }}
 										</span>
-										<span v-else>
-											{{ form.room.join(', ') }}
-										</span>
-										<!-- Down arrow -->
+										<span v-else>{{ form.room.join(', ') }}</span>
 										<svg class="ml-2 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 										</svg>
 									</div>
-
-									<!-- Dropdown menu -->
 									<div v-if="showRoomDropdown" class="bg-surface-low absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded border p-2 shadow">
 										<label v-for="room in rooms" :key="room" class="flex cursor-pointer items-center gap-2">
 											<input type="checkbox" :value="room" v-model="form.room" />
@@ -122,6 +123,7 @@
 			</div>
 		</div>
 	</div>
+	</Teleport>
 </template>
 
 <script setup lang="ts">
@@ -143,8 +145,6 @@
 
 	const showRoomDropdown = ref(false);
 
-	const props = defineProps<{ start: string; end: string; allDay?: boolean; event?: any }>();
-
 	const emit = defineEmits(['submit', 'close']);
 
 	const rooms = computed(() =>
@@ -153,6 +153,7 @@
 		.map(r => r.name)
 	);
 
+	const props = defineProps<{ start: string; end: string; allDay?: boolean; event?: any; lockedRoom?: string }>();
 
 	const colors = [
 		{ class: 'accent-red', value: '#ae2e24' },
@@ -214,6 +215,14 @@
 				form.endTime = newEnd.toTimeString().slice(0, 5);
 			}
 		},
+	);
+
+	watch(
+		() => props.lockedRoom,
+		(val) => {
+			if (val) form.room = [val];
+		},
+		{ immediate: true }
 	);
 
 	watch(

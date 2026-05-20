@@ -27,7 +27,6 @@
 							</ActionMenuItem>
 						</template>
 						<ActionMenuItem v-if="votingWidgetClosed == false" @click="editWidget">{{ $t('message.edit') }}</ActionMenuItem>
-						<ActionMenuItem v-if="votingWidgetClosed == false" @click="addToCalendar">{{ $t('message.calendar') }}</ActionMenuItem>					
 					</ActionMenu>
 				</div>
 			</div>
@@ -66,6 +65,7 @@
 			:showVotesBeforeVoting="votingWidget.showVotesBeforeVoting"
 			:showVotes="showVotes"
 			:sortBasedOnScore="votingWidgetClosed && isCreator"
+			:scheduler="votingWidget"
 		/>
 	</div>
 </template>
@@ -113,11 +113,9 @@
 		{},
 	);
 
-
 	const emit = defineEmits<{
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
-		(e: 'addToCalendar', event: { title: string; description: string; location?: string; start: Date; end: Date; allDay: boolean }): void; //new
 	}>();
 
 	let lastEventTimestamp: number;
@@ -474,34 +472,4 @@
 	function toggleShowVotes() {
 		showVotes.value = !showVotes.value;
 	}
-
-	//new
-	function addToCalendar() {
-		if (votingWidget.value.type !== VotingWidgetType.SCHEDULER) return;
-
-		const scheduler = votingWidget.value as Scheduler;
-
-		const options = scheduler.options as SchedulerOption[];
-		const pickedOption = pickedOptionId.value !== -1
-			? options.find(o => o.id === pickedOptionId.value)
-			: options[0];
-
-		if (!pickedOption) return;
-
-		const start = new Date(pickedOption.date);
-		const end = new Date(pickedOption.date);
-		end.setDate(end.getDate() + 1);
-		start.setHours(0, 0, 0, 0);
-		end.setHours(0, 0, 0, 0);
-
-		emit('addToCalendar', {
-			title: scheduler.title,
-			description: scheduler.description ?? '',
-			location: scheduler.location,
-			start,
-			end,
-			allDay: true,
-		});
-	}
-
 </script>

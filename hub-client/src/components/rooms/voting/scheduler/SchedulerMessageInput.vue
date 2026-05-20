@@ -1,11 +1,19 @@
 <template>
 	<div class="rounded-md">
-		<div class="mb-2 flex border-b p-2">
-			<Icon type="calendar" size="base" class="mx-2 mt-1 flex-none"></Icon>
-			<H2 class="flex-grow">{{ $t('message.scheduler') }}</H2>
-			<div class="mt-1 flex flex-none">
-				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<IconButton type="x" size="sm" @click="emit('closeScheduler')" class="ml-2"></IconButton>
+		<div class="mb-2 flex items-center border-b p-2">
+			<Icon type="calendar" size="base" class="mx-2 flex-none" />
+			
+			<H3 class="flex-grow">
+				{{ $t('message.scheduler') }}
+			</H3>
+
+			<div class="flex flex-none items-center">
+				<IconButton
+					type="x"
+					size="sm"
+					@click="emit('closeScheduler')"
+					class="ml-2"
+				/>
 			</div>
 		</div>
 		<div class="flex items-center p-2">
