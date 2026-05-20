@@ -156,6 +156,7 @@ interface SchedulerOption {
 	id: number;
 	status: SchedulerOptionStatus;
 	date: Date[];
+	fullDay?: boolean;
 }
 
 class Scheduler extends VotingWidget {
@@ -197,6 +198,7 @@ class Scheduler extends VotingWidget {
 				id: option.id,
 				status: option.status,
 				date: option.date,
+				fullDay: option.fullDay ?? false,
 			};
 			newSchedulerOptions.push(newSchedulerOpt);
 		}

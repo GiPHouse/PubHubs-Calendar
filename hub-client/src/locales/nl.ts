@@ -602,6 +602,7 @@ const nl = {
 			hide_votes: 'Verberg stemmen',
 			plural_votes: 'stem|stemmen',
 			edited: 'aangepast',
+			full_day: 'hele dag',
 		},
 		threads: {
 			view_thread: 'bekijk thread',

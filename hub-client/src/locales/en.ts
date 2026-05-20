@@ -603,6 +603,7 @@ const en = {
 			hide_votes: 'Hide votes',
 			plural_votes: 'vote|votes',
 			edited: 'edited',
+			full_day: 'Full day',
 		},
 		threads: {
 			view_thread: 'view thread',

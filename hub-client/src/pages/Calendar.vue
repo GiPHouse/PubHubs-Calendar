@@ -10,7 +10,7 @@
 		</template>
 
 		<!-- FullCalendar Component -->
-		<div class="calendar-wrapper relative p-4 md:p-6" :class="showEventCreationDialog || showEventDetailsDialog ? 'overflow-hidden' : ''">
+		<div class="calendar-wrapper p-4 md:p-6">
 			<FullCalendar ref="fullCalendar" :options="calendarOptions" />
 		</div>
 		<EventCreationDialog
@@ -29,32 +29,30 @@
 	</HeaderFooter>
 </template>
 
-<script setup>
+<script setup lang="ts">
 	//components
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
-
 	//composables
-	import {useCalendarEvents} from '../composables/calendar.composable.ts';
-
+	import { useCalendarEvents } from '../composables/calendar.composable.ts';
 	//fullCalendar
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
-	
-	//stores
-	import { useRooms } from '@hub-client/stores/rooms';
-	import { useCalendarStore } from '@hub-client/stores/calendar.stores'
-	import { useSettings } from '@hub-client/stores/settings';
-
-	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
+	import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
-	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent } = useCalendarEvents();
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useSettings } from '@hub-client/stores/settings';
+
+	const pubhubs_store = usePubhubsStore();
+
+	// Emits - must be declared before use in handleEventDrop/handleEventResize
+	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
 
 	// Event creation
 	const showEventCreationDialog = ref(false);
@@ -67,39 +65,139 @@
 	const { t, locale } = useI18n();
 
 	const settings = useSettings();
+	const rooms = useRooms();
+	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent, getCalendarEvents } = useCalendarEvents();
+	const currentRoomId = computed(() => rooms.currentRoom?.roomId ?? '');
 
 	const is24Hour = computed(() => settings.timeformat === 'format24');
 
 	// Mobile detection (adjust based on your setup)
-	const isMobile = computed(() => settings.isMobileState);
+	const isMobile = computed(() => {
+		return window.innerWidth < 768;
+	});
 
 	// Calendar ref
 	const fullCalendar = ref(null);
 
+	// Calendar events data
+	const calendarEvents = ref([]);
 
-	//const calendarEvents1 = getCalendarEvents();
+	function mapCalendarEventToFullCalendarEvent(event) {
+		return {
+			id: event.id ?? `${event.title}-${event.startTime?.getTime?.() ?? event.start}-${Math.random().toString(36).slice(2, 8)}`,
+			title: event.title,
+			start: event.startTime ?? event.start,
+			end: event.endTime ?? event.end,
+			allDay: event.isAllDay ?? event.allDay,
+			backgroundColor: event.color ?? '#3788d8',
+			borderColor: event.color ?? '#3788d8',
+			textColor: getContrastTextColor(event.color ?? '#3788d8'),
+			extendedProps: {
+				location: event.location ?? event.extendedProps?.location ?? '',
+				room: event.room ?? event.extendedProps?.room ?? '',
+				description: event.description ?? event.extendedProps?.description ?? '',
+			},
+		};
+	}
 
-	const calendarEvents = ref([
-		{
-			id: '1',
-			title: 'Team Meeting',
-			start: new Date(new Date().setHours(10, 0, 0, 0)),
-			end: new Date(new Date().setHours(11, 30, 0, 0)),
-			backgroundColor: '#00adee',
-			borderColor: '#00adee',
-			textColor: getContrastTextColor('#3b82f6'),
-		},
-		{
-			id: '2',
-			title: 'Project Deadline',
-			start: new Date(new Date().setDate(new Date().getDate() + 2)),
-			allDay: true,
-			backgroundColor: '#ef4444',
-			borderColor: '#ef4444',
-			textColor: getContrastTextColor('#ef4444'),
-		},
-	]);
+	function createCalendarEventObject(eventPayload, eventId) {
+		return {
+			title: eventPayload.title,
+			description: eventPayload.description ?? '',
+			color: eventPayload.color ?? '#3788d8',
+			isAllDay: eventPayload.allDay ?? false,
+			startTime: new Date(eventPayload.start),
+			endTime: new Date(eventPayload.end ?? eventPayload.start),
+			id: eventId,
+			location: eventPayload.location ?? '',
+			room: eventPayload.room ?? '',
+		} as unknown as TCalendarEvent;
+	}
 
+	async function loadCalendarEvents() {
+		// This method finds the calendar room interface
+		await rooms.waitForInitialRoomsLoaded();
+
+		const calendarRoomData = rooms.roomList.find((room) => room.name === 'Calendar Room');
+		if (!calendarRoomData) {
+			console.error('[Calendar] No calendar room data exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
+			return;
+		}
+		// We use the roomId from the room interface to find the Room class.
+		// Note that this is PubHub's Room model, NOT matrix-sdk's Room object!
+		if (!rooms.rooms[calendarRoomData.roomId]) {
+			await rooms.joinRoomListRoom(calendarRoomData.roomId);
+		}
+		const calendarRoom = rooms.rooms[calendarRoomData.roomId];
+		console.log('[Calendar] No. of Rooms:' + Object.keys(rooms.rooms).length);
+		if (!calendarRoom) {
+			console.error('[Calendar] Calendar room does not exist!');
+		}
+
+		const events = await getCalendarEvents(calendarRoom);
+		// TODO: Use the events from here to map them into the calendar somehow
+		//			-> Probably talk through how this bit below works with the front-end team!
+
+		// I'm not sure if this works, as the events seem to be received regardless
+		// if (!rooms.currentRoomExists) {
+		// 	calendarEvents.value = [];
+		// 	return;
+		// }
+
+		try {
+			// const events = await getCalendarEvents(currentRoomId.value);
+			const events = await getCalendarEvents(calendarRoom);
+			// print events to log
+			console.log('[Calendar.vue] Calendar events array:');
+			console.log(events);
+			calendarEvents.value = events.map(mapCalendarEventToFullCalendarEvent);
+		} catch (err) {
+			console.error('Failed to load calendar events', err);
+			calendarEvents.value = [];
+		}
+	}
+
+	onMounted(loadCalendarEvents);
+	watch(() => rooms.currentRoomId, loadCalendarEvents);
+
+	// TODO (optional): real-time calendar updates from other users / other tabs.
+	//
+	// The current flow is pull-based: loadCalendarEvents() runs on mount, on
+	// room change, and after every local mutation. This matches the pattern
+	// used across the rest of the hub-client (voting widgets, reactions,
+	// library files) — matrix-js-sdk keeps the live timeline fresh from /sync
+	// in memory, but nothing nudges the UI to re-read it.
+	//
+	// Consequence: if another user in the room (or the same user on another
+	// tab) creates / edits / deletes a calendar event, this page won't see
+	// the change until the user switches rooms or reloads.
+	//
+	// Backend: nothing to add. Matrix homeserver already pushes the events.
+	// Frontend: a single Room.timeline listener on the current room will do
+	// the job. Sketch:
+	//
+	//   import { RoomEvent } from 'matrix-js-sdk';
+	//   import { PubHubsMgType } from '@hub-client/logic/core/events';
+	//   import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	//
+	//   const pubhubs = usePubhubsStore();
+	//   let unsubscribe = () => {};
+	//   const subscribe = () => {
+	//       unsubscribe();
+	//       const room = pubhubs.client.getRoom(currentRoomId.value);
+	//       const handler = (ev) => {
+	//           if (ev.getRoomId() !== currentRoomId.value) return;
+	//           if (ev.getType() !== PubHubsMgType.CalendarEvent) return;
+	//           loadCalendarEvents();
+	//       };
+	//       room?.on(RoomEvent.Timeline, handler);
+	//       unsubscribe = () => room?.off(RoomEvent.Timeline, handler);
+	//   };
+	//   watch(() => rooms.currentRoomId, subscribe, { immediate: true });
+	//   onUnmounted(() => unsubscribe());
+	//
+	// Also listen for RoomEvent.Redaction if you want live removal when an
+	// event is deleted by another client.
 	const getCalendarLocale = () => {
 		return {
 			code: locale.value,
@@ -202,8 +300,18 @@
 		showEventCreationDialog.value = true;
 	}
 
-	function handleDeleteEvent(eventId) {
-		calendarEvents.value = calendarEvents.value.filter((e) => e.id !== eventId);
+	async function handleDeleteEvent(eventId) {
+		if (!rooms.currentRoomExists) {
+			console.error('Cannot delete event without a selected room.');
+			return;
+		}
+
+		try {
+			await removeCalendarEvent(currentRoomId.value, eventId);
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to delete calendar event', err);
+		}
 		showEventDetailsDialog.value = false;
 	}
 
@@ -213,8 +321,8 @@
 
 		fixedWeekCount: false,
 
-		slotMinTime: "00:00:00",
-		slotMaxTime: "24:00:00",
+		slotMinTime: '00:00:00',
+		slotMaxTime: '24:00:00',
 		expandRows: true,
 
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
@@ -257,6 +365,7 @@
 		dayHeaderContent: function (arg) {
 			const viewType = arg.view.type;
 
+			// Month view -- keep default rendering
 			if (viewType === 'dayGridMonth') {
 				const weekdayShort = arg.date.toLocaleDateString(locale.value, { weekday: 'short' });
 				return { html: `<span class="month-day-name">${weekdayShort}</span>` };
@@ -265,19 +374,14 @@
 			const date = arg.date;
 			const weekday = date.toLocaleDateString(locale.value, { weekday: 'short' });
 			const day = date.getDate();
-			const flexDir = (isMobile.value && viewType === 'timeGridWeek') ? 'column' : 'row';
 
 			return {
-				html: `<div style="display:flex;flex-direction:${flexDir};align-items:center;gap:2px">
-						<span>${weekday}</span>
-						<span class="fc-day-number">${day}</span>
-					</div>`,
+				html: `<span>${weekday}</span><span class="fc-day-number">${day}</span>`,
 			};
 		},
 
 		weekends: true,
 		editable: true,
-		selectable: true,
 		selectMirror: true,
 		dayMaxEvents: true,
 		events: calendarEvents,
@@ -293,8 +397,8 @@
 		eventColor: '#3788d8',
 
 		// Responsive settings
-		height: "auto",
-		contentHeight: "auto",
+		height: 'auto',
+		contentHeight: 'auto',
 
 		// Locale (adjust based on your needs)
 		locales: [getCalendarLocale()], // Add this
@@ -352,21 +456,17 @@
 		let endDate = new Date(newEvent.end);
 
 		if (newEvent.allDay) {
-			startDate.setHours(0,0,0,0);
+			startDate.setHours(0, 0, 0, 0);
 			endDate = new Date(newEvent.end);
-			endDate.setHours(0,0,0,0)
+			endDate.setHours(0, 0, 0, 0);
 		}
 
-		const calendarEvent = new CalendarEvent(
-			newEvent.title,
-			newEvent.description,
-			newEvent.color,
-			newEvent.location,
-			newEvent.allDay,
-			startDate,
-			endDate
-		);
-
+		const calendarEvent = {
+			title: newEvent.title,
+			description: newEvent.description,
+			startTime: new Date(newEvent.start),
+			endTime: newEvent.allDay ? addOneDay(newEvent.end) : new Date(newEvent.end),
+		} as unknown as TCalendarEvent;
 		await createCalendarEvent(newEvent.id, calendarEvent);
 	}
 
@@ -382,7 +482,7 @@
 
 			selectedRange.value = {
 				startStr: date.toISOString(),
-				endStr: date.toISOString(), // SAME DAY
+				endStr: date.toISOString(),
 				allDay: true,
 			};
 		} else {
@@ -426,30 +526,43 @@
 	}
 
 	async function handleAddEvent(newEvent) {
-		if (selectedEventForEdit.value) {
-			// Update existing event
-			const index = calendarEvents.value.findIndex((e) => e.id === selectedEventForEdit.value.id);
-			if (index !== -1) {
-				calendarEvents.value[index] = {
-					...calendarEvents.value[index],
-					title: newEvent.title,
-					start: newEvent.start,
-					end: newEvent.end,
-					allDay: newEvent.allDay,
-					backgroundColor: newEvent.color,
-					borderColor: newEvent.color,
-					extendedProps: {
-						location: newEvent.location,
-						room: newEvent.room,
-						description: newEvent.description,
-					},
-				};
-			}
-			selectedEventForEdit.value = null;
+		let roomId = currentRoomId.value;
+
+		const existingCalendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
+		if (existingCalendarRoom) {
+			roomId = existingCalendarRoom.roomId;
+			console.log('>> Found existing calendar room with ID:', roomId);
+			await rooms.joinRoomListRoom(roomId);
 		} else {
-			// Create new event
-			await addEvent(newEvent);
+			console.log('>> Creating new calendar room');
+			const result = await pubhubs_store.createRoom({
+				name: 'Calendar Room',
+				visibility: 'private',
+				preset: 'private_chat',
+				topic: 'Room for calendar events',
+			});
+
+			if (result) {
+				roomId = result.room_id;
+				console.log('>> Created room with ID:', roomId);
+				await rooms.joinRoomListRoom(roomId);
+			}
 		}
+
+		try {
+			if (selectedEventForEdit.value) {
+				await updateCalendarEvent(roomId, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
+				selectedEventForEdit.value = null;
+				console.log('>> Edited event with ID:', selectedEventForEdit.value.id);
+			} else {
+				await createCalendarEvent(roomId, createCalendarEventObject(newEvent));
+				console.log('>> Created new event in room ID:', roomId);
+			}
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to save calendar event', err);
+		}
+
 		showEventCreationDialog.value = false;
 	}
 
@@ -458,15 +571,55 @@
 		showEventCreationDialog.value = true;
 	}
 
-	function handleEventDrop(info) {
+	async function handleEventDrop(info) {
 		console.log('Event dropped:', info.event);
-		// Handle event drag & drop
+		if (!rooms.currentRoomExists) {
+			return;
+		}
+
+		try {
+			await updateCalendarEvent(
+				currentRoomId.value,
+				info.event.id,
+				createCalendarEventObject({
+					title: info.event.title,
+					description: info.event.extendedProps?.description,
+					color: info.event.backgroundColor,
+					allDay: info.event.allDay,
+					start: info.event.start,
+					end: info.event.end ?? info.event.start,
+				}),
+			);
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to update event after drag', err);
+		}
 		emit('eventUpdated', info.event);
 	}
 
-	function handleEventResize(info) {
+	async function handleEventResize(info) {
 		console.log('Event resized:', info.event);
-		// Handle event resize
+		if (!rooms.currentRoomExists) {
+			return;
+		}
+
+		try {
+			await updateCalendarEvent(
+				currentRoomId.value,
+				info.event.id,
+				createCalendarEventObject({
+					title: info.event.title,
+					description: info.event.extendedProps?.description,
+					color: info.event.backgroundColor,
+					allDay: info.event.allDay,
+					start: info.event.start,
+					end: info.event.end ?? info.event.start,
+				}),
+			);
+			await loadCalendarEvents();
+		} catch (err) {
+			console.error('Failed to update event after resize', err);
+		}
 		emit('eventUpdated', info.event);
 	}
 
