@@ -553,6 +553,8 @@ export default class Room {
 		// Currently problems with mapping matrix events when getting calendar events.
 		// This should be adapted to automatically filter for calendar event types.
 		// return this.timelineManager.getEvents().map((x) => x.matrixEvent);
+		console.log('[Room.ts] timelineManager events:');
+		console.log(this.timelineManager.getEvents().map((e) => e.matrixEvent));
 		return this.matrixRoom.getLiveTimeline().getEvents();
 	}
 

@@ -67,13 +67,13 @@ class TimelineManager {
 	private roomTimelineKey: string | undefined;
 
 	// Added Room Member to get the avatar value when change happen
-	private visibleEventTypes: string[] = [EventType.RoomMessage];
+	private visibleEventTypes: string[] = [EventType.RoomMessage, PubHubsMgType.CalendarEvent];
 	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private invisibleRelatesToTypes: string[] = [RelationType.Thread];
 	private timelineSetFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
+				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage, PubHubsMgType.CalendarEvent],
 			},
 		},
 	};
@@ -299,6 +299,8 @@ class TimelineManager {
 	 * @returns string | undefined - the Id of the event to scroll the roomtimeline to
 	 */
 	async loadFromSlidingSync(matrixEvents: MatrixEvent[]): Promise<string | undefined> {
+		console.log('[loadFromSlidingSync]:');
+		console.log(matrixEvents);
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Loading events from sliding sync`);
 		if (!matrixEvents || matrixEvents.length === 0) return undefined;
 

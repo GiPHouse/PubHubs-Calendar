@@ -30,6 +30,7 @@
 </template>
 
 <script setup>
+	// matrix sdk
 	//components
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
@@ -40,6 +41,7 @@
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
+	import { Direction } from 'matrix-js-sdk';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -114,7 +116,7 @@
 		);
 	}
 
-	async function loadCalendarEvents() {
+	async function initCalendarRoom() {
 		// This method finds the calendar room interface
 		await rooms.waitForInitialRoomsLoaded();
 
@@ -134,6 +136,20 @@
 			console.error('[Calendar] Calendar room does not exist!');
 		}
 
+		// Susbcribe to Calendar room
+		calendarRoom.initTimeline();
+
+		return calendarRoom;
+	}
+
+	async function loadCalendarEvents(calendarRoom) {
+		// First, paginate backwards so older events are fetched into sliding sync window
+		const oldestId = calendarRoom.getTimelineOldestMessageId();
+		if (oldestId) {
+			await calendarRoom.paginate(Direction.Backward, 50, oldestId);
+		}
+
+		// Events getter:
 		const events = await getCalendarEvents(calendarRoom);
 		// TODO: Use the events from here to map them into the calendar somehow
 		//			-> Probably talk through how this bit below works with the front-end team!
@@ -157,8 +173,22 @@
 		}
 	}
 
-	onMounted(loadCalendarEvents);
-	watch(() => rooms.currentRoomId, loadCalendarEvents);
+	onMounted(async () => {
+		const calendarRoom = await initCalendarRoom();
+		if (calendarRoom) {
+			await loadCalendarEvents(calendarRoom);
+		}
+	});
+
+	watch(
+		() => rooms.currentRoomId,
+		async () => {
+			const calendarRoom = await initCalendarRoom();
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
+		},
+	);
 
 	// TODO (optional): real-time calendar updates from other users / other tabs.
 	//
@@ -308,7 +338,10 @@
 
 		try {
 			await removeCalendarEvent(currentRoomId.value, eventId);
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[currentRoomId.value];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to delete calendar event', err);
 		}
@@ -475,7 +508,7 @@
 		if (isAllDayClick) {
 			const date = new Date(info.date);
 			const nextDate = new Date(date);
-			nextDay.setDate(date.getDate() + 1);
+			nextDate.setDate(date.getDate() + 1);
 
 			selectedRange.value = {
 				startStr: date.toISOString(),
@@ -555,7 +588,10 @@
 				await createCalendarEvent(roomId, createCalendarEventObject(newEvent));
 				console.log('>> Created new event in room ID:', roomId);
 			}
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[roomId];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to save calendar event', err);
 		}
@@ -587,7 +623,10 @@
 					end: info.event.end ?? info.event.start,
 				}),
 			);
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[currentRoomId.value];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to update event after drag', err);
 		}
@@ -613,7 +652,10 @@
 					end: info.event.end ?? info.event.start,
 				}),
 			);
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[currentRoomId.value];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to update event after resize', err);
 		}
