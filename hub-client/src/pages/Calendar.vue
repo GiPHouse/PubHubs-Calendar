@@ -659,8 +659,5 @@
 		previousMonth,
 		changeView,
 	});
-<<<<<<< HEAD
+	
 </script>
-=======
-</script>
->>>>>>> origin/main
