@@ -1,6 +1,5 @@
 <template>
 	<div class="rounded-md">
-<<<<<<< HEAD
 		<div class="mb-2 flex items-center border-b p-2">
 			<Icon type="calendar" size="base" class="mx-2 flex-none" />
 			
@@ -14,24 +13,6 @@
 					size="sm"
 					@click="emit('closeScheduler')"
 					class="ml-2"
-=======
-		<div class="mb-2 flex border-b p-2">
-			<Icon
-				class="mx-2 mt-1 flex-none"
-				size="base"
-				type="calendar"
-			/>
-			<H2 class="grow">
-				{{ $t('message.scheduler') }}
-			</H2>
-			<div class="mt-1 flex flex-none">
-				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<IconButton
-					class="ml-2"
-					size="sm"
-					type="x"
-					@click="emit('closeScheduler')"
->>>>>>> origin/main
 				/>
 			</div>
 		</div>
