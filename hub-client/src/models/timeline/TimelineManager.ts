@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType, timeoutSignal } from 'matrix-js-sdk';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -251,6 +251,8 @@ class TimelineManager {
 		// Then add the events to the timeline
 		this.timelineEvents = this.timelineEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
 		this.timelineEvents = [...this.timelineEvents, ...eventList];
+		console.log('[TimelineManager.ts] addEventList timeline events');
+		console.log(this.timelineEvents);
 		this._timelineVersion++;
 
 		return scrollToEventId;
@@ -288,6 +290,8 @@ class TimelineManager {
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
 		this.timelineEvents = mappedEvents;
+		console.log('[TimelineManager.ts] loadToEvent timeline events');
+		console.log(this.timelineEvents);
 		this._timelineVersion++;
 
 		return mappedEvents;
@@ -299,7 +303,7 @@ class TimelineManager {
 	 * @returns string | undefined - the Id of the event to scroll the roomtimeline to
 	 */
 	async loadFromSlidingSync(matrixEvents: MatrixEvent[]): Promise<string | undefined> {
-		console.log('[loadFromSlidingSync]:');
+		console.log('[loadFromSlidingSync]: Base');
 		console.log(matrixEvents);
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Loading events from sliding sync`);
 		if (!matrixEvents || matrixEvents.length === 0) return undefined;
@@ -340,6 +344,8 @@ class TimelineManager {
 		if (matrixEvents.length === 0) return undefined;
 
 		const eventList = matrixEvents.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
+		console.log('[TimelineManager.ts]: eventList');
+		console.log(eventList);
 
 		// if the lastMessageId is undefined
 		// or this events contains the lastMessageId
@@ -353,8 +359,12 @@ class TimelineManager {
 			this.paginationState.lastMessageId = eventList[eventList.length - 1]?.matrixEvent.event.event_id;
 			if (this.timelineEvents.length === 0) {
 				await this.loadToEvent({ eventId: eventList[eventList.length - 1].matrixEvent.event.event_id! });
+				console.log('[TimelineManager.ts]: if timeline events length is 0');
+				console.log(eventList[eventList.length - 1]?.matrixEvent.event.event_id);
 				return eventList[eventList.length - 1]?.matrixEvent.event.event_id;
 			} else {
+				console.log('[TimelineManager.ts]: if timeline events length is not 0, add event to event list');
+				console.log(eventList);
 				return this.addEventList(eventList);
 			}
 		}
@@ -536,6 +546,8 @@ class TimelineManager {
 		const timeline = await this.getEventTimeline(fromEventId);
 		if (!timeline) {
 			this.timelineEvents = [];
+			console.log('[TimelineManager.ts] paginate 1 timeline events');
+			console.log(this.timelineEvents);
 			this._timelineVersion++;
 		} else {
 			// Snapshot SDK timeline IDs before fetching
@@ -547,21 +559,31 @@ class TimelineManager {
 
 			if (newOnly.length > 0) {
 				let timeLineEvents = newOnly.map((event) => new TimelineEvent({ matrixEvent: event, roomId: this.roomId }));
+				console.log('[TimelineManager.ts] paginate 2 timeline events');
+				console.log(this.timelineEvents);
 
 				// Remove duplicates already in the managed timeline
 				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((existing) => existing.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
+				console.log('[TimelineManager.ts] addEventList timeline events');
+				console.log(this.timelineEvents);
 
 				if (timeLineEvents.length > 0) {
 					if (direction === Direction.Backward) {
 						this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
+						console.log('[TimelineManager.ts] paginate 3 timeline events');
+						console.log(this.timelineEvents);
 					} else {
 						this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+						console.log('[TimelineManager.ts] paginate 4 timeline events');
+						console.log(this.timelineEvents);
 					}
 
 					// Enforce sliding window: trim from the opposite end
 					if (this.timelineEvents.length > SystemDefaults.roomTimelineLimit) {
 						if (direction === Direction.Forward) {
 							this.timelineEvents = this.timelineEvents.slice(-SystemDefaults.roomTimelineLimit);
+							console.log('[TimelineManager.ts] paginate 5 timeline events');
+							console.log(this.timelineEvents);
 						}
 					}
 

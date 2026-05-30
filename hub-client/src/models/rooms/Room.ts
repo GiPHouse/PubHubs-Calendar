@@ -555,7 +555,8 @@ export default class Room {
 		// return this.timelineManager.getEvents().map((x) => x.matrixEvent);
 		console.log('[Room.ts] timelineManager events:');
 		console.log(this.timelineManager.getEvents().map((e) => e.matrixEvent));
-		return this.matrixRoom.getLiveTimeline().getEvents();
+		// return this.matrixRoom.getLiveTimeline().getEvents();
+		return this.timelineManager.getEvents().map((e) => e.matrixEvent);
 	}
 
 	public getLiveTimelineNewestEvent(): Partial<TBaseEvent> | undefined {

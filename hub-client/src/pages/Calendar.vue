@@ -46,6 +46,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
@@ -70,6 +71,10 @@
 	const rooms = useRooms();
 	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent, getCalendarEvents } = useCalendarEvents();
 	const currentRoomId = computed(() => rooms.currentRoom?.roomId ?? '');
+
+	// Keeps track of calendar timeline version to know when to refresh timeline
+	const calendarRoomRef = ref(null);
+	const calendarTimelineVersion = computed(() => calendarRoomRef.value?.getTimelineVersion?.() ?? 0);
 
 	const is24Hour = computed(() => settings.timeformat === 'format24');
 
@@ -116,13 +121,30 @@
 		);
 	}
 
-	async function initCalendarRoom() {
-		// This method finds the calendar room interface
+	async function findAndJoinCalendarRoom() {
+		// This method should be able to find an existing calendar room if it exists.
+		// If it doesn't exist, it should return nothing.
+		// If it does exist, it should return the calendar room object.
 		await rooms.waitForInitialRoomsLoaded();
 
-		const calendarRoomData = rooms.roomList.find((room) => room.name === 'Calendar Room');
-		if (!calendarRoomData) {
-			console.error('[Calendar] No calendar room data exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
+		// If the calendar room was already restored, prefer the local Room wrapper
+		const existingCalendarRoom = Object.values(rooms.rooms).find((room) => room.getType() === RoomType.PH_MESSAGES_CALENDAR);
+		if (existingCalendarRoom) {
+			return existingCalendarRoom;
+		}
+
+		// Otherwise, use the Matrix client cache when roomList has not caught up yet.
+		const knownCalendarMatrixRoom = pubhubs_store.getAllRooms().find((room) => room.getType() === RoomType.PH_MESSAGES_CALENDAR);
+		if (knownCalendarMatrixRoom) {
+			if (!rooms.rooms[knownCalendarMatrixRoom.roomId]) {
+				rooms.initRoomsWithMatrixRoom(knownCalendarMatrixRoom, knownCalendarMatrixRoom.name, RoomType.PH_MESSAGES_CALENDAR, []);
+			}
+			return rooms.rooms[knownCalendarMatrixRoom.roomId];
+		}
+
+		const calendarRoomData = rooms.roomList.find((room) => room.roomType === RoomType.PH_MESSAGES_CALENDAR);
+		if (calendarRoomData == null) {
+			console.error('[Calendar.vue] No calendar room data found!');
 			return;
 		}
 		// We use the roomId from the room interface to find the Room class.
@@ -130,10 +152,35 @@
 		if (!rooms.rooms[calendarRoomData.roomId]) {
 			await rooms.joinRoomListRoom(calendarRoomData.roomId);
 		}
-		const calendarRoom = rooms.rooms[calendarRoomData.roomId];
-		console.log('[Calendar] No. of Rooms:' + Object.keys(rooms.rooms).length);
+		return rooms.rooms[calendarRoomData.roomId];
+	}
+
+	async function initCalendarRoom() {
+		// This method should create a calendar room if one does not exist and join it.
+		// If a calendar room does exist, it should join it (if not already).
+		var calendarRoom = await findAndJoinCalendarRoom();
+
 		if (!calendarRoom) {
-			console.error('[Calendar] Calendar room does not exist!');
+			// console.error('[Calendar] No calendar room exists! ');
+			// let roomId = currentRoomId.value;
+			console.log('>> Creating new calendar room');
+			const result = await pubhubs_store.createRoom({
+				name: 'Calendar Room',
+				// visibility: 'private',
+				// preset: 'private_chat',
+				creation_content: { type: RoomType.PH_MESSAGES_CALENDAR },
+				topic: 'Room for calendar events',
+			});
+			if (!result) {
+				console.error('[Calendar.vue] Error making calendar room under initCalendarRoom');
+				return;
+			}
+			var roomId = result.room_id;
+			console.log('>> Created room with ID:', roomId);
+			console.log('>> Joining room...');
+			await rooms.joinRoomListRoom(roomId);
+			calendarRoom = rooms.rooms[roomId];
+			console.log('>> Name of room: ', calendarRoom.name);
 		}
 
 		// Susbcribe to Calendar room
@@ -150,7 +197,7 @@
 		}
 
 		// Events getter:
-		const events = await getCalendarEvents(calendarRoom);
+		// const events = await getCalendarEvents(calendarRoom);
 		// TODO: Use the events from here to map them into the calendar somehow
 		//			-> Probably talk through how this bit below works with the front-end team!
 
@@ -176,7 +223,14 @@
 	onMounted(async () => {
 		const calendarRoom = await initCalendarRoom();
 		if (calendarRoom) {
+			calendarRoomRef.value = calendarRoom;
 			await loadCalendarEvents(calendarRoom);
+		}
+	});
+
+	watch(calendarTimelineVersion, async () => {
+		if (calendarRoomRef.value) {
+			await loadCalendarEvents(calendarRoomRef.value);
 		}
 	});
 
@@ -185,6 +239,7 @@
 		async () => {
 			const calendarRoom = await initCalendarRoom();
 			if (calendarRoom) {
+				calendarRoomRef.value = calendarRoom;
 				await loadCalendarEvents(calendarRoom);
 			}
 		},
@@ -556,28 +611,12 @@
 	}
 
 	async function handleAddEvent(newEvent) {
-		let roomId = currentRoomId.value;
-
-		const existingCalendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
-		if (existingCalendarRoom) {
-			roomId = existingCalendarRoom.roomId;
-			console.log('>> Found existing calendar room with ID:', roomId);
-			await rooms.joinRoomListRoom(roomId);
-		} else {
-			console.log('>> Creating new calendar room');
-			const result = await pubhubs_store.createRoom({
-				name: 'Calendar Room',
-				visibility: 'private',
-				preset: 'private_chat',
-				topic: 'Room for calendar events',
-			});
-
-			if (result) {
-				roomId = result.room_id;
-				console.log('>> Created room with ID:', roomId);
-				await rooms.joinRoomListRoom(roomId);
-			}
+		var calendarRoom = await findAndJoinCalendarRoom();
+		if (calendarRoom == null) {
+			console.error('[Calendar.vue] Error: Calendar room not found.');
+			return;
 		}
+		var roomId = calendarRoom.roomId;
 
 		try {
 			if (selectedEventForEdit.value) {
