@@ -51,27 +51,8 @@ const useCalendarStore = defineStore('calendar', {
 		},
 
 		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
-			// (!) useMatrixService is not defined/imported, we should take a look at this
-			const service = useMatrixService();
-
-			const content: TCalendarEventMessageContent = {
-				msgtype: PubHubsMgType.CalenderEventEdit,
-				body: calEvent.title,
-				title: calEvent.title,
-				description: calEvent.description,
-				color: calEvent.color,
-				location: calEvent.location ?? '',
-				isAllDay: calEvent.isAllDay,
-				startTime: calEvent.startTime,
-				endTime: calEvent.endTime,
-				'm.relates_to': {
-					event_id: eventId,
-					rel_type: PubHubsMgType.CalenderEventEdit,
-				},
-			};
-
-			// @ts-ignore similar implementations in pubhubs ignore this error
-			await service.sendEvent(roomId, PubHubsMgType.CalenderEventModify, content);
+			await this.addCalendarEvent(roomId, calEvent);
+			await this.delCalendarEvent(roomId, eventId);
 		},
 
 		/**
