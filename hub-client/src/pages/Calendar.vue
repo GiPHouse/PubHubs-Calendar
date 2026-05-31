@@ -163,7 +163,6 @@
 		if (!calendarRoom) {
 			// console.error('[Calendar] No calendar room exists! ');
 			// let roomId = currentRoomId.value;
-			console.log('>> Creating new calendar room');
 			const result = await pubhubs_store.createRoom({
 				name: 'Calendar Room',
 				// visibility: 'private',
@@ -176,11 +175,8 @@
 				return;
 			}
 			var roomId = result.room_id;
-			console.log('>> Created room with ID:', roomId);
-			console.log('>> Joining room...');
 			await rooms.joinRoomListRoom(roomId);
 			calendarRoom = rooms.rooms[roomId];
-			console.log('>> Name of room: ', calendarRoom.name);
 		}
 
 		// Susbcribe to Calendar room
@@ -195,17 +191,6 @@
 		if (oldestId) {
 			await calendarRoom.paginate(Direction.Backward, 50, oldestId);
 		}
-
-		// Events getter:
-		// const events = await getCalendarEvents(calendarRoom);
-		// TODO: Use the events from here to map them into the calendar somehow
-		//			-> Probably talk through how this bit below works with the front-end team!
-
-		// I'm not sure if this works, as the events seem to be received regardless
-		// if (!rooms.currentRoomExists) {
-		// 	calendarEvents.value = [];
-		// 	return;
-		// }
 
 		try {
 			// const events = await getCalendarEvents(currentRoomId.value);
@@ -245,44 +230,6 @@
 		},
 	);
 
-	// TODO (optional): real-time calendar updates from other users / other tabs.
-	//
-	// The current flow is pull-based: loadCalendarEvents() runs on mount, on
-	// room change, and after every local mutation. This matches the pattern
-	// used across the rest of the hub-client (voting widgets, reactions,
-	// library files) — matrix-js-sdk keeps the live timeline fresh from /sync
-	// in memory, but nothing nudges the UI to re-read it.
-	//
-	// Consequence: if another user in the room (or the same user on another
-	// tab) creates / edits / deletes a calendar event, this page won't see
-	// the change until the user switches rooms or reloads.
-	//
-	// Backend: nothing to add. Matrix homeserver already pushes the events.
-	// Frontend: a single Room.timeline listener on the current room will do
-	// the job. Sketch:
-	//
-	//   import { RoomEvent } from 'matrix-js-sdk';
-	//   import { PubHubsMgType } from '@hub-client/logic/core/events';
-	//   import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	//
-	//   const pubhubs = usePubhubsStore();
-	//   let unsubscribe = () => {};
-	//   const subscribe = () => {
-	//       unsubscribe();
-	//       const room = pubhubs.client.getRoom(currentRoomId.value);
-	//       const handler = (ev) => {
-	//           if (ev.getRoomId() !== currentRoomId.value) return;
-	//           if (ev.getType() !== PubHubsMgType.CalendarEvent) return;
-	//           loadCalendarEvents();
-	//       };
-	//       room?.on(RoomEvent.Timeline, handler);
-	//       unsubscribe = () => room?.off(RoomEvent.Timeline, handler);
-	//   };
-	//   watch(() => rooms.currentRoomId, subscribe, { immediate: true });
-	//   onUnmounted(() => unsubscribe());
-	//
-	// Also listen for RoomEvent.Redaction if you want live removal when an
-	// event is deleted by another client.
 	const getCalendarLocale = () => {
 		return {
 			code: locale.value,
@@ -622,10 +569,8 @@
 			if (selectedEventForEdit.value) {
 				await updateCalendarEvent(roomId, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
 				selectedEventForEdit.value = null;
-				console.log('>> Edited event with ID:', selectedEventForEdit.value.id);
 			} else {
 				await createCalendarEvent(roomId, createCalendarEventObject(newEvent));
-				console.log('>> Created new event in room ID:', roomId);
 			}
 			const calendarRoom = rooms.rooms[roomId];
 			if (calendarRoom) {
