@@ -150,7 +150,7 @@ This will show a QR-code in the terminal, which can be scanned with your Yivi ap
 
 The site should be accessible in a browser at (http://localhost:8080/)[http://localhost:8080/]
 
-To access the hubs, you have to login using the Yivi app. To do so, the app must be set to developer mode. This can be done by navigating to the `more` menu and clicking the 'App Id' a couple of times.
+To access the hubs, you have to login using the Yivi app. To do so, the app must be set to developer mode. This can be done by navigating to the `more` menu and clicking the 'App Id' around 7 times.
 
 #### Making yourself admin
 
@@ -174,6 +174,9 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 - If you run into CORS issues, disable HTPPS-only in your browser.
 - If the page at [localhost:8001](http://localhost:8001/) does not bring you to the PubHubs page, try with [localhost:8080](http://localhost:8080/) instead.
 - If the hub does not appear, there may be other containers running on the same port. It often helps to close all Docker instances, including the ones from PubHubs, and run `mask run init` again before attempting `mask run all`.
+- If you have problems running the maskfiles, make sure that it calls the name of programs correctly (For instance, if you use `py` instead of `python3`).
+- run-all.sh
+- Some windows users faced issues with `mask run all` because of tmux. If this occurs, try to run the six commands manually instead.
 
 ---
 <!-- 
