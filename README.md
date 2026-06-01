@@ -142,7 +142,7 @@ This will show a QR-code in the terminal, which can be scanned with your Yivi ap
   -->
 ### 5. Logging in
 
-The site should be accessible in a browser at (http://localhost:8080/)[http://localhost:8080/]
+The site should be accessible in a browser at [http://localhost:8080/](http://localhost:8080/)
 
 To access the hubs, you have to login using the Yivi app. To do so, the app must be set to developer mode. This can be done by navigating to the `more` menu and clicking the 'App Id' around 7 times.
 
