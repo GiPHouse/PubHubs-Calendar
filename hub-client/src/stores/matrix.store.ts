@@ -1,6 +1,8 @@
 // Packages
 import { defineStore } from 'pinia';
 
+import { PubHubsMgType } from '@hub-client/logic/core/events';
+
 // Services
 import { useMatrixService } from '@hub-client/services/matrix.service';
 
@@ -48,6 +50,11 @@ const useMatrixStore = defineStore('matrix', {
 			}
 		},
 
+		async redactEvent(roomId: string, eventId: string) {
+			const matrixService = useMatrixService();
+			matrixService.redactEvent(roomId, eventId);
+		},
+
 		/**
 		 * Add a subscription to a room to the Sliding Sync.
 		 */
@@ -63,6 +70,22 @@ const useMatrixStore = defineStore('matrix', {
 
 		removeSubscribedRoom(roomId: string) {
 			delete this.subscribedRooms[roomId];
+		},
+
+		// #endregion
+
+		// #region Send Events/Messages
+
+		/**
+		 * Sends a `msgType` event containing `content` to room `roomId`.
+		 * @param roomId The roomId as a string
+		 * @param msgType The type of event as an enum
+		 * @param content The content in an interface, dependent on msgType
+		 * @todo Make content paramater more strongly typed than any.
+		 */
+		sendEvent(roomId: string, msgType: PubHubsMgType, content: any) {
+			const matrixService = useMatrixService();
+			matrixService.sendEvent(roomId, msgType, content);
 		},
 
 		// #endregion

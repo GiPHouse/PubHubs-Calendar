@@ -30,26 +30,23 @@
 </template>
 
 <script setup>
+	// matrix sdk
 	//components
 	import EventCreationDialog from '../components/forms/EventCreationDialog.vue';
 	import EventDetailsDialog from '../components/forms/EventDetailsDialog.vue';
-
 	//composables
-	import {useCalendarEvents} from '../composables/calendar.composable.ts';
-
+	import { useCalendarEvents } from '../composables/calendar.composable.ts';
 	//fullCalendar
 	import dayGridPlugin from '@fullcalendar/daygrid';
 	import interactionPlugin from '@fullcalendar/interaction';
 	import timeGridPlugin from '@fullcalendar/timegrid';
 	import FullCalendar from '@fullcalendar/vue3';
-	
-	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+	import { Direction } from 'matrix-js-sdk';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import { useCalendarEvents } from '@hub-client/composables/calendar.composable';
-
 	import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
@@ -59,8 +56,6 @@
 
 	// Emits - must be declared before use in handleEventDrop/handleEventResize
 	const emit = defineEmits(['dateSelected', 'eventSelected', 'eventAdded', 'eventUpdated']);
-
-	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent } = useCalendarEvents();
 
 	// Event creation
 	const showEventCreationDialog = ref(false);
@@ -76,6 +71,10 @@
 	const rooms = useRooms();
 	const { createCalendarEvent, removeCalendarEvent, updateCalendarEvent, getCalendarEvents } = useCalendarEvents();
 	const currentRoomId = computed(() => rooms.currentRoom?.roomId ?? '');
+
+	// Keeps track of calendar timeline version to know when to refresh timeline
+	const calendarRoomRef = ref(null);
+	const calendarTimelineVersion = computed(() => calendarRoomRef.value?.getTimelineVersion?.() ?? 0);
 
 	const is24Hour = computed(() => settings.timeformat === 'format24');
 
@@ -122,24 +121,83 @@
 		);
 	}
 
-	async function loadCalendarEvents() {
-		const calendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
-		if (!calendarRoom) {
-			console.error('[Calendar] No calendar room exists! This is probably an empty calendar,in which case it is fine. If this is not supposed to be an empty calendar.... something went wrong BAD...');
-			return;
+	async function findAndJoinCalendarRoom() {
+		// This method should be able to find an existing calendar room if it exists.
+		// If it doesn't exist, it should return nothing.
+		// If it does exist, it should return the calendar room object.
+		await rooms.waitForInitialRoomsLoaded();
+
+		// If the calendar room was already restored, prefer the local Room wrapper
+		const existingCalendarRoom = Object.values(rooms.rooms).find((room) => room.getType() === RoomType.PH_MESSAGES_CALENDAR);
+		if (existingCalendarRoom) {
+			return existingCalendarRoom;
 		}
 
-		const events = await getCalendarEvents(calendarRoom);
-		// TODO: Use the events from here to map them into the calendar somehow
-		//			-> Probably talk through how this bit below works with the front-end team!
+		// Otherwise, use the Matrix client cache when roomList has not caught up yet.
+		const knownCalendarMatrixRoom = pubhubs_store.getAllRooms().find((room) => room.getType() === RoomType.PH_MESSAGES_CALENDAR);
+		if (knownCalendarMatrixRoom) {
+			if (!rooms.rooms[knownCalendarMatrixRoom.roomId]) {
+				rooms.initRoomsWithMatrixRoom(knownCalendarMatrixRoom, knownCalendarMatrixRoom.name, RoomType.PH_MESSAGES_CALENDAR, []);
+			}
+			return rooms.rooms[knownCalendarMatrixRoom.roomId];
+		}
 
-		if (!rooms.currentRoomExists) {
-			calendarEvents.value = [];
+		const calendarRoomData = rooms.roomList.find((room) => room.roomType === RoomType.PH_MESSAGES_CALENDAR);
+		if (calendarRoomData == null) {
+			console.error('[Calendar.vue] No calendar room data found!');
 			return;
+		}
+		// We use the roomId from the room interface to find the Room class.
+		// Note that this is PubHub's Room model, NOT matrix-sdk's Room object!
+		if (!rooms.rooms[calendarRoomData.roomId]) {
+			await rooms.joinRoomListRoom(calendarRoomData.roomId);
+		}
+		return rooms.rooms[calendarRoomData.roomId];
+	}
+
+	async function initCalendarRoom() {
+		// This method should create a calendar room if one does not exist and join it.
+		// If a calendar room does exist, it should join it (if not already).
+		var calendarRoom = await findAndJoinCalendarRoom();
+
+		if (!calendarRoom) {
+			// console.error('[Calendar] No calendar room exists! ');
+			// let roomId = currentRoomId.value;
+			const result = await pubhubs_store.createRoom({
+				name: 'Calendar Room',
+				// visibility: 'private',
+				// preset: 'private_chat',
+				creation_content: { type: RoomType.PH_MESSAGES_CALENDAR },
+				topic: 'Room for calendar events',
+			});
+			if (!result) {
+				console.error('[Calendar.vue] Error making calendar room under initCalendarRoom');
+				return;
+			}
+			var roomId = result.room_id;
+			await rooms.joinRoomListRoom(roomId);
+			calendarRoom = rooms.rooms[roomId];
+		}
+
+		// Susbcribe to Calendar room
+		calendarRoom.initTimeline();
+
+		return calendarRoom;
+	}
+
+	async function loadCalendarEvents(calendarRoom) {
+		// First, paginate backwards so older events are fetched into sliding sync window
+		const oldestId = calendarRoom.getTimelineOldestMessageId();
+		if (oldestId) {
+			await calendarRoom.paginate(Direction.Backward, 50, oldestId);
 		}
 
 		try {
-			const events = await getCalendarEvents(currentRoomId.value);
+			// const events = await getCalendarEvents(currentRoomId.value);
+			const events = await getCalendarEvents(calendarRoom);
+			// print events to log
+			console.log('[Calendar.vue] Calendar events array:');
+			console.log(events);
 			calendarEvents.value = events.map(mapCalendarEventToFullCalendarEvent);
 		} catch (err) {
 			console.error('Failed to load calendar events', err);
@@ -147,47 +205,31 @@
 		}
 	}
 
-	onMounted(loadCalendarEvents);
-	watch(() => rooms.currentRoomId, loadCalendarEvents);
+	onMounted(async () => {
+		const calendarRoom = await initCalendarRoom();
+		if (calendarRoom) {
+			calendarRoomRef.value = calendarRoom;
+			await loadCalendarEvents(calendarRoom);
+		}
+	});
 
-	// TODO (optional): real-time calendar updates from other users / other tabs.
-	//
-	// The current flow is pull-based: loadCalendarEvents() runs on mount, on
-	// room change, and after every local mutation. This matches the pattern
-	// used across the rest of the hub-client (voting widgets, reactions,
-	// library files) — matrix-js-sdk keeps the live timeline fresh from /sync
-	// in memory, but nothing nudges the UI to re-read it.
-	//
-	// Consequence: if another user in the room (or the same user on another
-	// tab) creates / edits / deletes a calendar event, this page won't see
-	// the change until the user switches rooms or reloads.
-	//
-	// Backend: nothing to add. Matrix homeserver already pushes the events.
-	// Frontend: a single Room.timeline listener on the current room will do
-	// the job. Sketch:
-	//
-	//   import { RoomEvent } from 'matrix-js-sdk';
-	//   import { PubHubsMgType } from '@hub-client/logic/core/events';
-	//   import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	//
-	//   const pubhubs = usePubhubsStore();
-	//   let unsubscribe = () => {};
-	//   const subscribe = () => {
-	//       unsubscribe();
-	//       const room = pubhubs.client.getRoom(currentRoomId.value);
-	//       const handler = (ev) => {
-	//           if (ev.getRoomId() !== currentRoomId.value) return;
-	//           if (ev.getType() !== PubHubsMgType.CalendarEvent) return;
-	//           loadCalendarEvents();
-	//       };
-	//       room?.on(RoomEvent.Timeline, handler);
-	//       unsubscribe = () => room?.off(RoomEvent.Timeline, handler);
-	//   };
-	//   watch(() => rooms.currentRoomId, subscribe, { immediate: true });
-	//   onUnmounted(() => unsubscribe());
-	//
-	// Also listen for RoomEvent.Redaction if you want live removal when an
-	// event is deleted by another client.
+	watch(calendarTimelineVersion, async () => {
+		if (calendarRoomRef.value) {
+			await loadCalendarEvents(calendarRoomRef.value);
+		}
+	});
+
+	watch(
+		() => rooms.currentRoomId,
+		async () => {
+			const calendarRoom = await initCalendarRoom();
+			if (calendarRoom) {
+				calendarRoomRef.value = calendarRoom;
+				await loadCalendarEvents(calendarRoom);
+			}
+		},
+	);
+
 	const getCalendarLocale = () => {
 		return {
 			code: locale.value,
@@ -298,7 +340,10 @@
 
 		try {
 			await removeCalendarEvent(currentRoomId.value, eventId);
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[currentRoomId.value];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to delete calendar event', err);
 		}
@@ -311,8 +356,8 @@
 
 		fixedWeekCount: false,
 
-		slotMinTime: "00:00:00",
-		slotMaxTime: "24:00:00",
+		slotMinTime: '00:00:00',
+		slotMaxTime: '24:00:00',
 		expandRows: true,
 
 		initialView: isMobile.value ? 'listWeek' : 'dayGridMonth',
@@ -388,8 +433,8 @@
 		eventColor: '#3788d8',
 
 		// Responsive settings
-		height: "auto",
-		contentHeight: "auto",
+		height: 'auto',
+		contentHeight: 'auto',
 
 		// Locale (adjust based on your needs)
 		locales: [getCalendarLocale()], // Add this
@@ -438,19 +483,23 @@
 		return `${year}-${month}-${day}`;
 	}
 
-	function addEvent(newEvent) {
+	async function addEvent(newEvent) {
 		const textColor = getContrastTextColor(newEvent.color);
+		const rooms = useRooms();
+		const roomId = rooms.currentRoom?.roomId;
 
-		const calendarEvent = new CalendarEvent(
-			newEvent.title,
-			newEvent.description,
-			newEvent.start,
-        	newEvent.allDay
-            ? addOneDay(newEvent.end)
-            : newEvent.end
-		);
+		let startDate = new Date(newEvent.start);
+		let endDate = new Date(newEvent.end);
 
-		createCalendarEvent(newEvent.id, calendarEvent);
+		if (newEvent.allDay) {
+			startDate.setHours(0, 0, 0, 0);
+			endDate = new Date(newEvent.end);
+			endDate.setHours(0, 0, 0, 0);
+		}
+
+		const calendarEvent = new CalendarEvent(newEvent.title, newEvent.description, newEvent.start, newEvent.allDay ? addOneDay(newEvent.end) : newEvent.end);
+
+		await createCalendarEvent(newEvent.id, calendarEvent);
 	}
 
 	function handleDateClick(info) {
@@ -460,10 +509,12 @@
 
 		if (isAllDayClick) {
 			const date = new Date(info.date);
+			const nextDate = new Date(date);
+			nextDate.setDate(date.getDate() + 1);
 
 			selectedRange.value = {
 				startStr: date.toISOString(),
-				endStr: date.toISOString(), // SAME DAY
+				endStr: date.toISOString(),
 				allDay: true,
 			};
 		} else {
@@ -507,39 +558,24 @@
 	}
 
 	async function handleAddEvent(newEvent) {
-		let roomId = currentRoomId.value;
-
-		const existingCalendarRoom = rooms.roomList.find((room) => room.name === 'Calendar Room');
-		if (existingCalendarRoom) {
-			roomId = existingCalendarRoom.roomId;
-			console.log('>> Found existing calendar room with ID:', roomId);
-			await rooms.joinRoomListRoom(roomId);
-		} else {
-			console.log('>> Creating new calendar room');
-			const result = await pubhubs_store.createRoom({
-				name: 'Calendar Room',
-				visibility: 'private',
-				preset: 'private_chat',
-				topic: 'Room for calendar events',
-			});
-
-			if (result) {
-				roomId = result.room_id;
-				console.log('>> Created room with ID:', roomId);
-				await rooms.joinRoomListRoom(roomId);
-			}
+		var calendarRoom = await findAndJoinCalendarRoom();
+		if (calendarRoom == null) {
+			console.error('[Calendar.vue] Error: Calendar room not found.');
+			return;
 		}
+		var roomId = calendarRoom.roomId;
 
 		try {
 			if (selectedEventForEdit.value) {
-				await updateCalendarEvent(roomId.value, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
+				await updateCalendarEvent(roomId, selectedEventForEdit.value.id, createCalendarEventObject(newEvent, selectedEventForEdit.value.id));
 				selectedEventForEdit.value = null;
-				console.log('>> Edited event with ID:', selectedEventForEdit.value.id);
 			} else {
-				await createCalendarEvent(roomId.value, createCalendarEventObject(newEvent));
-				console.log('>> Created new event in room ID:', roomId.value);
+				await createCalendarEvent(roomId, createCalendarEventObject(newEvent));
 			}
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[roomId];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to save calendar event', err);
 		}
@@ -571,7 +607,10 @@
 					end: info.event.end ?? info.event.start,
 				}),
 			);
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[currentRoomId.value];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to update event after drag', err);
 		}
@@ -597,7 +636,10 @@
 					end: info.event.end ?? info.event.start,
 				}),
 			);
-			await loadCalendarEvents();
+			const calendarRoom = rooms.rooms[currentRoomId.value];
+			if (calendarRoom) {
+				await loadCalendarEvents(calendarRoom);
+			}
 		} catch (err) {
 			console.error('Failed to update event after resize', err);
 		}

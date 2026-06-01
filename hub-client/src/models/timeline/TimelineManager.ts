@@ -1,5 +1,5 @@
 // Packages
-import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType, timeoutSignal } from 'matrix-js-sdk';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -67,13 +67,13 @@ class TimelineManager {
 	private roomTimelineKey: string | undefined;
 
 	// Added Room Member to get the avatar value when change happen
-	private visibleEventTypes: string[] = [EventType.RoomMessage];
+	private visibleEventTypes: string[] = [EventType.RoomMessage, PubHubsMgType.CalendarEvent];
 	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private invisibleRelatesToTypes: string[] = [RelationType.Thread];
 	private timelineSetFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
+				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage, PubHubsMgType.CalendarEvent],
 			},
 		},
 	};
