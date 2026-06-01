@@ -75,7 +75,7 @@ class TimelineManager {
 	private roomTimelineKey: string | undefined;
 
 	// Added Room Member to get the avatar value when change happen
-	private visibleEventTypes: string[] = [EventType.RoomMessage];
+	private visibleEventTypes: string[] = [EventType.RoomMessage, PubHubsMgType.CalendarEvent];
 	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private invisibleRelatesToTypes: string[] = [RelationType.Thread];
 
@@ -83,7 +83,7 @@ class TimelineManager {
 	private readonly timelineFilter: TimelineFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
+				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage, PubHubsMgType.CalendarEvent],
 			},
 		},
 	};
