@@ -2,7 +2,7 @@ import { useCalendarStore } from '@hub-client/stores/calendar.stores';
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { CalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { initMatrixService } from '@hub-client/services/matrix.service';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -30,7 +30,16 @@ describe("Calendar Store", () => {
 		const startTime = new Date('2026-03-29T12:00:00.000Z');
 		const endTime = new Date('2026-03-29T13:00:00.000Z');
 
-		const event = new CalendarEvent('Some Event', 'Some cool description', "#3788d8", false, startTime, endTime);
+		const event: TCalendarEvent = {
+			msgtype: PubHubsMgType.CalendarEvent,
+			body: 'Some Event',
+			title: 'Some Event',
+			description: 'Some cool description',
+			color: '#3788d8',
+			startTime,
+			endTime,
+			isAllDay: false,
+		};
 
 		await calendarStore.addCalendarEvent('!room:example', event);
 
@@ -59,12 +68,22 @@ describe("Calendar Store", () => {
 		const calendarStore = useCalendarStore();
 		const startTime = new Date('2026-03-29T12:00:00.000Z');
 		const endTime = new Date('2026-03-29T13:00:00.000Z');
-		const event = new CalendarEvent('Some Event', 'Some cool description', '#3788d8', false, startTime, endTime);
+		// const event = new CalendarEvent('Some Event', 'Some cool description', '#3788d8', false, startTime, endTime);
+		const event: TCalendarEvent = {
+			msgtype: PubHubsMgType.CalendarEvent,
+			body: 'Some Event',
+			title: 'Some Event',
+			description: 'Some cool description',
+			color: '#3788d8',
+			startTime,
+			endTime,
+			isAllDay: false,
+		};
 
 		await calendarStore.editCalendarEvent('!room:example', '$event123', event);
 
 		expect(sendEventMock).toHaveBeenCalledTimes(1);
-		expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalenderEventModify, {
+		expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalendarEvent, {
 			msgtype: PubHubsMgType.CalenderEventEdit,
 			body: 'Some Event',
 			title: 'Some Event',

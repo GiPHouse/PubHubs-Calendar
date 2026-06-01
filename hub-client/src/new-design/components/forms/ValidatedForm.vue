@@ -1,45 +1,57 @@
 <template>
-	<form class="flex flex-col gap-200">
-		<slot :isValidated="isValidated"></slot>
+	<form
+		class="validated-form relative flex flex-col gap-100"
+		:class="isValidated ? 'validated' : ''"
+	>
+		<slot :is-validated="isValidated" />
 	</form>
 </template>
 
-<script setup lang="ts">
+<script lang="ts">
+	// Types
+	type FieldType = {
+		changed: boolean;
+		model: unknown;
+		name: string;
+		validated: boolean;
+	};
+</script>
+
+<script lang="ts" setup>
 	// Packages
 	import { computed, provide, ref } from 'vue';
 
-	const emit = defineEmits(['validated']);
+	// Props
+	const props = withDefaults(
+		defineProps<{
+			disabled?: boolean;
+		}>(),
+		{
+			disabled: false,
+		},
+	);
 
-	type fieldType = {
-		name: string;
-		model: any;
-		changed: boolean;
-		validated: boolean;
-	};
+	// Lifecycle
+	const emit = defineEmits<{
+		(e: 'validated', value: boolean): void;
+	}>();
 
-	const fields = ref([] as fieldType[]);
+	const fields = ref<FieldType[]>([]);
 
+	// Computed
 	const isValidated = computed(() => {
-		let changed = true;
-		let validated = true;
-		fields.value.forEach((field) => {
-			changed = changed && field.changed;
-		});
-		fields.value.forEach((field) => {
-			validated = validated && field.validated;
-		});
-		if (!changed || fields.value.length === 0) {
-			validated = false;
-		}
-		emit('validated', validated);
-		return validated;
+		if (props.disabled) return false;
+		const changed = fields.value.some((field) => field.changed);
+		const validated = fields.value.every((field) => field.validated);
+		const result = changed && fields.value.length > 0 && validated;
+		emit('validated', result);
+		return result;
 	});
 
-	const addField = (name: string, model: any, changed: boolean, validated: boolean) => {
-		let tmpFields = [...fields.value];
-		tmpFields.push({ name: name, model: model, changed: changed, validated: validated } as fieldType);
-		fields.value = tmpFields;
+	const addField = (name: string, model: unknown, changed: boolean, validated: boolean) => {
+		fields.value = [...fields.value, { name, model, changed, validated }];
 	};
 
 	provide('addField', addField);
+	provide('formDisabled', props.disabled);
 </script>

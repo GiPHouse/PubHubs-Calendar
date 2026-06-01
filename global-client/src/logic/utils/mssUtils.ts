@@ -2,7 +2,7 @@
 import { delay } from '@global-client/logic/utils/generalUtils';
 
 // Models
-import { ErrorCode, Result, isOk } from '@global-client/models/MSS/TGeneral';
+import { ErrorCode, type Result, isOk } from '@global-client/models/MSS/TGeneral';
 
 // Use function overloads to specify different return types based on input (return type T instead of T | ArrayBuffer if response is a Result type)
 export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E>): T;
@@ -65,10 +65,14 @@ export function base64fromBase64Url(base64Url: string) {
  * @param requestBody What needs to be sent as the body of the request.
  * @returns The options that need to be sent with the POST request.
  */
-export function requestOptions<T>(requestBody: T, authorization?: string | undefined) {
+export function requestOptions<T>(requestBody: T, authorization?: string) {
 	return {
 		body: JSON.stringify(requestBody),
-		headers: { 'Content-Type': 'application/json', Authorization: authorization },
+		// The pattern below makes sure the Authorization header only gets added if authorization is defined
+		headers: {
+			'Content-Type': 'application/json',
+			...(authorization !== undefined && { Authorization: authorization }),
+		},
 		method: 'POST',
 	};
 }
@@ -95,14 +99,14 @@ export function responseEqualToRequested(responseAttrs: string[], attrTypes: rea
 	}
 	return true;
 }
-export function decodeJWT(jwt: string): any {
+export function decodeJWT(jwt: string): unknown {
 	try {
 		// Only take the payload of the JWT
 		const base64Url = jwt.split('.')[1];
 		const base64 = base64fromBase64Url(base64Url);
 		// Decode the base64 encoded string to a buffer (bytes) and parse this buffer as JSON
 		const jsonPayload = Buffer.from(base64, 'base64').toString();
-		return JSON.parse(jsonPayload);
+		return JSON.parse(jsonPayload) as unknown;
 	} catch {
 		throw new Error('Invalid JWT');
 	}

@@ -37,6 +37,8 @@ def main():
                              "but homeserver.db.bak is not.",
                         action=argparse.BooleanOptionalAction,
                         default=False)
+    parser.add_argument("--server-name", default=None,
+                        help="Overwrites server_name; useful when running a copy of a production server locally.")
 
     Program(parser.parse_args()).run()
 
@@ -69,7 +71,8 @@ class Program:
                           hub_server_url=self._args.hub_server_url,
                           hub_server_url_for_yivi=self._args.hub_server_url_for_yivi,
                           global_client_url=self._args.global_client_url,
-                          replace_sqlite3_by_postgres=self._args.replace_sqlite3_by_postgres)
+                          replace_sqlite3_by_postgres=self._args.replace_sqlite3_by_postgres,
+                          server_name=self._args.server_name)
 
         self._waiter.add("yivi", subprocess.Popen(("/usr/bin/irma", 
                         "server",
@@ -118,7 +121,7 @@ class Program:
                                 os.path.join(pg_bindir, "initdb"), pg_data_dir),
                                stdin=subprocess.DEVNULL, check=True)
 
-            sqlite3_path = uc._rsbp_sqlite3_path
+            sqlite3_path = uc._sqlite3_path
             sqlite3_backup_path = sqlite3_path + '.bak'
             if not fresh_db and not os.path.exists(sqlite3_backup_path):
                 time.sleep(1)
@@ -140,11 +143,20 @@ class Program:
 
             # run postgres, so we can issue commands to it
             print("Starting postgres ...")
-            self._waiter.add("postgres", 
+            self._waiter.add("postgres",
                              subprocess.Popen(('sudo', '-u', 'postgres',
                                                os.path.join(pg_bindir, "postgres"),
-                                               '-D', pg_data_dir),
-                                               stdin=subprocess.DEVNULL))
+                                               '-D', pg_data_dir,
+                                               # Tuning: don't have postgres wait for data to be written to disk.
+                                               # Risks loss of the last transaction, but there's no risk
+                                               # of corruption.
+                                               # <https://www.postgresql.org/docs/current/wal-async-commit.html>
+                                               '-c', 'synchronous_commit=off',
+                                               # When more tuning is needed:
+                                               #  - <https://element-hq.github.io/synapse/latest/postgres.html#tuning-postgres>
+                                               #  - <https://pgtune.leopard.in.ua/>
+                                               ),
+                                              stdin=subprocess.DEVNULL))
             countdown = 300
             while subprocess.run(("sudo", "-u", "postgres", "pg_isready", "-q"), 
                                  stdin=subprocess.DEVNULL).returncode != 0:
@@ -192,13 +204,29 @@ class Program:
                     print("Migrating pubhubs-specific tables ...")
                     with contextlib.ExitStack() as exit_stack:
                         sqlite_conn = exit_stack.enter_context(sqlite3.connect(sqlite3_path))
-                        pg_conn = exit_stack.enter_context(psycopg2.connect("postgresql://synapse@localhost:5432/hub"))
+                        pg_conn = exit_stack.enter_context(psycopg2.connect(host='/var/run/postgresql', user='synapse', dbname='hub'))
                         self.migrate_ph_tables(sqlite_conn=sqlite_conn, pg_conn=pg_conn)
 
                     print(f"Renaming {sqlite3_path} -> {sqlite3_backup_path} ...")
                     os.rename(sqlite3_path, sqlite3_backup_path)
                     print("Migration to postgres completed!", flush=True)
                     # flushing here to make sure Synapse's output comes after
+
+            # Force a checkpoint so that PostgreSQL does not run it in the
+            # background while Synapse is already serving clients, which would
+            # saturate I/O and block database connections for minutes.
+            print("Running CHECKPOINT before starting Synapse ...")
+            subprocess.run(("sudo", "-u", "postgres", "psql", "--dbname=hub",
+                            "-c", "CHECKPOINT"),
+                           stdin=subprocess.DEVNULL, check=True)
+            print("CHECKPOINT complete.", flush=True)
+
+        if uc._sqlite3_path is not None and not self._args.replace_sqlite3_by_postgres:
+            print("Running PRAGMA optimize on SQLite database ...")
+            # This makes some Synapse queries significantly faster
+            with sqlite3.connect(uc._sqlite3_path) as conn:
+                conn.execute("PRAGMA optimize;")
+            print("PRAGMA optimize complete.", flush=True)
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
