@@ -1,5 +1,5 @@
 <template>
-	<CustomDialog :title="event.title" :show-delete="canEdit" :show-edit="canEdit" @close="$emit('close')" @edit="onEdit" @delete="onDelete">
+	<CustomDialog :title="event.title" :show-delete="canEdit" :show-edit="canEdit" :show-download="canEdit" @close="$emit('close')" @edit="onEdit" @delete="onDelete" @download="onDownload">
 		<form class="space-y-4">
 			<!-- Date -->
 			<div>
@@ -49,13 +49,11 @@
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import Icon from '@hub-client/components/elements/Icon.vue';
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
-	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
-	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	const { t, locale } = useI18n();
-	const { formatDate } = useTimeFormat();
+	import { downloadIcsFromEvent } from '@hub-client/logic/calendar.logic';
+
+	import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 
 	interface Props {
 		event: any;
@@ -65,6 +63,9 @@
 	const props = withDefaults(defineProps<Props>(), {
 		canEdit: false,
 	});
+
+	const { t, locale } = useI18n();
+	const { formatDate } = useTimeFormat();
 
 	const emit = defineEmits(['close', 'edit', 'delete']);
 
@@ -116,5 +117,27 @@
 
 	function onDelete() {
 		emit('delete', props.event.id);
+	}
+
+	function mapEventToCalendarEvent(event: any): TCalendarEvent {
+		return {
+			msgtype: event.msgtype,
+			title: event.title,
+			description: event.extendedProps?.description ?? '',
+			color: event.extendedProps?.color ?? event.color ?? '#3788d8',
+			location: event.extendedProps?.location ?? '',
+			room: event.extendedProps?.room ?? '',
+			startTime: event.start instanceof Date ? event.start : new Date(event.start),
+			endTime: event.end instanceof Date ? event.end : new Date(event.end ?? event.start),
+			isAllDay: event.allDay ?? false,
+		} as unknown as TCalendarEvent;
+	}
+
+	function onDownload() {
+		try {
+			downloadIcsFromEvent(mapEventToCalendarEvent(props.event));
+		} catch (error) {
+			console.error('[EventDetailsDialog] Failed to download iCal', error);
+		}
 	}
 </script>
