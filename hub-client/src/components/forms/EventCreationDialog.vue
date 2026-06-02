@@ -78,15 +78,14 @@
 							<div class="flex items-center gap-2">
 								<Icon type="users" class="text-gray-600" />
 								<div class="relative w-full">
-									<!-- Dropdown button -->
 									<div @click="showRoomDropdown = !showRoomDropdown" class="flex cursor-pointer items-center justify-between rounded border p-2">
 										<span v-if="form.room.length === 0" class="text-gray-400">
 											{{ t('calendar.selectRooms') }}
 										</span>
 										<span v-else>
-											{{ form.room.join(', ') }}
+											<!-- Show room names, but store IDs -->
+											{{ selectedRoomNames.join(', ') }}
 										</span>
-										<!-- Down arrow -->
 										<svg class="ml-2 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 										</svg>
@@ -94,9 +93,10 @@
 
 									<!-- Dropdown menu -->
 									<div v-if="showRoomDropdown" class="bg-surface-low absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded border p-2 shadow">
-										<label v-for="room in rooms" :key="room" class="flex cursor-pointer items-center gap-2">
-											<input type="checkbox" :value="room" v-model="form.room" />
-											{{ room }}
+										<label v-for="room in availableRooms" :key="room.id" class="flex cursor-pointer items-center gap-2">
+											<input type="checkbox" :value="room.id" v-model="form.room" />
+											{{ room.name }}
+											<!-- ← Display the room name -->
 										</label>
 									</div>
 								</div>
@@ -125,10 +125,10 @@
 <script setup lang="ts">
 	import { computed, reactive, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import Icon from '@hub-client/components/elements/Icon.vue';
-	import { useRooms } from '@hub-client/stores/rooms';
-	import { RoomType } from '@hub-client/modules/rooms/TBaseRoom';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const { t, locale } = useI18n();
@@ -143,12 +143,11 @@
 
 	const settings = useSettings();
 
-	const rooms = computed(() =>
-		roomsStore.loadedPublicRooms
-		.filter(r => r.name && r.name.trim() !== '')
-		.map(r => r.name)
-	);
+	const availableRooms = computed(() => roomsStore.loadedPublicRooms.filter((r) => r.name && r.name.trim() !== '').map((r) => ({ id: r.roomId, name: r.name })));
 
+	const selectedRoomNames = computed(() => {
+		return form.room.map((roomId) => availableRooms.value.find((r) => r.id === roomId)?.name).filter(Boolean);
+	});
 
 	const colors = [
 		{ class: 'accent-red', value: '#ae2e24' },

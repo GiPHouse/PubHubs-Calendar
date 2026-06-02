@@ -5,8 +5,6 @@ import { defineStore } from 'pinia';
 // Services
 import { useMatrix } from '@hub-client/composables/matrix.composable';
 
-// Composables
-
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
@@ -14,12 +12,6 @@ import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 // Models
 import Room from '@hub-client/models/rooms/Room';
-
-// Services
-import { useMatrixService } from '@hub-client/services/matrix.service';
-
-// Stores
-import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 /**
  * @todo Add other calendar event types, e.g. edit, delete, etc.
@@ -38,20 +30,7 @@ const useCalendarStore = defineStore('calendar', {
 		 */
 		async addCalendarEvent(roomId: string, calEvent: TCalendarEvent) {
 			const { sendEvent } = useMatrix();
-
-			const content: TCalendarEvent = {
-				msgtype: PubHubsMgType.CalendarEvent,
-				body: calEvent.title,
-				title: calEvent.title,
-				description: calEvent.description,
-				color: calEvent.color,
-				location: calEvent.location,
-				isAllDay: calEvent.isAllDay,
-				startTime: calEvent.startTime,
-				endTime: calEvent.endTime,
-			};
-
-			await sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
+			await sendEvent(roomId, PubHubsMgType.CalendarEvent, calEvent);
 		},
 
 		async editCalendarEvent(roomId: string, eventId: string, calEvent: TCalendarEvent) {
@@ -85,7 +64,6 @@ const useCalendarStore = defineStore('calendar', {
 			const calendarEvents = events
 				.filter((e) => e.getType() === PubHubsMgType.CalendarEvent)
 				.map((e) => {
-					console.log(`>> Found an event: ${e}`);
 					const content = e.getContent() as TCalendarEvent;
 					const eventId = e.getId?.() ?? e.event?.event_id ?? undefined;
 					return {
@@ -95,13 +73,6 @@ const useCalendarStore = defineStore('calendar', {
 						endTime: new Date(content.endTime),
 					};
 				});
-
-			// In the previous iteration of this method, we also sorted and applied
-			// pending edits and what not... I've removed thsoe for MVP's sake. The
-			// function is already broken as-is for now anyway...
-
-			// In the future, if need be or preferred, we can add i.e. a sort statement
-			// to sort the events by their creation date or whatever!
 
 			return calendarEvents;
 		},
