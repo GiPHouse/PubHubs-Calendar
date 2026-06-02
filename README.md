@@ -177,6 +177,7 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 - If you have problems running the maskfiles, make sure that it calls the name of programs correctly (For instance, if you use `py` instead of `python3`).
 - run-all.sh
 - Some windows users faced issues with `mask run all` because of tmux. If this occurs, try to run the six commands manually instead.
+- If you get an issue regarding an attempt to write to a read-only database, run `sudo chown -R 991:991 pubhubs_hub/testhub0`.
 
 ---
 <!-- 
