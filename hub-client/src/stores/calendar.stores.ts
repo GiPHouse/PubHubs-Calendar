@@ -10,9 +10,13 @@ import { useMatrix } from '@hub-client/composables/matrix.composable';
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 
-import { CalendarEvent, TCalendarEventMessageContent } from '@hub-client/models/events/calendar/TCalendarEvent';
+// Models
+import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 // Models
 import Room from '@hub-client/models/rooms/Room';
+
+// Services
+import { useMatrixService } from '@hub-client/services/matrix.service';
 
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
@@ -32,7 +36,7 @@ const useCalendarStore = defineStore('calendar', {
 		 * @param roomId RoomID to send the event in.
 		 * @param calEvent
 		 */
-		async addCalendarEvent(roomId: string, calEvent: CalendarEvent) {
+		async addCalendarEvent(roomId: string, calEvent: TCalendarEvent) {
 			const { sendEvent } = useMatrix();
 
 			const content: TCalendarEvent = {
@@ -50,7 +54,7 @@ const useCalendarStore = defineStore('calendar', {
 			await sendEvent(roomId, PubHubsMgType.CalendarEvent, content);
 		},
 
-		async editCalendarEvent(roomId: string, eventId: string, calEvent: CalendarEvent) {
+		async editCalendarEvent(roomId: string, eventId: string, calEvent: TCalendarEvent) {
 			await this.addCalendarEvent(roomId, calEvent);
 			await this.delCalendarEvent(roomId, eventId);
 		},
