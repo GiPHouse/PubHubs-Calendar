@@ -7,6 +7,7 @@ import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEven
 
 import { useCalendarStore } from '@hub-client/stores/calendar.stores';
 import { Room } from '@hub-client/stores/rooms';
+import { useSettings } from '@hub-client/stores/settings';
 
 /* This file is the composable for calendar events.
  * This means that this file should handle use-case and UI-related logic.
@@ -28,8 +29,9 @@ import { Room } from '@hub-client/stores/rooms';
  * @todo Implement checking if the `roomId` is legitimate.
  */
 export function validateEvent(calEvent: TCalendarEvent): TCalendarEvent {
+	const settings = useSettings();
 	if (calEvent.title == '') {
-		throw new Error('Calendar event must have a non-empty title!');
+		calEvent.title = settings.getActiveLanguage === 'nl' ? 'Naamloos evenement' : 'Untitled event';
 	}
 
 	if (calEvent.color == '') {

@@ -1,21 +1,26 @@
-# PubHubs — Public hubs for community networks
+# PubHubs Calendar
 
 PubHubs (Public Hubs) is a European community network built on public values: openness, transparency and collective stewardship. It connects people across local hubs (i.e. neighbourhoods, sports clubs, schools, museums, patient organisations, libraries, municipalities) while protecting participants’ data and enabling trustworthy communication.
+
+PubHubs Calendar is a cloned repository of PubHubs that implements a Calendar function over the Matrix protocol to allow people in local hubs to coordinate events entirely within PubHubs, without relying on external services.
+This project is made as part of the student-run company in Radboud University.
 
 ---
 
 ## Contact & quick links
 
-- Website / info: [https://pubhubs.net](https://pubhubs.net)
-- If you want to get involved or test: please contact the team via our website.
+- GiPHouse: [https://giphouse.nl/](https://giphouse.nl/)
+- PubHubs GitHub Repository: [https://github.com/PubHubs/PubHubs](https://github.com/PubHubs/PubHubs)
+- PubHubs website / info: [https://pubhubs.net](https://pubhubs.net)
+- If you want to get involved or test: please contact the PubHubs team via their website.
 
 ---
-
-# Current status
+<!-- 
+## Current status
 
 This project is **in active development** and moving through test phases. The repository is a mirror of internal work and may be subject to major changes before a stable release. If you or your organisation want to help test or contribute, contact the team first.
 
----
+--- -->
 
 ## Architecture
 
@@ -43,11 +48,13 @@ This project is **in active development** and moving through test phases. The re
 
 ---
 
-## Developer quickstart
+# Developer quickstart
 
 ### 1. Clone the repo
 
-Our main repository is on the Radboud University's GitLab, but external developers can use our [GitHub mirror](https://github.com/PubHubs/PubHubs). `main` is our devemopment branch, while `stable` is our production branch.
+```sh
+git clone https://github.com/GiPHouse/PubHubs-Calendar.git
+```
 
 ### 2. Install dependencies
 
@@ -62,6 +69,17 @@ nix develop
 # Or, with direnv enabled:
 direnv allow
 ```
+
+For non-Nix users or those unfamiliar with Nix, these dependencies can be installed manually from the following sources:
+
+- Docker: [https://docs.docker.com/engine/install](https://docs.docker.com/engine/install)
+- NodeJS and the node package manager (npm): [https://nodejs.org/en/download](https://nodejs.org/en/download)
+- Cargo and Rust: [https://rust-lang.org/tools/install/](https://rust-lang.org/tools/install/)
+- Mask: [https://github.com/jacobdeichert/mask/](https://github.com/jacobdeichert/mask#installation)
+- Irma: [https://github.com/privacybydesign/irmago/](https://github.com/privacybydesign/irmago#installing)
+- Git Bash (for Windows users): [https://git-scm.com/install/windows](https://git-scm.com/install/windows)
+
+Make sure you also have the Yivi app installed on your phone: [https://yivi.app/en/](https://yivi.app/en/)
 
 ### 3. Development commands
 
@@ -113,7 +131,7 @@ You can run these all at once in the following way:
 ```sh
 mask run all
 ```
-
+<!-- 
 Alternatively, if you are only making changes to the hub, you can run the hub client against our [staging server](https://main.pubhubs.ihub.ru.nl). To do so, you can run:
 
 ```sh
@@ -127,10 +145,12 @@ mask run hub mainclient enter
 ```
 
 This will show a QR-code in the terminal, which can be scanned with your Yivi app (see next section). Once registered, you'll get a URL with the access token.
-
+  -->
 ### 5. Logging in
 
-To access the hubs, you have to login using the Yivi app. To do so, the app must be set to developer mode. This can be done by navigating to the `more` menu and clicking the 'App Id' a couple of times.
+The site should be accessible in a browser at [http://localhost:8080/](http://localhost:8080/)
+
+To access the hubs, you have to login using the Yivi app. To do so, the app must be set to developer mode. This can be done by navigating to the `more` menu and clicking the 'App Id' around 7 times.
 
 #### Making yourself admin
 
@@ -151,10 +171,17 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 ### 6. Solutions for common issues
 
 - If Yivi cannot communicate with your local development setup, disable your firewall.
-- Is you run into CORS issues, disable HTPPS-only in your browser.
+- If you run into CORS issues, disable HTPPS-only in your browser.
+- If the page at [localhost:8001](http://localhost:8001/) does not bring you to the PubHubs page, try with [localhost:8080](http://localhost:8080/) instead.
+- If the hub does not appear, there may be other containers running on the same port. It often helps to close all Docker instances, including the ones from PubHubs, and run `mask run init` again before attempting `mask run all`.
+- If you have problems running the maskfiles, make sure that it calls the name of programs correctly (For instance, if you use `py` instead of `python3`).
+- run-all.sh
+- Some windows users faced issues with `mask run all` because of tmux. If this occurs, try to run the six commands manually instead.
+- If you get an issue regarding an attempt to write to a read-only database, run `sudo chown -R 991:991 pubhubs_hub/testhub0`.
 
 ---
-
+<!-- 
 ## Further documentation & changelog
 
 - Changelog: [CHANGELOG.md](./CHANGELOG.md)
+  -->

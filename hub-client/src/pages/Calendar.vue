@@ -339,21 +339,15 @@
 	}
 
 	async function handleDeleteEvent(eventId) {
-		if (!rooms.currentRoomExists) {
-			console.error('Cannot delete event without a selected room.');
-			return;
-		}
+		const calanderRoom = await findAndJoinCalendarRoom();
+		var roomId = calanderRoom?.roomId;
 
-		try {
-			await removeCalendarEvent(currentRoomId.value, eventId);
-			const calendarRoom = rooms.rooms[currentRoomId.value];
-			if (calendarRoom) {
-				await loadCalendarEvents(calendarRoom);
-			}
-		} catch (err) {
-			console.error('Failed to delete calendar event', err);
-		}
+		await removeCalendarEvent(roomId, eventId);
 		showEventDetailsDialog.value = false;
+
+		sleep(1000);
+
+		await loadCalendarEvents(calanderRoom);
 	}
 
 	// Calendar options
