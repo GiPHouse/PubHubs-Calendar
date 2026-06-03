@@ -35,6 +35,9 @@ import Button from '@hub-client/components/elements/Button.vue';
 							<!-- Edit -->
 							<Button v-if="showEdit" @click="$emit('edit')">{{ $t('dialog.edit') }}</Button>
 
+							<!-- Download -->
+							<Button v-if="showDownload" @click="$emit('download')">Download</Button>
+
 							<!-- Delete (pushed to the left) -->
 							<Button v-if="showDelete" color="red" @click="$emit('delete')" class="mr-auto">{{ $t('dialog.delete') }}</Button>
 						</div>
@@ -50,7 +53,8 @@ import Button from '@hub-client/components/elements/Button.vue';
 		title: string;
 		showDelete?: boolean;
 		showEdit?: boolean;
+		showDownload?: boolean;
 	}>();
 
-	defineEmits(['close', 'edit', 'delete']);
+	defineEmits(['close', 'edit', 'delete', 'download']);
 </script>
