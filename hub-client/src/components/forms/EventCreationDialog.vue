@@ -79,12 +79,20 @@
 								<Icon type="users" class="text-gray-600" />
 								<div class="relative w-full">
 									<!-- Dropdown button -->
-									<div @click="showRoomDropdown = !showRoomDropdown" class="flex cursor-pointer items-center justify-between rounded border p-2">
+									<div
+										@click="!props.lockedRoom && (showRoomDropdown = !showRoomDropdown)"
+										class="flex cursor-pointer items-center justify-between rounded border p-2"
+										:class="{ 'opacity-60 cursor-not-allowed': props.lockedRoom }"
+									>
 										<span v-if="form.room.length === 0" class="text-gray-400">
 											{{ t('calendar.selectRooms') }}
 										</span>
-										<span v-else>
-											{{ form.room.join(', ') }}
+										<span>
+											{{
+												props.lockedRoom
+												? props.lockedRoom
+												: form.room.join(', ')
+											}}
 										</span>
 										<!-- Down arrow -->
 										<svg class="ml-2 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -95,7 +103,12 @@
 									<!-- Dropdown menu -->
 									<div v-if="showRoomDropdown" class="bg-surface-low absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded border p-2 shadow">
 										<label v-for="room in rooms" :key="room" class="flex cursor-pointer items-center gap-2">
-											<input type="checkbox" :value="room" v-model="form.room" />
+											<input
+												type="checkbox"
+												:value="room"
+												v-model="form.room"
+												:disabled="!!props.lockedRoom"
+											/>
 											{{ room }}
 										</label>
 									</div>
@@ -137,7 +150,13 @@
 
 	const showRoomDropdown = ref(false);
 
-	const props = defineProps<{ start: string; end: string; allDay?: boolean; event?: any }>();
+	const props = defineProps<{
+		start: string;
+		end: string;
+		allDay?: boolean;
+		event?: any;
+		lockedRoom?: string;
+	}>();
 
 	const emit = defineEmits(['submit', 'close']);
 
@@ -151,12 +170,10 @@
 
 
 	const colors = [
-		{ class: 'accent-red', value: '#ae2e24' },
 		{ class: 'accent-error', value: '#e45959' },
 		{ class: 'accent-yellow', value: '#e7d63d' },
 		{ class: 'accent-teal', value: '#27e0bf' },
-		{ class: 'accent-blue', value: '#005a9e' },
-		{ class: 'accent-purple', value: '#5e24ae' },
+		{ class: 'accent-primary', value: '#00adee' },
 		{ class: 'accent-pink', value: '#bf5cd8' },
 	];
 
@@ -184,6 +201,16 @@
 			return end.toTimeString().slice(0, 5);
 		})(),
 	});
+
+	watch(
+		() => props.lockedRoom,
+		(room) => {
+			if (room && (!form.room.length || form.room.includes(room) === false)) {
+				form.room = [room];
+			}
+		},
+		{ immediate: true }
+	);
 
 	watch(
 		() => [form.startDate, form.startTime, form.endDate, form.endTime],
@@ -345,9 +372,12 @@
 		() => props.event,
 		(event) => {
 			if (!event) return;
+
 			form.title = event.title ?? '';
 			form.location = event.extendedProps?.location ?? '';
-			form.room = event.extendedProps?.room ?? [];
+			form.room = props.lockedRoom
+				? [props.lockedRoom]
+				: (event.extendedProps?.room ?? []);
 			form.description = event.extendedProps?.description ?? '';
 			form.color = event.backgroundColor ?? form.color;
 		},
@@ -378,7 +408,9 @@
 		emit('submit', {
 			title: form.title,
 			location: form.location,
-			room: form.room,
+			room: props.lockedRoom
+				? [props.lockedRoom]
+				: (Array.isArray(form.room) ? form.room : [form.room]),
 			description: form.description,
 			color: form.color,
 			allDay: form.allDay,

@@ -65,6 +65,7 @@
 			:showVotesBeforeVoting="votingWidget.showVotesBeforeVoting"
 			:showVotes="showVotes"
 			:sortBasedOnScore="votingWidgetClosed && isCreator"
+			:scheduler="votingWidget"
 		/>
 	</div>
 </template>

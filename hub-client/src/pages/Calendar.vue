@@ -89,6 +89,8 @@
 	const calendarEvents = ref([]);
 
 	function mapCalendarEventToFullCalendarEvent(event) {
+		console.log(`>> Event: ${event.room}, Extended: ${event.extendedProps?.room}`);
+
 		return {
 			id: event.id ?? `${event.title}-${event.startTime?.getTime?.() ?? event.start}-${Math.random().toString(36).slice(2, 8)}`,
 			title: event.title,
@@ -107,6 +109,8 @@
 	}
 
 	function createCalendarEventObject(eventPayload, eventId) {
+		console.log(`>> Event: ${eventPayload.room}`);
+
 		return {
 			title: eventPayload.title,
 			description: eventPayload.description ?? '',
@@ -195,8 +199,11 @@
 			// const events = await getCalendarEvents(currentRoomId.value);
 			const events = await getCalendarEvents(calendarRoom);
 			// print events to log
-			console.log('[Calendar.vue] Calendar events array:');
-			console.log(events);
+			console.log('[Calendar.vue] Calendar events array:', events);
+			events.forEach((event) => {
+				console.log('>> [load] Event: ', event.title, 'Room property: ', event.room);
+			});
+
 			calendarEvents.value = events.map(mapCalendarEventToFullCalendarEvent);
 		} catch (err) {
 			console.error('Failed to load calendar events', err);

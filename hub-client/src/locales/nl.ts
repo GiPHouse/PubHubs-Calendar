@@ -16,6 +16,8 @@ const nl = {
 		selectRooms: 'Selecteer kamer(s)',
 		save: 'Opslaan',
 		isAllDay: 'Hele dag',
+		noEvents: 'Er zijn nog geen evenementen voor deze kamer',
+		deleteEvent: 'Weet je zeker dat je dit evenement wilt verwijderen?',
 	},
 	state: {
 		button_request: 'Verleen toegang',
@@ -280,6 +282,7 @@ const nl = {
 		under_construction: 'Deze hub is in onderhoud',
 	},
 	rooms: {
+		addToCalendar: 'Wil je dit evenement toevoegen aan de kalender?',
 		room: 'Kamer',
 		thread: 'Thread',
 		me: 'Ik',

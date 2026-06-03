@@ -8,7 +8,7 @@
 	>
 		<div class="align-items-center bg-background flex flex-wrap rounded-t-lg px-5 py-2 lg:justify-items-start">
 			<div class="flex items-end">
-				{{ filters.getDateStr(option.date, is24HourFormat, d) }}
+				{{ option.fullDay ? d(new Date(Array.isArray(option.date) ? option.date[0] : option.date), 'short') : filters.getDateStr(option.date, is24HourFormat, d) }}
 			</div>
 			<div v-if="!closedAndPicking" class="ml-auto flex items-center justify-end gap-2">
 				<OptionButton color="bg-accent-lime" :colorwhen="uservote === 'yes'" :disabled="closed" @click="vote('yes')">
@@ -29,16 +29,27 @@
 			<ViewVotesSchedulerOption :votes="votes"></ViewVotesSchedulerOption>
 		</div>
 		<ProgressBarMulti class="relative -z-10 -mt-2 mb-2" :percentages="[getPercentage('yes'), getPercentage('maybe'), getPercentage('no')]"></ProgressBarMulti>
+		<AddToCalendarDialog
+            v-if="showAddToCalendarDialog"
+            :isMobile="false"
+            :scheduler="scheduler"
+            :option="option"
+            @close="showAddToCalendarDialog = false"
+        />
 	</div>
 </template>
+
+
 <script setup lang="ts">
 	// Packages
-	import { computed } from 'vue';
+	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import OptionButton from '@hub-client/components/rooms/voting/scheduler/OptionButton.vue';
+	import AddToCalendarDialog from '@hub-client/components/forms/AddToCalendarDialog.vue';
+
 
 	// Logic
 	import filters from '@hub-client/logic/core/filters';
@@ -57,8 +68,11 @@
 	const settings = useSettings();
 	const { d } = useI18n();
 
+	const showAddToCalendarDialog = ref(false);
+
 	const props = defineProps<{
 		option: SchedulerOption;
+		scheduler: any;
 		votes: voteType[];
 		uservote: string;
 		eventId: string;
@@ -110,6 +124,9 @@
 	};
 
 	function pickDate() {
-		pubhubs.pickOptionVotingWidget(rooms.currentRoomId, props.eventId, props.option.id);
+		//pubhubs.pickOptionVotingWidget(rooms.currentRoomId, props.eventId, props.option.id);
+		showAddToCalendarDialog.value = true;
+
 	}
+
 </script>
