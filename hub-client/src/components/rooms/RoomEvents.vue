@@ -1,6 +1,15 @@
 <template>
 	<div class="flex h-full flex-col p-4">
-		<SidebarHeader :title="$t('menu.calendar')" />
+		<SidebarHeader :title="$t('menu.calendar')">
+			<template #action>
+				<button
+					class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer"
+					@click="openCreateDialog"
+				>
+					<Icon type="plus-circle" size="md" />
+				</button>
+			</template>
+		</SidebarHeader>
 
 		<!-- Scrollable event list -->
 		<div class="flex-1 overflow-y-auto px-4 pb-4">
@@ -9,16 +18,13 @@
 				{{ t('calendar.noEvents') || 'No events' }}
 			</p>
 
-			<button v-if="!isMobile" class="text-on-surface-dim hover:text-on-surface hover:bg-surface-high rounded-md p-1 transition-colors hover:cursor-pointer" @click="openCreateDialog" aria-label="Create event">
-				<Icon type="plus" size="sm" />
-			</button>
-
 			<EventCreationDialog
 				v-if="showEventCreationDialog"
 				:start="selectedRange.startStr"
 				:end="selectedRange.endStr"
 				:allDay="selectedRange.allDay"
 				:event="selectedEventForEdit"
+				:locked-room="currentRoomName"
 				@close="
 					showEventCreationDialog = false;
 					selectedEventForEdit = null;
@@ -92,12 +98,18 @@
 
 	const currentRoomId = computed(() => roomsStore.currentRoom?.roomId ?? null);
 
+	const currentRoomName = computed(
+		() => roomsStore.currentRoom?.name ?? ''
+	);
+
 	const filteredEvents = computed(() => {
 		if (!currentRoomId.value) return [];
+		const currentRoomName = roomsStore.currentRoom?.name ?? '';
+		
 		return allEvents.value.filter((event) => {
-			const eventRoomIds = event.extendedProps?.room ?? event.room ?? [];
-			if (Array.isArray(eventRoomIds)) return eventRoomIds.includes(currentRoomId.value);
-			return eventRoomIds === currentRoomId.value;
+			const eventRooms = event.extendedProps?.room ?? event.room ?? [];
+			const rooms = Array.isArray(eventRooms) ? eventRooms : [eventRooms];
+			return rooms.includes(currentRoomId.value) || rooms.includes(currentRoomName);
 		});
 	});
 

@@ -16,6 +16,8 @@ const en = {
 		selectRooms: 'Select room(s)',
 		save: 'Save',
 		isAllDay: 'Full day',
+		noEvents: 'There are no events in this calendar yet',
+		deleteEvent: 'Are you sure you want to delete this event?',
 	},
 	state: {
 		button_request: 'Request access',
@@ -281,6 +283,7 @@ const en = {
 		under_construction: 'This hub is under construction',
 	},
 	rooms: {
+		addToCalendar: 'Do you want to add this event to the calendar?',
 		room: 'Room',
 		thread: 'Thread',
 		me: 'Me',
@@ -589,6 +592,7 @@ const en = {
 			message_deleted: 'Deleted message',
 		},
 		voting: {
+			full_day: "Full day",
 			add_option: 'Add option',
 			creating_option: 'Creating option...',
 			enter_title: 'Enter title...',

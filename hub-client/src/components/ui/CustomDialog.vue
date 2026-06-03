@@ -29,9 +29,6 @@ import Button from '@hub-client/components/elements/Button.vue';
 				<div class="w-full">
 					<slot name="footer">
 						<div class="flex w-full flex-row-reverse justify-start gap-2">
-							<!-- Close -->
-							<Button @click="$emit('close')">{{ $t('dialog.close') }}</Button>
-
 							<!-- Edit -->
 							<Button v-if="showEdit" @click="$emit('edit')">{{ $t('dialog.edit') }}</Button>
 

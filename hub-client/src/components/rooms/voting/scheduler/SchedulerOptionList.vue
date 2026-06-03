@@ -4,6 +4,7 @@
 			v-for="option in sortedOptions"
 			:key="option.id"
 			:option="option"
+			:scheduler="scheduler"
 			:votes="votesOfOption(option.id)"
 			:uservote="voteOfUserOnOption(option.id)"
 			:eventId="eventId"
@@ -40,6 +41,7 @@
 		showVotesBeforeVoting: boolean | undefined;
 		showVotes: boolean;
 		sortBasedOnScore: boolean;
+		scheduler: any;
 	}>();
 
 	const sortedOptions = computed(() => {

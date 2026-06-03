@@ -1,11 +1,19 @@
 <template>
 	<div class="rounded-md">
-		<div class="mb-2 flex border-b p-2">
-			<Icon type="calendar" size="base" class="mx-2 mt-1 flex-none"></Icon>
-			<H2 class="flex-grow">{{ $t('message.scheduler') }}</H2>
-			<div class="mt-1 flex flex-none">
-				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<IconButton type="x" size="sm" @click="emit('closeScheduler')" class="ml-2"></IconButton>
+		<div class="mb-2 flex items-center border-b p-2">
+			<Icon type="calendar" size="base" class="mx-2 flex-none" />
+			
+			<H3 class="flex-grow">
+				{{ $t('message.scheduler') }}
+			</H3>
+
+			<div class="flex flex-none items-center">
+				<IconButton
+					type="x"
+					size="sm"
+					@click="emit('closeScheduler')"
+					class="ml-2"
+				/>
 			</div>
 		</div>
 		<div class="flex items-center p-2">
@@ -32,7 +40,7 @@
 				<div class="-mb-1 flex w-full flex-row justify-stretch">
 					<div class="scrollbar-emojipicker mr-2 w-9/12" id="optionsContainer">
 						<div v-for="option in sortedOptions" :key="option.id">
-							<SchedulerOptionInput :key="option.id" :option="option" @removeOption="removeOption(option.id)" @updateOption="updateDateOption(option.id, $event)" />
+							<SchedulerOptionInput :key="option.id" :option="option" @removeOption="removeOption(option.id)" @updateOption="(date, fullDay) => updateDateOption(option.id, date, fullDay)" />
 						</div>
 						<div v-if="scheduler.options.length < 2" class="bg-background mb-1 h-[42px] w-full rounded-lg border"></div>
 						<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
@@ -122,11 +130,12 @@
 		emit('createScheduler', scheduler.value, scheduler.value.canSend());
 	};
 
-	function updateDateOption(optionId: Number, date: Date[]) {
+	function updateDateOption(optionId: Number, date: Date[], fullDay: boolean) {
 		const option = scheduler.value.options.find((option) => option.id === optionId);
 		if (option) {
 			option.date = date;
 			option.status = SchedulerOptionStatus.FILLED;
+			option.fullDay = fullDay;
 		}
 		updateScheduler();
 		scheduler.value.addNewOptionsIfAllFilled();
