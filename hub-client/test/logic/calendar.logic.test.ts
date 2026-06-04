@@ -5,6 +5,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { vol, createFsFromVolume, Volume } from 'memfs';
 import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
 import { generateIcsFromEvent } from '@hub-client/logic/calendar.logic';
+
 vi.mock('fs', () => {
   const mockFs = {
     writeFileSync: vi.fn(),
@@ -108,9 +109,9 @@ describe('generateIcsFromEvent', () => {
 			color: "#FF0000",
 			location: "",
 			isAllDay: false,
-			startTime: new Date('2023-10-01T11:00:00Z'),
+			startTime: null,
 			// @ts-ignore
-			endTime: null,
+			endTime: new Date('2023-10-01T11:00:00Z'),
 		} as unknown as TCalendarEvent;
 
 

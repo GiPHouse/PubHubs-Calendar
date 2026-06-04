@@ -94,9 +94,7 @@ describe("Calendar Composable", () => {
 				description: "Some description",
 				color: "#abcdef",
 				isAllDay: false,
-				startTime: new Date("2026-03-29T12:00:00.000Z"),
 				endTime: new Date("2026-03-29T13:00:00.000Z"),
-				id: "someId",
 				location: "Some location",
 				room: "Some room"
 			} as unknown as TCalendarEvent;
@@ -131,7 +129,7 @@ describe("Calendar Composable", () => {
 				room: "Some room"
 			} as unknown as TCalendarEvent;
 
-			expect(() => validateEvent(event)).toThrow('Calendar event end time must be after start time');
+			expect(() => validateEvent(event)).toThrow('Calendar event end date must be after start date');
 		});
 
 		test("validates when an event is okay", () => {
@@ -142,7 +140,6 @@ describe("Calendar Composable", () => {
 				isAllDay: false,
 				startTime: new Date("2026-03-29T12:00:00.000Z"),
 				endTime: new Date("2026-03-29T13:00:00.000Z"),
-				id: "someId",
 				location: "Some location",
 				room: "Some room"
 			} as unknown as TCalendarEvent;
@@ -176,7 +173,6 @@ describe("Calendar Composable", () => {
 					isAllDay: false,
 					startTime: new Date("2026-03-29T12:00:00.000Z"),
 					endTime: new Date("2026-03-29T13:00:00.000Z"),
-					id: "someId",
 					location: "Some location",
 					room: "Some room"
 				})

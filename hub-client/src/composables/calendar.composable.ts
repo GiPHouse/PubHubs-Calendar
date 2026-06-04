@@ -57,10 +57,6 @@ export function validateEvent(calEvent: TCalendarEvent): TCalendarEvent {
 		end.setHours(23, 59, 59);
 	}
 
-	if (end.getTime() <= start.getTime() && calEvent.isAllDay) {
-		throw new Error('Calendar event end time must be after start time');
-	}
-
 	if (end.getTime() <= start.getTime() && !calEvent.isAllDay) {
 		throw new Error('Calendar event end date must be after start date');
 	}
