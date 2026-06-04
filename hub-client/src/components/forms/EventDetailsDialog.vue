@@ -1,43 +1,76 @@
 <template>
 	<CustomDialog :title="event.title" :show-delete="canEdit" :show-edit="canEdit" @close="$emit('close')" @edit="onEdit" @delete="showDeleteDialog = true">
 		<form class="space-y-4">
-			<!-- Date -->
-			<div>
-				<div class="text-body text-on-surface">
-					{{ formattedDate }}
-				</div>
-				<div v-if="!event.allDay" class="text-body text-on-surface/60">
-					{{ formattedTime }}
+			<!-- Date & Time -->
+			<div class="flex items-start gap-3">
+				<Icon type="calendar" class="mt-1 shrink-0" />
+
+				<div>
+					<div class="text-on-surface font-medium">
+						{{ formattedDate }}
+					</div>
+
+					<div class="text-on-surface/60 text-sm">
+						{{ event.allDay ? $t('calendar.isAllDay') : formattedTime }}
+					</div>
 				</div>
 			</div>
 
 			<!-- Location -->
-			<div v-if="event.extendedProps?.location">
-				<label class="text-on-surface/70 font-semibold">
-					{{ $t('calendar.location') }}
-				</label>
-				<div class="text-body text-on-surface">
-					{{ event.extendedProps.location }}
+			<div
+				v-if="event.extendedProps?.location"
+				class="flex items-start gap-3"
+			>
+				<Icon type="map-pin" class="mt-1 shrink-0" />
+
+				<div>
+					<div class="text-xs tracking-wide text-on-surface/60">
+						{{ $t('calendar.location') }}
+					</div>
+
+					<div class="text-on-surface">
+						{{ event.extendedProps.location }}
+					</div>
 				</div>
 			</div>
 
-			<!-- Rooms -->
-			<div v-if="event.extendedProps?.room?.length">
-				<label class="text-on-surface/70 font-semibold">
-					{{ $t('calendar.room') }}
-				</label>
-				<div class="text-body text-on-surface">
-					{{ Array.isArray(event.extendedProps.room) ? event.extendedProps.room.join(', ') : event.extendedProps.room }}
+			<!-- Room -->
+			<div
+				v-if="event.extendedProps?.room?.length"
+				class="flex items-start gap-3"
+			>
+				<Icon type="users" class="mt-1 shrink-0" />
+
+				<div>
+					<div class="text-xs tracking-wide text-on-surface/60">
+						{{ $t('calendar.room') }}
+					</div>
+
+					<div class="text-on-surface">
+						{{
+							Array.isArray(event.extendedProps.room)
+								? event.extendedProps.room.join(', ')
+								: event.extendedProps.room
+						}}
+					</div>
 				</div>
 			</div>
 
 			<!-- Description -->
-			<div v-if="event.extendedProps?.description">
-				<label class="text-on-surface/70 font-semibold">
-					{{ $t('calendar.description') }}
-				</label>
-				<div class="text-body text-on-surface whitespace-pre-wrap">
-					{{ event.extendedProps.description }}
+			<div
+				v-if="event.extendedProps?.description"
+				class="flex items-start gap-3"
+			>
+				<Icon type="chat-circle-text" class="mt-1 shrink-0" />
+
+				<div class="min-w-0">
+					<div class="text-xs tracking-wide text-on-surface/60">
+						{{ $t('calendar.description') }}
+					</div>
+
+					<div class="text-on-surface whitespace-pre-wrap">
+						{{ event.extendedProps.description }}
+					</div>
 				</div>
 			</div>
 		</form>

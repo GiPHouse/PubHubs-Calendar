@@ -35,6 +35,7 @@
             :scheduler="scheduler"
             :option="option"
             @close="showAddToCalendarDialog = false"
+			@submit="handleAddToCalendar"
         />
 	</div>
 </template>
@@ -127,6 +128,10 @@
 		//pubhubs.pickOptionVotingWidget(rooms.currentRoomId, props.eventId, props.option.id);
 		showAddToCalendarDialog.value = true;
 
+	}
+
+	async function handleAddToCalendar(eventData) {
+		console.log('SchedulerOptionItem received:', eventData);
 	}
 
 </script>

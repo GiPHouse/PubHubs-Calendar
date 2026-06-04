@@ -190,10 +190,11 @@
 
 		allDay: props.allDay ?? false,
 
-		startDate: startDateObj,
 		startTime: startDateObj.toTimeString().slice(0, 5),
 
-		endDate: endDateObj,
+		startDate: toLocalDateString(startDateObj),
+		endDate: toLocalDateString(endDateObj),
+
 		endTime: (() => {
 			// If same day, 30 min later; else same day 30 min slot
 			const end = new Date(startDateObj);
@@ -385,6 +386,7 @@
 	);
 
 	function submit() {
+		console.log('submit button clicked');
 		const start = new Date(form.startDate);
 		const end = new Date(form.endDate);
 

@@ -97,9 +97,9 @@
 			start: event.startTime ?? event.start,
 			end: event.endTime ?? event.end,
 			allDay: event.isAllDay ?? event.allDay,
-			backgroundColor: event.color ?? '#3788d8',
-			borderColor: event.color ?? '#3788d8',
-			textColor: getContrastTextColor(event.color ?? '#3788d8'),
+			backgroundColor: event.color ?? '#00adee',
+			borderColor: event.color ?? '#00adee',
+			textColor: getContrastTextColor(event.color ?? '#00adee'),
 			extendedProps: {
 				location: event.location ?? event.extendedProps?.location ?? '',
 				room: event.room ?? event.extendedProps?.room ?? '',
@@ -114,7 +114,7 @@
 		return {
 			title: eventPayload.title,
 			description: eventPayload.description ?? '',
-			color: eventPayload.color ?? '#3788d8',
+			color: eventPayload.color ?? '#00adee',
 			isAllDay: eventPayload.allDay ?? false,
 			startTime: new Date(eventPayload.start),
 			endTime: new Date(eventPayload.end ?? eventPayload.start),
@@ -429,7 +429,7 @@
 		eventResize: handleEventResize,
 
 		// Event colors
-		eventColor: '#3788d8',
+		eventColor: '#00adee',
 
 		// Responsive settings
 		height: 'auto',

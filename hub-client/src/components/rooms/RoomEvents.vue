@@ -94,7 +94,7 @@
 	const calendarRoomRef = ref(null);
 	const allEvents = ref([]); // all events from calendar room
 	const loading = ref(false);
-	const calendarTimelineVersion = ref(0);
+	const calendarTimelineVersion = computed(() => calendarRoomRef.value?.getTimelineVersion?.() ?? 0);
 
 	const currentRoomId = computed(() => roomsStore.currentRoom?.roomId ?? null);
 
@@ -176,9 +176,9 @@
 			start: event.startTime ?? event.start,
 			end: event.endTime ?? event.end,
 			allDay: event.isAllDay ?? event.allDay,
-			backgroundColor: event.color ?? '#3788d8',
-			borderColor: event.color ?? '#3788d8',
-			textColor: getContrastTextColor(event.color ?? '#3788d8'),
+			backgroundColor: event.color ?? '#00adee',
+			borderColor: event.color ?? '#00adee',
+			textColor: getContrastTextColor(event.color ?? '#00adee'),
 			extendedProps: {
 				location: event.location ?? '',
 				room: event.room ?? [],
@@ -213,7 +213,6 @@
 		const room = await initCalendarRoom();
 		if (room) {
 			calendarRoomRef.value = room;
-			calendarTimelineVersion.value = room.getTimelineVersion?.() ?? 0;
 			await loadAllEvents();
 		}
 	});
@@ -228,7 +227,7 @@
 		return {
 			title: payload.title,
 			description: payload.description ?? '',
-			color: payload.color ?? '#3788d8',
+			color: payload.color ?? '#00adee',
 			isAllDay: payload.allDay ?? false,
 			startTime: new Date(payload.start),
 			endTime: new Date(payload.end ?? payload.start),

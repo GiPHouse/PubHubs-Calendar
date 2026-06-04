@@ -171,15 +171,4 @@
 		updateOptions();
 	};
 
-	// const fillingOption = (id: number) => {
-	// 	console.log('fillingOption', id);
-	// 	scheduler.value.options.forEach((option) => {
-	// 		if (option.id === id) {
-	// 			option.status = SchedulerOptionStatus.FILLING;
-	// 			selectingDateOption.value = id;
-	// 		} else if (option.status === SchedulerOptionStatus.FILLING) {
-	// 			option.status = option.date.length > 0 ? SchedulerOptionStatus.FILLED : SchedulerOptionStatus.EMPTY;
-	// 		}
-	// 	});
-	// };
 </script>
