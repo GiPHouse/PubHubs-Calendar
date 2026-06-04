@@ -77,84 +77,39 @@
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import { useCalendarEvents } from '@hub-client/composables/calendar.composable';
+	import { mapToFullCalendarEvent, buildCalendarEventPayload } from '@hub-client/composables/calendarUtility';
+	import { useCalendarEvents, findAndJoinCalendarRoom, initCalendarRoom } from '@hub-client/composables/calendar.composable';
 
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
-
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useSettings } from '@hub-client/stores/settings';
 
 	const { t, locale } = useI18n();
 	const settings = useSettings();
 	const roomsStore = useRooms();
-	const pubhubsStore = usePubhubsStore();
 	const { getCalendarEvents, createCalendarEvent, updateCalendarEvent, removeCalendarEvent } = useCalendarEvents();
 
 	const calendarRoomRef = ref(null);
-	const allEvents = ref([]); // all events from calendar room
+	const allEvents = ref([]);
 	const loading = ref(false);
 	const calendarTimelineVersion = computed(() => calendarRoomRef.value?.getTimelineVersion?.() ?? 0);
 
 	const currentRoomId = computed(() => roomsStore.currentRoom?.roomId ?? null);
-
-	const currentRoomName = computed(
-		() => roomsStore.currentRoom?.name ?? ''
-	);
+	const currentRoomName = computed(() => roomsStore.currentRoom?.name ?? '');
 
 	const filteredEvents = computed(() => {
 		if (!currentRoomId.value) return [];
-		const currentRoomName = roomsStore.currentRoom?.name ?? '';
-		
+		const roomName = roomsStore.currentRoom?.name ?? '';
 		return allEvents.value.filter((event) => {
 			const eventRooms = event.extendedProps?.room ?? event.room ?? [];
 			const rooms = Array.isArray(eventRooms) ? eventRooms : [eventRooms];
-			return rooms.includes(currentRoomId.value) || rooms.includes(currentRoomName);
+			return rooms.includes(currentRoomId.value) || rooms.includes(roomName);
 		});
 	});
-
-	async function findAndJoinCalendarRoom() {
-		await roomsStore.waitForInitialRoomsLoaded();
-		const existing = Object.values(roomsStore.rooms).find((r) => r.getType() === RoomType.PH_MESSAGES_CALENDAR);
-		if (existing) return existing;
-
-		const knownMatrix = pubhubsStore.getAllRooms().find((r) => r.getType() === RoomType.PH_MESSAGES_CALENDAR);
-		if (knownMatrix) {
-			if (!roomsStore.rooms[knownMatrix.roomId]) {
-				roomsStore.initRoomsWithMatrixRoom(knownMatrix, knownMatrix.name, RoomType.PH_MESSAGES_CALENDAR, []);
-			}
-			return roomsStore.rooms[knownMatrix.roomId];
-		}
-
-		const roomData = roomsStore.roomList.find((r) => r.roomType === RoomType.PH_MESSAGES_CALENDAR);
-		if (!roomData) return null;
-		if (!roomsStore.rooms[roomData.roomId]) {
-			await roomsStore.joinRoomListRoom(roomData.roomId);
-		}
-		return roomsStore.rooms[roomData.roomId];
-	}
-
-	async function initCalendarRoom() {
-		let room = await findAndJoinCalendarRoom();
-		if (!room) {
-			const result = await pubhubsStore.createRoom({
-				name: 'Calendar Room',
-				creation_content: { type: RoomType.PH_MESSAGES_CALENDAR },
-				topic: 'Room for calendar events',
-			});
-			if (!result) return null;
-			await roomsStore.joinRoomListRoom(result.room_id);
-			room = roomsStore.rooms[result.room_id];
-		}
-		room.initTimeline();
-		return room;
-	}
 
 	async function loadAllEvents() {
 		if (!calendarRoomRef.value) return;
 		loading.value = true;
 		try {
-			// Paginate to ensure all events are fetched
 			const oldestId = calendarRoomRef.value.getTimelineOldestMessageId();
 			if (oldestId) {
 				await calendarRoomRef.value.paginate(Direction.Backward, 50, oldestId);
@@ -168,47 +123,8 @@
 		}
 	}
 
-	// basically same as in Calendar.vue
-	function mapToFullCalendarEvent(event) {
-		return {
-			id: event.id,
-			title: event.title,
-			start: event.startTime ?? event.start,
-			end: event.endTime ?? event.end,
-			allDay: event.isAllDay ?? event.allDay,
-			backgroundColor: event.color ?? '#00adee',
-			borderColor: event.color ?? '#00adee',
-			textColor: getContrastTextColor(event.color ?? '#00adee'),
-			extendedProps: {
-				location: event.location ?? '',
-				room: event.room ?? [],
-				description: event.description ?? '',
-			},
-		};
-	}
-
-	function getContrastTextColor(bgColor) {
-		// same helper as Calendar.vue
-		let r, g, b;
-		if (bgColor.startsWith('#')) {
-			const hex = bgColor.replace('#', '');
-			const bigint = parseInt(hex, 16);
-			r = (bigint >> 16) & 255;
-			g = (bigint >> 8) & 255;
-			b = bigint & 255;
-		} else {
-			const rgb = bgColor.match(/\d+/g)?.map(Number);
-			if (!rgb) return 'white';
-			[r, g, b] = rgb;
-		}
-		const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-		return brightness > 150 ? 'black' : 'white';
-	}
-
-	// Watch timeline changes (new events, edits, deletions)
 	watch(calendarTimelineVersion, () => loadAllEvents());
 
-	// Initialize on mount
 	onMounted(async () => {
 		const room = await initCalendarRoom();
 		if (room) {
@@ -223,30 +139,15 @@
 	const selectedEventForEdit = ref(null);
 	const selectedEvent = ref(null);
 
-	function createEventObject(payload, eventId = null) {
-		return {
-			title: payload.title,
-			description: payload.description ?? '',
-			color: payload.color ?? '#00adee',
-			isAllDay: payload.allDay ?? false,
-			startTime: new Date(payload.start),
-			endTime: new Date(payload.end ?? payload.start),
-			location: payload.location ?? '',
-			room: payload.room ?? [],
-			...(eventId && { id: eventId }),
-		};
-	}
-
 	async function handleAddEvent(newEvent) {
 		if (!calendarRoomRef.value) return;
 		try {
 			if (selectedEventForEdit.value) {
-				await updateCalendarEvent(calendarRoomRef.value.roomId, selectedEventForEdit.value.id, createEventObject(newEvent, selectedEventForEdit.value.id));
+				await updateCalendarEvent(calendarRoomRef.value.roomId, selectedEventForEdit.value.id, buildCalendarEventPayload(newEvent, selectedEventForEdit.value.id));
 				selectedEventForEdit.value = null;
 			} else {
-				await createCalendarEvent(calendarRoomRef.value.roomId, createEventObject(newEvent));
+				await createCalendarEvent(calendarRoomRef.value.roomId, buildCalendarEventPayload(newEvent));
 			}
-			// Reload events after change
 			await loadAllEvents();
 		} catch (err) {
 			console.error('Failed to save event', err);
@@ -295,7 +196,6 @@
 		showEventCreationDialog.value = true;
 	}
 
-	// Helper for time formatting (unchanged)
 	function formatTime(date) {
 		if (!date) return '';
 		const d = date instanceof Date ? date : new Date(date);
@@ -310,7 +210,6 @@
 		return m === 0 ? `${hour12} ${period}` : `${hour12}:${String(m).padStart(2, '0')} ${period}`;
 	}
 
-	// Group events by date (using filteredEvents)
 	const groupedEvents = computed(() => {
 		const sorted = [...filteredEvents.value].sort((a, b) => new Date(a.start) - new Date(b.start));
 		const today = new Date();
@@ -334,7 +233,7 @@
 		return Object.values(groups);
 	});
 
-	// Mobile detection (optional – you already have isMobile in template)
+	//Mobile version
 	const isMobile = computed(() => window.innerWidth < 768);
 </script>
 
