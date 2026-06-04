@@ -1,5 +1,5 @@
 <template>
-	<CustomDialog :title="event.title" :show-delete="canEdit" :show-edit="canEdit" @close="$emit('close')" @edit="onEdit" @delete="onDelete">
+	<CustomDialog :title="event.title" :show-delete="canEdit" :show-edit="canEdit" @close="$emit('close')" @edit="onEdit" @delete="showDeleteDialog = true">
 		<form class="space-y-4">
 			<!-- Date -->
 			<div>
@@ -42,18 +42,27 @@
 			</div>
 		</form>
 	</CustomDialog>
+
+	<DeleteEventConfirmDialog
+        v-if="showDeleteDialog"
+        :eventId="event.id"
+        @delete="(id) => emit('delete', id)"
+        @close="showDeleteDialog = false"
+    />
 </template>
 
 <script setup lang="ts">
 	import CustomDialog from '../ui/CustomDialog.vue';
-	import { computed } from 'vue';
+	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
 	import Dialog from '@hub-client/components/ui/Dialog.vue';
+	import DeleteEventConfirmDialog from './DeleteEventConfirmDialog.vue';
 
+	const showDeleteDialog = ref(false);
 	const { t, locale } = useI18n();
 	const { formatDate } = useTimeFormat();
 
@@ -112,9 +121,5 @@
 
 	function onEdit() {
 		emit('edit', props.event);
-	}
-
-	function onDelete() {
-		emit('delete', props.event.id);
 	}
 </script>
