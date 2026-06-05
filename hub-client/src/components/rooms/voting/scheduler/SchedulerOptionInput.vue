@@ -1,185 +1,198 @@
 <template>
-	<div class="rounded-md">
-		<div class="mb-2 flex items-center border-b p-2">
-			<Icon type="calendar" size="base" class="mx-2 flex-none" />
-			
-			<H3 class="flex-grow">
-				{{ $t('message.scheduler') }}
-			</H3>
+	<button v-if="option.status === 'empty'" class="bg-background hover:bg-surface-high relative mb-1 flex h-[42px] w-full rounded-lg border text-left">
+		<div class="mx-2 flex w-full items-center">
+			<VueDatePicker id="schedulerDatePickerInput" class="" offset="20" v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" @update:model-value="updateDateOption">
+				<template #trigger>
+					<p class="text-label flex-1">{{ $t('message.voting.add_option') }}</p>
+				</template>
+				<template #action-preview="{ value }">
+					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+				</template>
+			</VueDatePicker>
+		</div>
+	</button>
 
-			<div class="flex flex-none items-center">
-				<IconButton
-					type="x"
-					size="sm"
-					@click="emit('closeScheduler')"
-					class="ml-2"
-				/>
-			</div>
-		</div>
-		<div class="flex items-center p-2">
-			<div class="ml-1 flex w-full flex-col justify-between">
-				<div class="flex w-full flex-row">
-					<input
-						v-model="scheduler.title"
-						type="text"
-						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-md p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-						:placeholder="$t('message.voting.enter_title')"
-						maxlength="100"
-						@input="updateScheduler"
-					/>
-				</div>
-				<div class="relative flex w-full">
-					<input
-						v-model="scheduler.location"
-						type="text"
-						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-md p-100 pl-7 pl-400 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-						:placeholder="$t('message.voting.enter_location')"
-					/>
-					<Icon type="map-pin" class="absolute top-1 left-0 ml-1"></Icon>
-				</div>
-				<div class="-mb-1 flex w-full flex-row justify-stretch">
-					<div class="scrollbar-emojipicker mr-2 w-9/12" id="optionsContainer">
-						<div v-for="option in sortedOptions" :key="option.id">
-							<SchedulerOptionInput :key="option.id" :option="option" @removeOption="removeOption(option.id)" @updateOption="(date, fullDay) => updateDateOption(option.id, date, fullDay)" />
-						</div>
-						<div v-if="scheduler.options.length < 2" class="bg-background mb-1 h-[42px] w-full rounded-lg border"></div>
-						<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
+	<div v-else-if="option.status === 'filled'" class="bg-background hover:bg-surface-high mb-1 flex h-[42px] w-full items-center justify-between rounded-lg border">
+		<div class="flex w-full items-center overflow-hidden">
+			<!-- Date picker trigger -->
+			<VueDatePicker
+				v-model="date"
+				:six-weeks="'fair'"
+				:is-24="is24HourFormat"
+				:locale="locale"
+				range
+				dark
+				:min-date="new Date()"
+				:enable-time-picker="!fullDay"
+				class="m-auto min-w-10 flex-1 overflow-hidden"
+				@internal-model-change="handleInternal"
+				@update:model-value="updateDateOption"
+			>
+				<template #trigger>
+					<div class="mx-2 cursor-pointer text-left">
+						<div class="text-label truncate">{{ filters.getDateStr(option.date, is24HourFormat, d) }}</div>
 					</div>
-					<div class="bg-hub-background mb-1 max-h-full w-3/12 rounded-lg border">
-						<div v-if="settingsMenu">
-							<div class="mt-3 ml-3">
-								<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
-							</div>
+				</template>
+				<template #action-preview="{ value }">
+					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+				</template>
+				<!-- Only inject time picker overlay when NOT full day -->
+				<template v-if="!fullDay" #time-picker-overlay>
+					<div class="time-picker-overlay">
+						<div v-if="isRangeComplete">
+							<VueDatePicker v-model="time" auto-apply inline dark :range="rangeOptions" :time-picker="true" :time="time" @update:modelValue="updateTime" />
 						</div>
-						<textarea
-							v-else
-							v-model="scheduler.description"
-							class="scrollbar-emojipicker bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface h-full w-full resize-none rounded-lg p-100 focus:ring-0 focus:outline-0 focus:outline-offset-0"
-							maxlength="500"
-							:placeholder="$t('message.voting.enter_description')"
-							@input="updateScheduler"
-						></textarea>
+						<div v-else>
+							<VueDatePicker v-model="time" auto-apply inline dark :time-picker="true" :time="time" @update:modelValue="updateTime" />
+						</div>
 					</div>
-				</div>
-			</div>
+				</template>
+			</VueDatePicker>
+
+			<!-- Full day toggle -->
+			
+			<button
+				class="ml-auto flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-xs transition-all"
+				:class="fullDay
+					? 'text-primary'
+					: 'text-label-muted hover:text-label'"
+				@click.stop="toggleFullDay"
+				:title="fullDay ? $t('message.voting.disable_full_day') : $t('message.voting.full_day')"
+			>
+				<span class="whitespace-nowrap text-xs">{{ $t('message.voting.full_day') }}</span>
+				<!-- Toggle switch -->
+				<span
+					class="relative inline-flex h-3 w-5 shrink-0 items-center rounded-full transition-colors duration-200"
+					:class="fullDay ? 'bg-accent-blue border-accent-blue justify-end' : 'bg-accent-blue border-accent-blue'"
+				>
+					<span
+						class="inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform duration-200"
+						:class="fullDay ? 'translate-x-3.5' : 'translate-x-0.5'"
+					/>
+				</span>
+			</button>
+
+			<div class="mx-1 h-5 w-px shrink-0 bg-border opacity-50" />
+
+			<Icon type="trash" :as-button="true" size="sm" :icon-color="'text-accent-red'" @click="emit('removeOption')" class="mr-2 shrink-0" />
 		</div>
-		<VotingWidgetSubmitButton :disabled="!scheduler.canSend()" :isEdit="isEdit" @send="emit('sendScheduler')" @edit="emit('editScheduler')"></VotingWidgetSubmitButton>
 	</div>
 </template>
 
 <script setup lang="ts">
-	// Packages
-	import { computed, nextTick, ref, watch } from 'vue';
-
-	// Components
+	import { computed, onMounted, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
-	import SchedulerOptionInput from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionInput.vue';
+	import filters from '@hub-client/logic/core/filters';
+	import { SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
+	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
+	import { languageLocale } from '@hub-client/i18n';
 
-	// Models
-	import { Scheduler, SchedulerOption, SchedulerOptionStatus } from '@hub-client/models/events/voting/VotingTypes';
+	const emit = defineEmits(['updateOption', 'removeOption']);
+	const settings = useSettings();
+	const { d, locale: i18nLocale } = useI18n();
 
-	const props = defineProps({
-		schedulerObject: {
-			type: [Scheduler, null],
-			required: true,
-		},
-		isEdit: {
-			type: Boolean,
-			required: true,
-		},
+	const locale = languageLocale[i18nLocale.value];
+
+	const date = ref<[Date | null, Date | null]>([null, null]);
+	const dateBeforeSaved = ref<[Date | null, Date | null]>([null, null]);
+	const time = ref();
+	const rangeOptions = ref({ disableTimeRangeValidation: false });
+	const fullDay = ref(false); // ← properly initialized below in onMounted
+
+	const is24HourFormat = computed(() => {
+		return settings.timeformat === TimeFormat.format24;
 	});
 
-	const emit = defineEmits(['createScheduler', 'sendScheduler', 'editScheduler', 'closeScheduler']);
-	const scheduler = ref(props.schedulerObject ? props.schedulerObject : new Scheduler());
-	const settingsMenu = ref(false);
-	const selectingDateOption = ref(-1);
-	const date = ref();
-
-	watch(
-		() => props.schedulerObject,
-		(newScheduler) => {
-			if (newScheduler) {
-				scheduler.value = newScheduler;
-			} else {
-				scheduler.value = new Scheduler();
-			}
-		},
-	);
-
-	const sortedOptions = computed(() => {
-		const clonedOptions = JSON.parse(JSON.stringify(scheduler.value.options)) as SchedulerOption[];
-		clonedOptions.sort((a, b) => {
-			let dateA, dateB;
-			if (typeof a.date === 'string') {
-				dateA = new Date(a.date);
-			} else {
-				dateA = new Date(a.date[0]);
-			}
-			if (typeof b.date === 'string') {
-				dateB = new Date(b.date);
-			} else {
-				dateB = new Date(b.date[0]);
-			}
-			return dateA.getTime() - dateB.getTime();
-		});
-		return clonedOptions;
+	const isRangeComplete = computed(() => {
+		return dateBeforeSaved.value?.[1] !== null;
 	});
 
-	const updateScheduler = () => {
-		emit('createScheduler', scheduler.value, scheduler.value.canSend());
-	};
+	const props = defineProps<{
+		option: SchedulerOption;
+	}>();
 
-	function updateDateOption(optionId: Number, date: Date[], fullDay: boolean) {
-		const option = scheduler.value.options.find((option) => option.id === optionId);
-		if (option) {
-			option.date = date;
-			option.status = SchedulerOptionStatus.FILLED;
-			option.fullDay = fullDay;
-		}
-		updateScheduler();
-		scheduler.value.addNewOptionsIfAllFilled();
+	function getTime(date: Date) {
+		return {
+			hours: date.getHours(),
+			minutes: date.getMinutes(),
+		};
 	}
 
-	const updateOptions = () => {
-		const option = scheduler.value.options.find((option) => option.id === selectingDateOption.value);
-		if (option) {
-			option.date = date.value;
-			date.value = {};
-			option.status = SchedulerOptionStatus.FILLED;
-			selectingDateOption.value = -1;
+	// ← Key fix: read fullDay from the prop on mount
+	onMounted(() => {
+		fullDay.value = props.option.fullDay ?? false;
+
+		if (props.option.date.length === 0) {
+			const coeff = 1000 * 60 * 5;
+			const rounded = new Date(Math.ceil(Date.now() / coeff) * coeff);
+			const plusOneHour = new Date(rounded.getTime() + 60 * 60 * 1000);
+			date.value = [rounded, plusOneHour];
+			time.value = [getTime(rounded), getTime(plusOneHour)];
+		} else {
+			const startDate = new Date(props.option.date[0]);
+			let endDate = null;
+			if (props.option.date[1] !== null) {
+				endDate = new Date(props.option.date[1]);
+				time.value = [getTime(startDate), getTime(endDate)];
+			} else {
+				time.value = getTime(startDate);
+			}
+			date.value = [startDate, endDate];
 		}
+	});
 
-		updateScheduler();
-		scheduler.value.addNewOptionsIfAllFilled();
+	// ← New: toggle full day on/off
+	function toggleFullDay() {
+		fullDay.value = !fullDay.value;
+		if (fullDay.value) {
+			// Strip times to midnight–23:59
+			const start = new Date(date.value[0]!);
+			start.setHours(0, 0, 0, 0);
+			const end = date.value[1] ? new Date(date.value[1]) : null;
+			if (end) end.setHours(23, 59, 0, 0);
+			date.value = [start, end];
+		}
+		emit('updateOption', date.value, fullDay.value);
+	}
 
-		//scroll to the bottom of the options container
-		nextTick(() => {
-			const container = document.getElementById('optionsContainer');
-			if (container) {
-				container.scrollTop = container.scrollHeight;
+	const handleInternal = (dates: any) => {
+		if (dates && dates.length === 1) {
+			dateBeforeSaved.value = [dates[0], null];
+		} else if (dates) {
+			dateBeforeSaved.value = dates;
+			time.value = [getTime(dates[0]), getTime(dates[1])];
+			if (equalDayMonthYear(dates[0], dates[1])) {
+				rangeOptions.value = { disableTimeRangeValidation: false };
+			} else {
+				rangeOptions.value = { disableTimeRangeValidation: true };
 			}
-			const mobileContainer = document.getElementById('mobileOptionsContainer');
-			if (mobileContainer) {
-				mobileContainer.scrollTop = mobileContainer.scrollHeight;
-			}
-		});
+		}
 	};
 
-	const removeOption = (id: number) => {
-		scheduler.value.removeOption(id);
-		updateOptions();
+	function equalDayMonthYear(date1: Date, date2: Date) {
+		const normalizedDate1 = new Date(date1);
+		const normalizedDate2 = new Date(date2);
+		normalizedDate1.setHours(0, 0, 0, 0);
+		normalizedDate2.setHours(0, 0, 0, 0);
+		return normalizedDate1.getTime() === normalizedDate2.getTime();
+	}
+
+	const updateTime = (time: { hours: number; minutes: number } | Array<{ hours: number; minutes: number }>) => {
+		if (!Array.isArray(time)) {
+			time = [time];
+		}
+		const updatedStartDate = new Date(dateBeforeSaved.value[0]!);
+		updatedStartDate.setHours(time[0].hours, time[0].minutes);
+		let updatedEndDate = null;
+		if (dateBeforeSaved.value[1] !== null) {
+			updatedEndDate = new Date(dateBeforeSaved.value[1]!);
+			updatedEndDate.setHours(time[1].hours, time[1].minutes);
+		}
+		date.value = [updatedStartDate, updatedEndDate];
 	};
 
-	// const fillingOption = (id: number) => {
-	// 	console.log('fillingOption', id);
-	// 	scheduler.value.options.forEach((option) => {
-	// 		if (option.id === id) {
-	// 			option.status = SchedulerOptionStatus.FILLING;
-	// 			selectingDateOption.value = id;
-	// 		} else if (option.status === SchedulerOptionStatus.FILLING) {
-	// 			option.status = option.date.length > 0 ? SchedulerOptionStatus.FILLED : SchedulerOptionStatus.EMPTY;
-	// 		}
-	// 	});
-	// };
+	function updateDateOption() {
+		emit('updateOption', date.value, fullDay.value);
+	}
 </script>
