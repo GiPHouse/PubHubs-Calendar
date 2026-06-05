@@ -6,6 +6,8 @@ import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEven
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { initMatrixService } from '@hub-client/services/matrix.service';
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import * as roomsModule from '@hub-client/stores/rooms';
+import * as matrixComposable from '@hub-client/composables/matrix.composable';
 
 describe("Calendar Store", () => {
 	beforeEach(() => {
@@ -59,16 +61,18 @@ describe("Calendar Store", () => {
 
 	test('editCalendarEvent sends modify event and deletes the original calendar event', async () => {
 		const sendEventMock = vi.fn(async () => ({}));
+		const redactEventMock = vi.fn(async () => ({}));
 		const matrixServiceStub = initMatrixService({} as any);
 		(matrixServiceStub as any).sendEvent = sendEventMock;
 
-		const pubhubs = usePubhubsStore() as any;
-		const deleteMessageMock = vi.spyOn(pubhubs, 'deleteMessage').mockResolvedValue(undefined as any);
+		vi.spyOn(matrixComposable, 'useMatrix').mockReturnValue({
+			sendEvent: sendEventMock,
+			redactEvent: redactEventMock,
+		} as any);
 
 		const calendarStore = useCalendarStore();
 		const startTime = new Date('2026-03-29T12:00:00.000Z');
 		const endTime = new Date('2026-03-29T13:00:00.000Z');
-		// const event = new CalendarEvent('Some Event', 'Some cool description', '#3788d8', false, startTime, endTime);
 		const event: TCalendarEvent = {
 			msgtype: PubHubsMgType.CalendarEvent,
 			body: 'Some Event',
@@ -84,37 +88,35 @@ describe("Calendar Store", () => {
 
 		expect(sendEventMock).toHaveBeenCalledTimes(1);
 		expect(sendEventMock).toHaveBeenCalledWith('!room:example', PubHubsMgType.CalendarEvent, {
-			msgtype: PubHubsMgType.CalenderEventEdit,
+			msgtype: PubHubsMgType.CalendarEvent,
 			body: 'Some Event',
 			title: 'Some Event',
 			description: 'Some cool description',
 			color: '#3788d8',
-			location: '',
+			location: undefined,
 			isAllDay: false,
 			startTime,
 			endTime,
-			'm.relates_to': {
-				event_id: '$event123',
-				rel_type: PubHubsMgType.CalenderEventEdit,
-			},
 		});
-		expect(deleteMessageMock).toHaveBeenCalledTimes(1);
-		expect(deleteMessageMock).toHaveBeenCalledWith('!room:example', '$event123');
+		expect(redactEventMock).toHaveBeenCalledTimes(1);
+		expect(redactEventMock).toHaveBeenCalledWith('!room:example', '$event123');
 	});
 
 	test('delCalendarEvent redacts the event via the pubhubs store', async () => {
-		const pubhubs = usePubhubsStore() as any;
-		const delMessageMock = vi.spyOn(pubhubs, 'deleteMessage').mockResolvedValue(undefined as any);
+		const redactEventMock = vi.fn(async () => ({}));
+
+		vi.spyOn(matrixComposable, 'useMatrix').mockReturnValue({
+			redactEvent: redactEventMock,
+		} as any);
 
 		const calendarStore = useCalendarStore();
 		await calendarStore.delCalendarEvent('!room:example', '$event123');
 
-		expect(delMessageMock).toHaveBeenCalledTimes(1);
-		expect(delMessageMock).toHaveBeenCalledWith('!room:example', '$event123');
+		expect(redactEventMock).toHaveBeenCalledTimes(1);
+		expect(redactEventMock).toHaveBeenCalledWith('!room:example', '$event123');
 	});
 
 	test('getCalendarEvents returns only calendar events from the room timeline', async () => {
-		const pubhubs = usePubhubsStore() as any;
 		const mockCalendarEvent = {
 			getType: () => PubHubsMgType.CalendarEvent,
 			getId: () => '$event123',
@@ -130,13 +132,12 @@ describe("Calendar Store", () => {
 		}
 
 		const mockRoom = {
-			getLiveTimeline: () => ({
-				getEvents: () => [mockCalendarEvent],
-			}),
+			roomId: '!example:room',
+			getLiveTimelineEventsCalendar: () => [mockCalendarEvent],
 		}
 
-		// Have getRoom return the mock room so that we don't need to run a "real" hub
-		vi.spyOn(pubhubs, 'getRoom').mockReturnValue(mockRoom as any);
+		// Mock useRooms to prevent running a "real" hub
+		vi.spyOn(roomsModule, 'useRooms').mockReturnValue({ rooms: { '!example:room': mockRoom } } as any);
 
 		const calendarStore = useCalendarStore();
 		const events = await calendarStore.getCalendarEvents(mockRoom as any);
@@ -156,10 +157,11 @@ describe("Calendar Store", () => {
 	});
 
 	test('getCalendarEvents throws when the target room is not found', async () => {
-		const pubhubs = usePubhubsStore() as any;
-		vi.spyOn(pubhubs, 'getRoom').mockReturnValue(undefined as any);
+		const mockRoom = { roomId: '!notfound:room' } as any;
+		
+		vi.spyOn(roomsModule, 'useRooms').mockReturnValue({ rooms: {} } as any);
 
 		const calendarStore = useCalendarStore();
-		await expect(calendarStore.getCalendarEvents(undefined as any)).rejects.toThrow('Room not found');
+		await expect(calendarStore.getCalendarEvents(mockRoom)).rejects.toThrow('Room not found');
 	});
 });

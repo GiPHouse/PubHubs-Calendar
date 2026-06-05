@@ -180,6 +180,14 @@ After doing this, restart the hub server, or close `mask run all` and run it aga
 - If you get an issue regarding an attempt to write to a read-only database, run `sudo chown -R 991:991 pubhubs_hub/testhub0`.
 
 ---
+# Testing Instructions
+
+1. Ensure you are in the hub-client folder: `cd hub-client/`
+2. Make sure the `npm` packages are up to date: `npm install`
+2. Use `npm` to run the tests: `npm run test`
+3. The test should run, indicating what has (not) passed.
+
+---
 <!-- 
 ## Further documentation & changelog
 
