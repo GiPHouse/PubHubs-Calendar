@@ -17,14 +17,11 @@
 			</div>
 
 			<!-- Location -->
-			<div
-				v-if="event.extendedProps?.location"
-				class="flex items-start gap-3"
-			>
+			<div v-if="event.extendedProps?.location" class="flex items-start gap-3">
 				<Icon type="map-pin" class="mt-1 shrink-0" />
 
 				<div>
-					<div class="text-xs tracking-wide text-on-surface/60">
+					<div class="text-on-surface/60 text-xs tracking-wide">
 						{{ $t('calendar.location') }}
 					</div>
 
@@ -35,36 +32,26 @@
 			</div>
 
 			<!-- Room -->
-			<div
-				v-if="event.extendedProps?.room?.length"
-				class="flex items-start gap-3"
-			>
+			<div v-if="event.extendedProps?.room?.length" class="flex items-start gap-3">
 				<Icon type="users" class="mt-1 shrink-0" />
 
 				<div>
-					<div class="text-xs tracking-wide text-on-surface/60">
+					<div class="text-on-surface/60 text-xs tracking-wide">
 						{{ $t('calendar.room') }}
 					</div>
 
 					<div class="text-on-surface">
-						{{
-							Array.isArray(event.extendedProps.room)
-								? event.extendedProps.room.join(', ')
-								: event.extendedProps.room
-						}}
+						{{ Array.isArray(event.extendedProps.room) ? event.extendedProps.room.join(', ') : event.extendedProps.room }}
 					</div>
 				</div>
 			</div>
 
 			<!-- Description -->
-			<div
-				v-if="event.extendedProps?.description"
-				class="flex items-start gap-3"
-			>
+			<div v-if="event.extendedProps?.description" class="flex items-start gap-3">
 				<Icon type="chat-circle-text" class="mt-1 shrink-0" />
 
 				<div class="min-w-0">
-					<div class="text-xs tracking-wide text-on-surface/60">
+					<div class="text-on-surface/60 text-xs tracking-wide">
 						{{ $t('calendar.description') }}
 					</div>
 
@@ -76,31 +63,25 @@
 		</form>
 	</CustomDialog>
 
-	<DeleteEventConfirmDialog
-        v-if="showDeleteDialog"
-        :eventId="event.id"
-        @delete="(id) => emit('delete', id)"
-        @close="showDeleteDialog = false"
-    />
+	<DeleteEventConfirmDialog v-if="showDeleteDialog" :eventId="event.id" @delete="(id) => emit('delete', id)" @close="showDeleteDialog = false" />
 </template>
 
 <script setup lang="ts">
 	import CustomDialog from '../ui/CustomDialog.vue';
+	import DeleteEventConfirmDialog from './DeleteEventConfirmDialog.vue';
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
-	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
-	import Dialog from '@hub-client/components/ui/Dialog.vue';
-	import DeleteEventConfirmDialog from './DeleteEventConfirmDialog.vue';
-
-	const showDeleteDialog = ref(false);
-	const { t, locale } = useI18n();
-	const { formatDate } = useTimeFormat();
 
 	import { downloadIcsFromEvent } from '@hub-client/logic/calendar.logic';
 
 	import { TCalendarEvent } from '@hub-client/models/events/calendar/TCalendarEvent';
+
+	const showDeleteDialog = ref(false);
+
+	const { locale } = useI18n();
+	const { formatDate } = useTimeFormat();
 
 	interface Props {
 		event: any;
@@ -110,9 +91,6 @@
 	const props = withDefaults(defineProps<Props>(), {
 		canEdit: false,
 	});
-
-	const { t, locale } = useI18n();
-	const { formatDate } = useTimeFormat();
 
 	const emit = defineEmits(['close', 'edit', 'delete']);
 
